@@ -91,7 +91,7 @@ fn logic(which: BoolExprType, rhs: &mut Reduction<'_, Value>) -> Result<Node, Fa
     .into())
 }
 
-fn checked_fields(fields: &[Node]) -> Result<(), Failure> {
+pub(super) fn checked_fields(fields: &[Node]) -> Result<(), Failure> {
     if fields
         .iter()
         .rev()

@@ -36,7 +36,7 @@ fn main() {
             "duplicate rule {rule}"
         );
     }
-    let mut arms = BTreeMap::<&str, Vec<String>>::new();
+    let mut arms = BTreeMap::<&str, Vec<usize>>::new();
     for (i, row) in table.lines().enumerate() {
         let mut fields = row.split('\t');
         let rule = fields.next().unwrap();
@@ -44,7 +44,7 @@ fn main() {
         if let Some((pinned, action)) = actions.remove(rule) {
             assert_eq!(pinned, hash, "PostgreSQL action changed for {rule}");
             assert_ne!(hash, "default", "engine owns Bison default for {rule}");
-            arms.entry(action).or_default().push((i + 1).to_string());
+            arms.entry(action).or_default().push(i + 1);
         }
     }
     assert!(
@@ -54,7 +54,17 @@ fn main() {
     );
     let mut code = String::from("fn action(id: u16) -> Option<Op> {\n    use Op::*;\n    use crate::{expr::Expr as E, query::Query as Q, value::Quantifier as Qu};\n    use pg19_nodes::{AExprKind, BoolExprType, BoolTestType, NullTestType, SetOperation};\n    Some(match id {\n");
     for (op, numbers) in arms {
-        code.push_str(&format!("        {} => {op},\n", numbers.join(" | ")));
+        let patterns: Vec<_> = numbers
+            .chunk_by(|a, b| *a + 1 == *b)
+            .map(|run| {
+                if run.len() == 1 {
+                    run[0].to_string()
+                } else {
+                    format!("{}..={}", run[0], run[run.len() - 1])
+                }
+            })
+            .collect();
+        code.push_str(&format!("        {} => {op},\n", patterns.join(" | ")));
     }
     code.push_str("        _ => return None,\n    })\n}\n");
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("actions.rs");

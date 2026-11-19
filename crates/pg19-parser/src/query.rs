@@ -8,6 +8,12 @@ use pg19_nodes::*;
 
 pub(super) enum Query {
     Statements,
+    TypeStart,
+    PlStart(Option<i32>),
+    PlExpression,
+    Assignment,
+    ParameterName,
+    Values(bool),
     First,
     Next,
     Target(Option<isize>),
@@ -56,6 +62,60 @@ fn select(distinct: bool, rhs: &mut Reduction<'_, Value>) -> Result<SelectStmt, 
 
 pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(match action {
+        Query::PlStart(nnames) => {
+            let mut node = rhs.take(2).node()?;
+            if let Some(nnames) = nnames {
+                let Node::PLAssignStmt(n) = &mut node else {
+                    return Err("expected PLAssignStmt".into());
+                };
+                n.nnames = nnames;
+            }
+            Value::List(vec![RawStmt::new(node, rhs.location(2)).into()])
+        }
+        Query::Assignment => {
+            let fields = rhs.take(2).list()?;
+            super::expr::checked_fields(&fields)?;
+            Value::Node(
+                PLAssignStmt {
+                    name: Some(rhs.take(1).text()?),
+                    indirection: fields,
+                    nnames: 0,
+                    val: Some(rhs.take(4).select()?.into_box()),
+                    location: rhs.location(1),
+                }
+                .into(),
+            )
+        }
+        Query::ParameterName => Value::Text(format!("${}", rhs.take(1).integer()?)),
+        Query::PlExpression => {
+            let (group_clause, group_distinct) = rhs.take(5).group()?;
+            let mut stmt = SelectStmt {
+                distinct_clause: rhs.take(1).list()?,
+                target_list: rhs.take(2).list()?,
+                from_clause: rhs.take(3).list()?,
+                where_clause: rhs.take(4).optional()?,
+                group_clause,
+                group_distinct,
+                having_clause: rhs.take(6).optional()?,
+                window_clause: rhs.take(7).list()?,
+                sort_clause: rhs.take(8).list()?,
+                locking_clause: rhs.take(10).list()?,
+                ..Default::default()
+            };
+            super::limits::apply(&mut stmt, rhs.take(9), false)?;
+            Value::Node(stmt.into())
+        }
+        Query::Values(more) => {
+            let mut stmt = if more {
+                rhs.take(1).select()?
+            } else {
+                SelectStmt::default().into()
+            };
+            let row = rhs.take(if more { 4 } else { 3 }).list()?;
+            stmt.values_lists.push(Node::from(row));
+            Value::Node(stmt.into())
+        }
+        Query::TypeStart => Value::List(vec![rhs.take(2).node()?]),
         Query::Statements => {
             let list = rhs.take(1).statements()?;
             Value::List(list.into_statements().into_iter().map(Node::from).collect())

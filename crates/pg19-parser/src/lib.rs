@@ -3,7 +3,9 @@
 mod call;
 mod expr;
 mod from;
+mod limits;
 mod query;
+mod types;
 mod utility;
 mod value;
 
@@ -55,6 +57,8 @@ enum Op {
     Take(isize),
     Integer(i32),
     Call(call::Call),
+    Limit(limits::Limit),
+    Types(types::Types),
     From(from::From),
     Empty,
     Nil,
@@ -89,6 +93,8 @@ impl Actions for Parser<'_> {
             Ok(match op {
                 Op::Take(i) => rhs.take(i),
                 Op::Integer(v) => Value::Integer(v),
+                Op::Types(op) => types::reduce(op, rhs)?,
+                Op::Limit(op) => limits::reduce(op, rhs)?,
                 Op::Call(op) => call::reduce(op, rhs)?,
                 Op::From(op) => from::reduce(op, rhs)?,
                 Op::Empty => Value::Empty,
