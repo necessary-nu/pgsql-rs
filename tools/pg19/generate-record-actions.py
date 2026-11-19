@@ -91,7 +91,13 @@ def arguments(s):
 
 
 def lower(s, ty="Value"):
-    s = re.sub(r"\((?:Node|List|char|\w+Stmt|DefElem|TypeName|RoleSpec|RangeVar)\s*\*\)\s*", "", s.strip())
+    def pointer_cast(match):
+        # PG's Node/Expr and tagged-record pointers use the same semantic value.
+        # Scalar fields and typed Rust record edges are checked by convert().
+        if match[1] in RECORDS or match[1] in {"Node", "Expr", "List", "char"}:
+            return ""
+        return match[0]
+    s = re.sub(r"\((\w+)\s*\*\)\s*", pointer_cast, s.strip())
     if m := re.fullmatch(r"\$(\d+)\.\w+", s):
         return convert(f"rhs.take({m[1]})", ty)
     if m := re.fullmatch(r"@(\d+)", s):
