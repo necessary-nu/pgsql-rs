@@ -1,0 +1,6 @@
+[package]
+name = "pg19-nodes"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "BSD-3-Clause AND PostgreSQL"

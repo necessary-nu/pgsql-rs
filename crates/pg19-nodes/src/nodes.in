@@ -1,0 +1,1651 @@
+// Generated from the patched PostgreSQL 19.0 node headers by generate.py. See COPYRIGHT.postgresql.
+node_types! {
+    values {
+        AConst (72, "A_Const", AConst)
+        Integer (473, "Integer", i32)
+        Float (474, "Float", String)
+        String (476, "String", String)
+        Boolean (475, "Boolean", bool)
+        BitString (477, "BitString", String)
+        List (1, "List", Vec<Node>)
+        IntList (479, "IntList", Vec<i32>)
+        OidList (480, "OidList", Vec<u32>)
+        XidList (481, "XidList", Vec<u32>)
+    }
+    records {
+        Alias (2, "Alias") {
+            aliasname ["aliasname"]: Option<String>,
+            colnames ["colnames"]: Vec<Node>,
+        }
+        RangeVar (3, "RangeVar") {
+            catalogname ["catalogname"]: Option<String>,
+            schemaname ["schemaname"]: Option<String>,
+            relname ["relname"]: Option<String>,
+            inh ["inh"]: bool,
+            relpersistence ["relpersistence"]: u8,
+            alias ["alias"]: Option<Box<Alias>>,
+            location ["location"]: Location,
+        }
+        TableFunc (4, "TableFunc") {
+            functype ["functype"]: TableFuncType,
+            ns_uris ["ns_uris"]: Vec<Node>,
+            ns_names ["ns_names"]: Vec<Node>,
+            docexpr ["docexpr"]: Option<Box<Node>>,
+            rowexpr ["rowexpr"]: Option<Box<Node>>,
+            colnames ["colnames"]: Vec<Node>,
+            coltypes ["coltypes"]: Vec<Node>,
+            coltypmods ["coltypmods"]: Vec<Node>,
+            colcollations ["colcollations"]: Vec<Node>,
+            colexprs ["colexprs"]: Vec<Node>,
+            coldefexprs ["coldefexprs"]: Vec<Node>,
+            colvalexprs ["colvalexprs"]: Vec<Node>,
+            passingvalexprs ["passingvalexprs"]: Vec<Node>,
+            notnulls ["notnulls"]: std::collections::BTreeSet<u32>,
+            plan ["plan"]: Option<Box<Node>>,
+            ordinalitycol ["ordinalitycol"]: i32,
+            location ["location"]: Location,
+        }
+        IntoClause (5, "IntoClause") {
+            rel ["rel"]: Option<Box<RangeVar>>,
+            col_names ["colNames"]: Vec<Node>,
+            access_method ["accessMethod"]: Option<String>,
+            options ["options"]: Vec<Node>,
+            on_commit ["onCommit"]: OnCommitAction,
+            table_space_name ["tableSpaceName"]: Option<String>,
+            view_query ["viewQuery"]: Option<Box<Query>>,
+            skip_data ["skipData"]: bool,
+        }
+        GroupingFunc (10, "GroupingFunc") {
+            args ["args"]: Vec<Node>,
+            refs ["refs"]: Vec<Node>,
+            cols ["cols"]: Vec<Node>,
+            agglevelsup ["agglevelsup"]: u32,
+            location ["location"]: Location,
+        }
+        MergeSupportFunc (13, "MergeSupportFunc") {
+            msftype ["msftype"]: u32,
+            msfcollid ["msfcollid"]: u32,
+            location ["location"]: Location,
+        }
+        FuncExpr (15, "FuncExpr") {
+            funcid ["funcid"]: u32,
+            funcresulttype ["funcresulttype"]: u32,
+            funcretset ["funcretset"]: bool,
+            funcvariadic ["funcvariadic"]: bool,
+            funcformat ["funcformat"]: CoercionForm,
+            funccollid ["funccollid"]: u32,
+            inputcollid ["inputcollid"]: u32,
+            args ["args"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        NamedArgExpr (16, "NamedArgExpr") {
+            arg ["arg"]: Option<Box<Node>>,
+            name ["name"]: Option<String>,
+            argnumber ["argnumber"]: i32,
+            location ["location"]: Location,
+        }
+        BoolExpr (21, "BoolExpr") {
+            boolop ["boolop"]: BoolExprType,
+            args ["args"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        SubLink (22, "SubLink") {
+            sub_link_type ["subLinkType"]: SubLinkType,
+            sub_link_id ["subLinkId"]: i32,
+            testexpr ["testexpr"]: Option<Box<Node>>,
+            oper_name ["operName"]: Vec<Node>,
+            subselect ["subselect"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        CaseExpr (32, "CaseExpr") {
+            casetype ["casetype"]: u32,
+            casecollid ["casecollid"]: u32,
+            arg ["arg"]: Option<Box<Node>>,
+            args ["args"]: Vec<Node>,
+            defresult ["defresult"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        CaseWhen (33, "CaseWhen") {
+            expr ["expr"]: Option<Box<Node>>,
+            result ["result"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        RowExpr (36, "RowExpr") {
+            args ["args"]: Vec<Node>,
+            row_typeid ["row_typeid"]: u32,
+            row_format ["row_format"]: CoercionForm,
+            colnames ["colnames"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        CoalesceExpr (38, "CoalesceExpr") {
+            coalescetype ["coalescetype"]: u32,
+            coalescecollid ["coalescecollid"]: u32,
+            args ["args"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        MinMaxExpr (39, "MinMaxExpr") {
+            minmaxtype ["minmaxtype"]: u32,
+            minmaxcollid ["minmaxcollid"]: u32,
+            inputcollid ["inputcollid"]: u32,
+            op ["op"]: MinMaxOp,
+            args ["args"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        SQLValueFunction (40, "SQLValueFunction") {
+            op ["op"]: SQLValueFunctionOp,
+            r#type ["type"]: u32,
+            typmod ["typmod"]: i32,
+            location ["location"]: Location,
+        }
+        XmlExpr (41, "XmlExpr") {
+            op ["op"]: XmlExprOp,
+            name ["name"]: Option<String>,
+            named_args ["named_args"]: Vec<Node>,
+            arg_names ["arg_names"]: Vec<Node>,
+            args ["args"]: Vec<Node>,
+            xmloption ["xmloption"]: XmlOptionType,
+            indent ["indent"]: bool,
+            r#type ["type"]: u32,
+            typmod ["typmod"]: i32,
+            location ["location"]: Location,
+        }
+        JsonFormat (42, "JsonFormat") {
+            format_type ["format_type"]: JsonFormatType,
+            encoding ["encoding"]: JsonEncoding,
+            location ["location"]: Location,
+        }
+        JsonReturning (43, "JsonReturning") {
+            format ["format"]: Option<Box<JsonFormat>>,
+            typid ["typid"]: u32,
+            typmod ["typmod"]: i32,
+        }
+        JsonValueExpr (44, "JsonValueExpr") {
+            raw_expr ["raw_expr"]: Option<Box<Node>>,
+            formatted_expr ["formatted_expr"]: Option<Box<Node>>,
+            format ["format"]: Option<Box<JsonFormat>>,
+        }
+        JsonIsPredicate (46, "JsonIsPredicate") {
+            expr ["expr"]: Option<Box<Node>>,
+            format ["format"]: Option<Box<JsonFormat>>,
+            item_type ["item_type"]: JsonValueType,
+            unique_keys ["unique_keys"]: bool,
+            expr_base_type ["exprBaseType"]: u32,
+            location ["location"]: Location,
+        }
+        JsonBehavior (47, "JsonBehavior") {
+            btype ["btype"]: JsonBehaviorType,
+            expr ["expr"]: Option<Box<Node>>,
+            coerce ["coerce"]: bool,
+            location ["location"]: Location,
+        }
+        NullTest (52, "NullTest") {
+            arg ["arg"]: Option<Box<Node>>,
+            nulltesttype ["nulltesttype"]: NullTestType,
+            argisrow ["argisrow"]: bool,
+            location ["location"]: Location,
+        }
+        BooleanTest (53, "BooleanTest") {
+            arg ["arg"]: Option<Box<Node>>,
+            booltesttype ["booltesttype"]: BoolTestType,
+            location ["location"]: Location,
+        }
+        SetToDefault (57, "SetToDefault") {
+            type_id ["typeId"]: u32,
+            type_mod ["typeMod"]: i32,
+            collation ["collation"]: u32,
+            location ["location"]: Location,
+        }
+        CurrentOfExpr (58, "CurrentOfExpr") {
+            cvarno ["cvarno"]: u32,
+            cursor_name ["cursor_name"]: Option<String>,
+            cursor_param ["cursor_param"]: i32,
+        }
+        JoinExpr (64, "JoinExpr") {
+            jointype ["jointype"]: JoinType,
+            is_natural ["isNatural"]: bool,
+            larg ["larg"]: Option<Box<Node>>,
+            rarg ["rarg"]: Option<Box<Node>>,
+            using_clause ["usingClause"]: Vec<Node>,
+            join_using_alias ["join_using_alias"]: Option<Box<Alias>>,
+            quals ["quals"]: Option<Box<Node>>,
+            alias ["alias"]: Option<Box<Alias>>,
+            rtindex ["rtindex"]: i32,
+        }
+        FromExpr (65, "FromExpr") {
+            fromlist ["fromlist"]: Vec<Node>,
+            quals ["quals"]: Option<Box<Node>>,
+        }
+        OnConflictExpr (66, "OnConflictExpr") {
+            action ["action"]: OnConflictAction,
+            arbiter_elems ["arbiterElems"]: Vec<Node>,
+            arbiter_where ["arbiterWhere"]: Option<Box<Node>>,
+            constraint ["constraint"]: u32,
+            lock_strength ["lockStrength"]: LockClauseStrength,
+            on_conflict_set ["onConflictSet"]: Vec<Node>,
+            on_conflict_where ["onConflictWhere"]: Option<Box<Node>>,
+            excl_rel_index ["exclRelIndex"]: i32,
+            excl_rel_tlist ["exclRelTlist"]: Vec<Node>,
+        }
+        Query (67, "Query") {
+            command_type ["commandType"]: CmdType,
+            query_source ["querySource"]: QuerySource,
+            query_id ["queryId"]: i64,
+            can_set_tag ["canSetTag"]: bool,
+            utility_stmt ["utilityStmt"]: Option<Box<Node>>,
+            result_relation ["resultRelation"]: i32,
+            has_aggs ["hasAggs"]: bool,
+            has_window_funcs ["hasWindowFuncs"]: bool,
+            has_target_sr_fs ["hasTargetSRFs"]: bool,
+            has_sub_links ["hasSubLinks"]: bool,
+            has_distinct_on ["hasDistinctOn"]: bool,
+            has_recursive ["hasRecursive"]: bool,
+            has_modifying_cte ["hasModifyingCTE"]: bool,
+            has_for_update ["hasForUpdate"]: bool,
+            has_row_security ["hasRowSecurity"]: bool,
+            has_group_rte ["hasGroupRTE"]: bool,
+            is_return ["isReturn"]: bool,
+            cte_list ["cteList"]: Vec<Node>,
+            rtable ["rtable"]: Vec<Node>,
+            rteperminfos ["rteperminfos"]: Vec<Node>,
+            jointree ["jointree"]: Option<Box<FromExpr>>,
+            merge_action_list ["mergeActionList"]: Vec<Node>,
+            merge_target_relation ["mergeTargetRelation"]: i32,
+            merge_join_condition ["mergeJoinCondition"]: Option<Box<Node>>,
+            target_list ["targetList"]: Vec<Node>,
+            r#override ["override"]: OverridingKind,
+            on_conflict ["onConflict"]: Option<Box<OnConflictExpr>>,
+            returning_old_alias ["returningOldAlias"]: Option<String>,
+            returning_new_alias ["returningNewAlias"]: Option<String>,
+            returning_list ["returningList"]: Vec<Node>,
+            group_clause ["groupClause"]: Vec<Node>,
+            group_distinct ["groupDistinct"]: bool,
+            grouping_sets ["groupingSets"]: Vec<Node>,
+            having_qual ["havingQual"]: Option<Box<Node>>,
+            window_clause ["windowClause"]: Vec<Node>,
+            distinct_clause ["distinctClause"]: Vec<Node>,
+            sort_clause ["sortClause"]: Vec<Node>,
+            limit_offset ["limitOffset"]: Option<Box<Node>>,
+            limit_count ["limitCount"]: Option<Box<Node>>,
+            limit_option ["limitOption"]: LimitOption,
+            row_marks ["rowMarks"]: Vec<Node>,
+            set_operations ["setOperations"]: Option<Box<Node>>,
+            constraint_deps ["constraintDeps"]: Vec<Node>,
+            with_check_options ["withCheckOptions"]: Vec<Node>,
+            stmt_location ["stmt_location"]: Location,
+            stmt_len ["stmt_len"]: Location,
+        }
+        TypeName (68, "TypeName") {
+            names ["names"]: Vec<Node>,
+            type_oid ["typeOid"]: u32,
+            setof ["setof"]: bool,
+            pct_type ["pct_type"]: bool,
+            typmods ["typmods"]: Vec<Node>,
+            typemod ["typemod"]: i32,
+            array_bounds ["arrayBounds"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        ColumnRef (69, "ColumnRef") {
+            fields ["fields"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        ParamRef (70, "ParamRef") {
+            number ["number"]: i32,
+            location ["location"]: Location,
+        }
+        AExpr (71, "A_Expr") {
+            kind ["kind"]: AExprKind,
+            name ["name"]: Vec<Node>,
+            lexpr ["lexpr"]: Option<Box<Node>>,
+            rexpr ["rexpr"]: Option<Box<Node>>,
+            rexpr_list_start ["rexpr_list_start"]: Location,
+            rexpr_list_end ["rexpr_list_end"]: Location,
+            location ["location"]: Location,
+        }
+        TypeCast (73, "TypeCast") {
+            arg ["arg"]: Option<Box<Node>>,
+            type_name ["typeName"]: Option<Box<TypeName>>,
+            location ["location"]: Location,
+        }
+        CollateClause (74, "CollateClause") {
+            arg ["arg"]: Option<Box<Node>>,
+            collname ["collname"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        RoleSpec (75, "RoleSpec") {
+            roletype ["roletype"]: RoleSpecType,
+            rolename ["rolename"]: Option<String>,
+            location ["location"]: Location,
+        }
+        FuncCall (76, "FuncCall") {
+            funcname ["funcname"]: Vec<Node>,
+            args ["args"]: Vec<Node>,
+            agg_order ["agg_order"]: Vec<Node>,
+            agg_filter ["agg_filter"]: Option<Box<Node>>,
+            over ["over"]: Option<Box<WindowDef>>,
+            ignore_nulls ["ignore_nulls"]: i32,
+            agg_within_group ["agg_within_group"]: bool,
+            agg_star ["agg_star"]: bool,
+            agg_distinct ["agg_distinct"]: bool,
+            func_variadic ["func_variadic"]: bool,
+            funcformat ["funcformat"]: CoercionForm,
+            location ["location"]: Location,
+        }
+        AStar (77, "A_Star") {
+        }
+        AIndices (78, "A_Indices") {
+            is_slice ["is_slice"]: bool,
+            lidx ["lidx"]: Option<Box<Node>>,
+            uidx ["uidx"]: Option<Box<Node>>,
+        }
+        AIndirection (79, "A_Indirection") {
+            arg ["arg"]: Option<Box<Node>>,
+            indirection ["indirection"]: Vec<Node>,
+        }
+        AArrayExpr (80, "A_ArrayExpr") {
+            elements ["elements"]: Vec<Node>,
+            list_start ["list_start"]: Location,
+            list_end ["list_end"]: Location,
+            location ["location"]: Location,
+        }
+        ResTarget (81, "ResTarget") {
+            name ["name"]: Option<String>,
+            indirection ["indirection"]: Vec<Node>,
+            val ["val"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        MultiAssignRef (82, "MultiAssignRef") {
+            source ["source"]: Option<Box<Node>>,
+            colno ["colno"]: i32,
+            ncolumns ["ncolumns"]: i32,
+        }
+        SortBy (83, "SortBy") {
+            node ["node"]: Option<Box<Node>>,
+            sortby_dir ["sortby_dir"]: SortByDir,
+            sortby_nulls ["sortby_nulls"]: SortByNulls,
+            use_op ["useOp"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        WindowDef (84, "WindowDef") {
+            name ["name"]: Option<String>,
+            refname ["refname"]: Option<String>,
+            partition_clause ["partitionClause"]: Vec<Node>,
+            order_clause ["orderClause"]: Vec<Node>,
+            frame_options ["frameOptions"]: i32,
+            start_offset ["startOffset"]: Option<Box<Node>>,
+            end_offset ["endOffset"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        RangeSubselect (85, "RangeSubselect") {
+            lateral ["lateral"]: bool,
+            subquery ["subquery"]: Option<Box<Node>>,
+            alias ["alias"]: Option<Box<Alias>>,
+        }
+        RangeFunction (86, "RangeFunction") {
+            lateral ["lateral"]: bool,
+            ordinality ["ordinality"]: bool,
+            is_rowsfrom ["is_rowsfrom"]: bool,
+            functions ["functions"]: Vec<Node>,
+            alias ["alias"]: Option<Box<Alias>>,
+            coldeflist ["coldeflist"]: Vec<Node>,
+        }
+        RangeTableFunc (87, "RangeTableFunc") {
+            lateral ["lateral"]: bool,
+            docexpr ["docexpr"]: Option<Box<Node>>,
+            rowexpr ["rowexpr"]: Option<Box<Node>>,
+            namespaces ["namespaces"]: Vec<Node>,
+            columns ["columns"]: Vec<Node>,
+            alias ["alias"]: Option<Box<Alias>>,
+            location ["location"]: Location,
+        }
+        RangeTableFuncCol (88, "RangeTableFuncCol") {
+            colname ["colname"]: Option<String>,
+            type_name ["typeName"]: Option<Box<TypeName>>,
+            for_ordinality ["for_ordinality"]: bool,
+            is_not_null ["is_not_null"]: bool,
+            colexpr ["colexpr"]: Option<Box<Node>>,
+            coldefexpr ["coldefexpr"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        RangeTableSample (89, "RangeTableSample") {
+            relation ["relation"]: Option<Box<Node>>,
+            method ["method"]: Vec<Node>,
+            args ["args"]: Vec<Node>,
+            repeatable ["repeatable"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        ColumnDef (90, "ColumnDef") {
+            colname ["colname"]: Option<String>,
+            type_name ["typeName"]: Option<Box<TypeName>>,
+            compression ["compression"]: Option<String>,
+            inhcount ["inhcount"]: i16,
+            is_local ["is_local"]: bool,
+            is_not_null ["is_not_null"]: bool,
+            is_from_type ["is_from_type"]: bool,
+            storage ["storage"]: u8,
+            storage_name ["storage_name"]: Option<String>,
+            raw_default ["raw_default"]: Option<Box<Node>>,
+            cooked_default ["cooked_default"]: Option<Box<Node>>,
+            identity ["identity"]: u8,
+            identity_sequence ["identitySequence"]: Option<Box<RangeVar>>,
+            generated ["generated"]: u8,
+            coll_clause ["collClause"]: Option<Box<CollateClause>>,
+            coll_oid ["collOid"]: u32,
+            constraints ["constraints"]: Vec<Node>,
+            fdwoptions ["fdwoptions"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        TableLikeClause (91, "TableLikeClause") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            options ["options"]: u32,
+            relation_oid ["relationOid"]: u32,
+        }
+        IndexElem (92, "IndexElem") {
+            name ["name"]: Option<String>,
+            expr ["expr"]: Option<Box<Node>>,
+            indexcolname ["indexcolname"]: Option<String>,
+            collation ["collation"]: Vec<Node>,
+            opclass ["opclass"]: Vec<Node>,
+            opclassopts ["opclassopts"]: Vec<Node>,
+            ordering ["ordering"]: SortByDir,
+            nulls_ordering ["nulls_ordering"]: SortByNulls,
+            location ["location"]: Location,
+        }
+        DefElem (93, "DefElem") {
+            defnamespace ["defnamespace"]: Option<String>,
+            defname ["defname"]: Option<String>,
+            arg ["arg"]: Option<Box<Node>>,
+            defaction ["defaction"]: DefElemAction,
+            location ["location"]: Location,
+            arg_location ["arg_location"]: Location,
+        }
+        LockingClause (94, "LockingClause") {
+            locked_rels ["lockedRels"]: Vec<Node>,
+            strength ["strength"]: LockClauseStrength,
+            wait_policy ["waitPolicy"]: LockWaitPolicy,
+        }
+        XmlSerialize (95, "XmlSerialize") {
+            xmloption ["xmloption"]: XmlOptionType,
+            expr ["expr"]: Option<Box<Node>>,
+            type_name ["typeName"]: Option<Box<TypeName>>,
+            indent ["indent"]: bool,
+            location ["location"]: Location,
+        }
+        PartitionElem (96, "PartitionElem") {
+            name ["name"]: Option<String>,
+            expr ["expr"]: Option<Box<Node>>,
+            collation ["collation"]: Vec<Node>,
+            opclass ["opclass"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        PartitionSpec (97, "PartitionSpec") {
+            strategy ["strategy"]: PartitionStrategy,
+            part_params ["partParams"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        PartitionBoundSpec (98, "PartitionBoundSpec") {
+            strategy ["strategy"]: u8,
+            is_default ["is_default"]: bool,
+            modulus ["modulus"]: i32,
+            remainder ["remainder"]: i32,
+            listdatums ["listdatums"]: Vec<Node>,
+            lowerdatums ["lowerdatums"]: Vec<Node>,
+            upperdatums ["upperdatums"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        PartitionRangeDatum (99, "PartitionRangeDatum") {
+            kind ["kind"]: PartitionRangeDatumKind,
+            value ["value"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        PartitionCmd (100, "PartitionCmd") {
+            name ["name"]: Option<Box<RangeVar>>,
+            bound ["bound"]: Option<Box<PartitionBoundSpec>>,
+            concurrent ["concurrent"]: bool,
+        }
+        RangeTblEntry (101, "RangeTblEntry") {
+            alias ["alias"]: Option<Box<Alias>>,
+            eref ["eref"]: Option<Box<Alias>>,
+            rtekind ["rtekind"]: RTEKind,
+            relid ["relid"]: u32,
+            inh ["inh"]: bool,
+            relkind ["relkind"]: u8,
+            rellockmode ["rellockmode"]: i32,
+            perminfoindex ["perminfoindex"]: u32,
+            tablesample ["tablesample"]: Option<Box<TableSampleClause>>,
+            subquery ["subquery"]: Option<Box<Query>>,
+            security_barrier ["security_barrier"]: bool,
+            jointype ["jointype"]: JoinType,
+            joinmergedcols ["joinmergedcols"]: i32,
+            joinaliasvars ["joinaliasvars"]: Vec<Node>,
+            joinleftcols ["joinleftcols"]: Vec<Node>,
+            joinrightcols ["joinrightcols"]: Vec<Node>,
+            join_using_alias ["join_using_alias"]: Option<Box<Alias>>,
+            functions ["functions"]: Vec<Node>,
+            funcordinality ["funcordinality"]: bool,
+            tablefunc ["tablefunc"]: Option<Box<TableFunc>>,
+            values_lists ["values_lists"]: Vec<Node>,
+            ctename ["ctename"]: Option<String>,
+            ctelevelsup ["ctelevelsup"]: u32,
+            self_reference ["self_reference"]: bool,
+            coltypes ["coltypes"]: Vec<Node>,
+            coltypmods ["coltypmods"]: Vec<Node>,
+            colcollations ["colcollations"]: Vec<Node>,
+            enrname ["enrname"]: Option<String>,
+            enrtuples ["enrtuples"]: f64,
+            groupexprs ["groupexprs"]: Vec<Node>,
+            lateral ["lateral"]: bool,
+            in_from_cl ["inFromCl"]: bool,
+            security_quals ["securityQuals"]: Vec<Node>,
+        }
+        RTEPermissionInfo (102, "RTEPermissionInfo") {
+            relid ["relid"]: u32,
+            inh ["inh"]: bool,
+            required_perms ["requiredPerms"]: u64,
+            check_as_user ["checkAsUser"]: u32,
+            selected_cols ["selectedCols"]: std::collections::BTreeSet<u32>,
+            inserted_cols ["insertedCols"]: std::collections::BTreeSet<u32>,
+            updated_cols ["updatedCols"]: std::collections::BTreeSet<u32>,
+        }
+        RangeTblFunction (103, "RangeTblFunction") {
+            funcexpr ["funcexpr"]: Option<Box<Node>>,
+            funccolcount ["funccolcount"]: i32,
+            funccolnames ["funccolnames"]: Vec<Node>,
+            funccoltypes ["funccoltypes"]: Vec<Node>,
+            funccoltypmods ["funccoltypmods"]: Vec<Node>,
+            funccolcollations ["funccolcollations"]: Vec<Node>,
+            funcparams ["funcparams"]: std::collections::BTreeSet<u32>,
+        }
+        TableSampleClause (104, "TableSampleClause") {
+            tsmhandler ["tsmhandler"]: u32,
+            args ["args"]: Vec<Node>,
+            repeatable ["repeatable"]: Option<Box<Node>>,
+        }
+        WithCheckOption (105, "WithCheckOption") {
+            kind ["kind"]: WCOKind,
+            relname ["relname"]: Option<String>,
+            polname ["polname"]: Option<String>,
+            qual ["qual"]: Option<Box<Node>>,
+            cascaded ["cascaded"]: bool,
+        }
+        SortGroupClause (106, "SortGroupClause") {
+            tle_sort_group_ref ["tleSortGroupRef"]: u32,
+            eqop ["eqop"]: u32,
+            sortop ["sortop"]: u32,
+            reverse_sort ["reverse_sort"]: bool,
+            nulls_first ["nulls_first"]: bool,
+            hashable ["hashable"]: bool,
+        }
+        GroupingSet (107, "GroupingSet") {
+            kind ["kind"]: GroupingSetKind,
+            content ["content"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        WindowClause (108, "WindowClause") {
+            name ["name"]: Option<String>,
+            refname ["refname"]: Option<String>,
+            partition_clause ["partitionClause"]: Vec<Node>,
+            order_clause ["orderClause"]: Vec<Node>,
+            frame_options ["frameOptions"]: i32,
+            start_offset ["startOffset"]: Option<Box<Node>>,
+            end_offset ["endOffset"]: Option<Box<Node>>,
+            start_in_range_func ["startInRangeFunc"]: u32,
+            end_in_range_func ["endInRangeFunc"]: u32,
+            in_range_coll ["inRangeColl"]: u32,
+            in_range_asc ["inRangeAsc"]: bool,
+            in_range_nulls_first ["inRangeNullsFirst"]: bool,
+            winref ["winref"]: u32,
+            copied_order ["copiedOrder"]: bool,
+        }
+        RowMarkClause (109, "RowMarkClause") {
+            rti ["rti"]: u32,
+            strength ["strength"]: LockClauseStrength,
+            wait_policy ["waitPolicy"]: LockWaitPolicy,
+            pushed_down ["pushedDown"]: bool,
+        }
+        WithClause (110, "WithClause") {
+            ctes ["ctes"]: Vec<Node>,
+            recursive ["recursive"]: bool,
+            location ["location"]: Location,
+        }
+        InferClause (111, "InferClause") {
+            index_elems ["indexElems"]: Vec<Node>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            conname ["conname"]: Option<String>,
+            location ["location"]: Location,
+        }
+        OnConflictClause (112, "OnConflictClause") {
+            action ["action"]: OnConflictAction,
+            infer ["infer"]: Option<Box<InferClause>>,
+            lock_strength ["lockStrength"]: LockClauseStrength,
+            target_list ["targetList"]: Vec<Node>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        CTESearchClause (113, "CTESearchClause") {
+            search_col_list ["search_col_list"]: Vec<Node>,
+            search_breadth_first ["search_breadth_first"]: bool,
+            search_seq_column ["search_seq_column"]: Option<String>,
+            location ["location"]: Location,
+        }
+        CTECycleClause (114, "CTECycleClause") {
+            cycle_col_list ["cycle_col_list"]: Vec<Node>,
+            cycle_mark_column ["cycle_mark_column"]: Option<String>,
+            cycle_mark_value ["cycle_mark_value"]: Option<Box<Node>>,
+            cycle_mark_default ["cycle_mark_default"]: Option<Box<Node>>,
+            cycle_path_column ["cycle_path_column"]: Option<String>,
+            location ["location"]: Location,
+            cycle_mark_type ["cycle_mark_type"]: u32,
+            cycle_mark_typmod ["cycle_mark_typmod"]: i32,
+            cycle_mark_collation ["cycle_mark_collation"]: u32,
+            cycle_mark_neop ["cycle_mark_neop"]: u32,
+        }
+        CommonTableExpr (115, "CommonTableExpr") {
+            ctename ["ctename"]: Option<String>,
+            aliascolnames ["aliascolnames"]: Vec<Node>,
+            ctematerialized ["ctematerialized"]: CTEMaterialize,
+            ctequery ["ctequery"]: Option<Box<Node>>,
+            search_clause ["search_clause"]: Option<Box<CTESearchClause>>,
+            cycle_clause ["cycle_clause"]: Option<Box<CTECycleClause>>,
+            location ["location"]: Location,
+            cterecursive ["cterecursive"]: bool,
+            cterefcount ["cterefcount"]: i32,
+            ctecolnames ["ctecolnames"]: Vec<Node>,
+            ctecoltypes ["ctecoltypes"]: Vec<Node>,
+            ctecoltypmods ["ctecoltypmods"]: Vec<Node>,
+            ctecolcollations ["ctecolcollations"]: Vec<Node>,
+        }
+        MergeWhenClause (116, "MergeWhenClause") {
+            match_kind ["matchKind"]: MergeMatchKind,
+            command_type ["commandType"]: CmdType,
+            r#override ["override"]: OverridingKind,
+            condition ["condition"]: Option<Box<Node>>,
+            target_list ["targetList"]: Vec<Node>,
+            values ["values"]: Vec<Node>,
+        }
+        ReturningOption (117, "ReturningOption") {
+            option ["option"]: ReturningOptionKind,
+            value ["value"]: Option<String>,
+            location ["location"]: Location,
+        }
+        ReturningClause (118, "ReturningClause") {
+            options ["options"]: Vec<Node>,
+            exprs ["exprs"]: Vec<Node>,
+        }
+        TriggerTransition (119, "TriggerTransition") {
+            name ["name"]: Option<String>,
+            is_new ["isNew"]: bool,
+            is_table ["isTable"]: bool,
+        }
+        JsonOutput (120, "JsonOutput") {
+            type_name ["typeName"]: Option<Box<TypeName>>,
+            returning ["returning"]: Option<Box<JsonReturning>>,
+        }
+        JsonArgument (121, "JsonArgument") {
+            val ["val"]: Option<Box<JsonValueExpr>>,
+            name ["name"]: Option<String>,
+        }
+        JsonFuncExpr (122, "JsonFuncExpr") {
+            op ["op"]: JsonExprOp,
+            column_name ["column_name"]: Option<String>,
+            context_item ["context_item"]: Option<Box<JsonValueExpr>>,
+            pathspec ["pathspec"]: Option<Box<Node>>,
+            passing ["passing"]: Vec<Node>,
+            output ["output"]: Option<Box<JsonOutput>>,
+            on_empty ["on_empty"]: Option<Box<JsonBehavior>>,
+            on_error ["on_error"]: Option<Box<JsonBehavior>>,
+            wrapper ["wrapper"]: JsonWrapper,
+            quotes ["quotes"]: JsonQuotes,
+            location ["location"]: Location,
+        }
+        JsonTablePathSpec (123, "JsonTablePathSpec") {
+            string ["string"]: Option<Box<Node>>,
+            name ["name"]: Option<String>,
+            name_location ["name_location"]: Location,
+            location ["location"]: Location,
+        }
+        JsonTable (124, "JsonTable") {
+            context_item ["context_item"]: Option<Box<JsonValueExpr>>,
+            pathspec ["pathspec"]: Option<Box<JsonTablePathSpec>>,
+            passing ["passing"]: Vec<Node>,
+            columns ["columns"]: Vec<Node>,
+            on_error ["on_error"]: Option<Box<JsonBehavior>>,
+            alias ["alias"]: Option<Box<Alias>>,
+            lateral ["lateral"]: bool,
+            location ["location"]: Location,
+        }
+        JsonTableColumn (125, "JsonTableColumn") {
+            coltype ["coltype"]: JsonTableColumnType,
+            name ["name"]: Option<String>,
+            type_name ["typeName"]: Option<Box<TypeName>>,
+            pathspec ["pathspec"]: Option<Box<JsonTablePathSpec>>,
+            format ["format"]: Option<Box<JsonFormat>>,
+            wrapper ["wrapper"]: JsonWrapper,
+            quotes ["quotes"]: JsonQuotes,
+            columns ["columns"]: Vec<Node>,
+            on_empty ["on_empty"]: Option<Box<JsonBehavior>>,
+            on_error ["on_error"]: Option<Box<JsonBehavior>>,
+            location ["location"]: Location,
+        }
+        JsonKeyValue (126, "JsonKeyValue") {
+            key ["key"]: Option<Box<Node>>,
+            value ["value"]: Option<Box<JsonValueExpr>>,
+        }
+        JsonParseExpr (127, "JsonParseExpr") {
+            expr ["expr"]: Option<Box<JsonValueExpr>>,
+            output ["output"]: Option<Box<JsonOutput>>,
+            unique_keys ["unique_keys"]: bool,
+            location ["location"]: Location,
+        }
+        JsonScalarExpr (128, "JsonScalarExpr") {
+            expr ["expr"]: Option<Box<Node>>,
+            output ["output"]: Option<Box<JsonOutput>>,
+            location ["location"]: Location,
+        }
+        JsonSerializeExpr (129, "JsonSerializeExpr") {
+            expr ["expr"]: Option<Box<JsonValueExpr>>,
+            output ["output"]: Option<Box<JsonOutput>>,
+            location ["location"]: Location,
+        }
+        JsonObjectConstructor (130, "JsonObjectConstructor") {
+            exprs ["exprs"]: Vec<Node>,
+            output ["output"]: Option<Box<JsonOutput>>,
+            absent_on_null ["absent_on_null"]: bool,
+            unique ["unique"]: bool,
+            location ["location"]: Location,
+        }
+        JsonArrayConstructor (131, "JsonArrayConstructor") {
+            exprs ["exprs"]: Vec<Node>,
+            output ["output"]: Option<Box<JsonOutput>>,
+            absent_on_null ["absent_on_null"]: bool,
+            location ["location"]: Location,
+        }
+        JsonArrayQueryConstructor (132, "JsonArrayQueryConstructor") {
+            query ["query"]: Option<Box<Node>>,
+            output ["output"]: Option<Box<JsonOutput>>,
+            format ["format"]: Option<Box<JsonFormat>>,
+            absent_on_null ["absent_on_null"]: bool,
+            location ["location"]: Location,
+        }
+        JsonAggConstructor (133, "JsonAggConstructor") {
+            output ["output"]: Option<Box<JsonOutput>>,
+            agg_filter ["agg_filter"]: Option<Box<Node>>,
+            agg_order ["agg_order"]: Vec<Node>,
+            over ["over"]: Option<Box<WindowDef>>,
+            location ["location"]: Location,
+        }
+        JsonObjectAgg (134, "JsonObjectAgg") {
+            constructor ["constructor"]: Option<Box<JsonAggConstructor>>,
+            arg ["arg"]: Option<Box<JsonKeyValue>>,
+            absent_on_null ["absent_on_null"]: bool,
+            unique ["unique"]: bool,
+        }
+        JsonArrayAgg (135, "JsonArrayAgg") {
+            constructor ["constructor"]: Option<Box<JsonAggConstructor>>,
+            arg ["arg"]: Option<Box<JsonValueExpr>>,
+            absent_on_null ["absent_on_null"]: bool,
+        }
+        RawStmt (136, "RawStmt") {
+            stmt ["stmt"]: Option<Box<Node>>,
+            stmt_location ["stmt_location"]: Location,
+            stmt_len ["stmt_len"]: i32,
+        }
+        InsertStmt (137, "InsertStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            cols ["cols"]: Vec<Node>,
+            select_stmt ["selectStmt"]: Option<Box<Node>>,
+            on_conflict_clause ["onConflictClause"]: Option<Box<OnConflictClause>>,
+            returning_clause ["returningClause"]: Option<Box<ReturningClause>>,
+            with_clause ["withClause"]: Option<Box<WithClause>>,
+            r#override ["override"]: OverridingKind,
+        }
+        DeleteStmt (138, "DeleteStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            using_clause ["usingClause"]: Vec<Node>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            returning_clause ["returningClause"]: Option<Box<ReturningClause>>,
+            with_clause ["withClause"]: Option<Box<WithClause>>,
+        }
+        UpdateStmt (139, "UpdateStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            target_list ["targetList"]: Vec<Node>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            from_clause ["fromClause"]: Vec<Node>,
+            returning_clause ["returningClause"]: Option<Box<ReturningClause>>,
+            with_clause ["withClause"]: Option<Box<WithClause>>,
+        }
+        MergeStmt (140, "MergeStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            source_relation ["sourceRelation"]: Option<Box<Node>>,
+            join_condition ["joinCondition"]: Option<Box<Node>>,
+            merge_when_clauses ["mergeWhenClauses"]: Vec<Node>,
+            returning_clause ["returningClause"]: Option<Box<ReturningClause>>,
+            with_clause ["withClause"]: Option<Box<WithClause>>,
+        }
+        SelectStmt (141, "SelectStmt") {
+            distinct_clause ["distinctClause"]: Vec<Node>,
+            into_clause ["intoClause"]: Option<Box<IntoClause>>,
+            target_list ["targetList"]: Vec<Node>,
+            from_clause ["fromClause"]: Vec<Node>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            group_clause ["groupClause"]: Vec<Node>,
+            group_distinct ["groupDistinct"]: bool,
+            having_clause ["havingClause"]: Option<Box<Node>>,
+            window_clause ["windowClause"]: Vec<Node>,
+            values_lists ["valuesLists"]: Vec<Node>,
+            sort_clause ["sortClause"]: Vec<Node>,
+            limit_offset ["limitOffset"]: Option<Box<Node>>,
+            limit_count ["limitCount"]: Option<Box<Node>>,
+            limit_option ["limitOption"]: LimitOption,
+            locking_clause ["lockingClause"]: Vec<Node>,
+            with_clause ["withClause"]: Option<Box<WithClause>>,
+            op ["op"]: SetOperation,
+            all ["all"]: bool,
+            larg ["larg"]: Option<Box<SelectStmt>>,
+            rarg ["rarg"]: Option<Box<SelectStmt>>,
+        }
+        SetOperationStmt (142, "SetOperationStmt") {
+            op ["op"]: SetOperation,
+            all ["all"]: bool,
+            larg ["larg"]: Option<Box<Node>>,
+            rarg ["rarg"]: Option<Box<Node>>,
+            col_types ["colTypes"]: Vec<Node>,
+            col_typmods ["colTypmods"]: Vec<Node>,
+            col_collations ["colCollations"]: Vec<Node>,
+            group_clauses ["groupClauses"]: Vec<Node>,
+        }
+        ReturnStmt (143, "ReturnStmt") {
+            returnval ["returnval"]: Option<Box<Node>>,
+        }
+        PLAssignStmt (144, "PLAssignStmt") {
+            name ["name"]: Option<String>,
+            indirection ["indirection"]: Vec<Node>,
+            nnames ["nnames"]: i32,
+            val ["val"]: Option<Box<SelectStmt>>,
+            location ["location"]: Location,
+        }
+        CreateSchemaStmt (145, "CreateSchemaStmt") {
+            schemaname ["schemaname"]: Option<String>,
+            authrole ["authrole"]: Option<Box<RoleSpec>>,
+            schema_elts ["schemaElts"]: Vec<Node>,
+            if_not_exists ["if_not_exists"]: bool,
+        }
+        AlterTableStmt (146, "AlterTableStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            cmds ["cmds"]: Vec<Node>,
+            objtype ["objtype"]: ObjectType,
+            missing_ok ["missing_ok"]: bool,
+        }
+        AlterTableCmd (147, "AlterTableCmd") {
+            subtype ["subtype"]: AlterTableType,
+            name ["name"]: Option<String>,
+            num ["num"]: i16,
+            newowner ["newowner"]: Option<Box<RoleSpec>>,
+            def ["def"]: Option<Box<Node>>,
+            behavior ["behavior"]: DropBehavior,
+            missing_ok ["missing_ok"]: bool,
+            recurse ["recurse"]: bool,
+        }
+        ATAlterConstraint (148, "ATAlterConstraint") {
+            conname ["conname"]: Option<String>,
+            alter_enforceability ["alterEnforceability"]: bool,
+            is_enforced ["is_enforced"]: bool,
+            alter_deferrability ["alterDeferrability"]: bool,
+            deferrable ["deferrable"]: bool,
+            initdeferred ["initdeferred"]: bool,
+            alter_inheritability ["alterInheritability"]: bool,
+            noinherit ["noinherit"]: bool,
+        }
+        ReplicaIdentityStmt (149, "ReplicaIdentityStmt") {
+            identity_type ["identity_type"]: u8,
+            name ["name"]: Option<String>,
+        }
+        AlterCollationStmt (150, "AlterCollationStmt") {
+            collname ["collname"]: Vec<Node>,
+        }
+        AlterDomainStmt (151, "AlterDomainStmt") {
+            subtype ["subtype"]: AlterDomainType,
+            type_name ["typeName"]: Vec<Node>,
+            name ["name"]: Option<String>,
+            def ["def"]: Option<Box<Node>>,
+            behavior ["behavior"]: DropBehavior,
+            missing_ok ["missing_ok"]: bool,
+        }
+        GrantStmt (152, "GrantStmt") {
+            is_grant ["is_grant"]: bool,
+            targtype ["targtype"]: GrantTargetType,
+            objtype ["objtype"]: ObjectType,
+            objects ["objects"]: Vec<Node>,
+            privileges ["privileges"]: Vec<Node>,
+            grantees ["grantees"]: Vec<Node>,
+            grant_option ["grant_option"]: bool,
+            grantor ["grantor"]: Option<Box<RoleSpec>>,
+            behavior ["behavior"]: DropBehavior,
+        }
+        ObjectWithArgs (153, "ObjectWithArgs") {
+            objname ["objname"]: Vec<Node>,
+            objargs ["objargs"]: Vec<Node>,
+            objfuncargs ["objfuncargs"]: Vec<Node>,
+            args_unspecified ["args_unspecified"]: bool,
+        }
+        AccessPriv (154, "AccessPriv") {
+            priv_name ["priv_name"]: Option<String>,
+            cols ["cols"]: Vec<Node>,
+        }
+        GrantRoleStmt (155, "GrantRoleStmt") {
+            granted_roles ["granted_roles"]: Vec<Node>,
+            grantee_roles ["grantee_roles"]: Vec<Node>,
+            is_grant ["is_grant"]: bool,
+            opt ["opt"]: Vec<Node>,
+            grantor ["grantor"]: Option<Box<RoleSpec>>,
+            behavior ["behavior"]: DropBehavior,
+        }
+        AlterDefaultPrivilegesStmt (156, "AlterDefaultPrivilegesStmt") {
+            options ["options"]: Vec<Node>,
+            action ["action"]: Option<Box<GrantStmt>>,
+        }
+        CopyStmt (157, "CopyStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            query ["query"]: Option<Box<Node>>,
+            attlist ["attlist"]: Vec<Node>,
+            is_from ["is_from"]: bool,
+            is_program ["is_program"]: bool,
+            filename ["filename"]: Option<String>,
+            options ["options"]: Vec<Node>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+        }
+        VariableSetStmt (158, "VariableSetStmt") {
+            kind ["kind"]: VariableSetKind,
+            name ["name"]: Option<String>,
+            args ["args"]: Vec<Node>,
+            jumble_args ["jumble_args"]: bool,
+            is_local ["is_local"]: bool,
+            location ["location"]: Location,
+        }
+        VariableShowStmt (159, "VariableShowStmt") {
+            name ["name"]: Option<String>,
+        }
+        CreateStmt (160, "CreateStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            table_elts ["tableElts"]: Vec<Node>,
+            inh_relations ["inhRelations"]: Vec<Node>,
+            partbound ["partbound"]: Option<Box<PartitionBoundSpec>>,
+            partspec ["partspec"]: Option<Box<PartitionSpec>>,
+            of_typename ["ofTypename"]: Option<Box<TypeName>>,
+            constraints ["constraints"]: Vec<Node>,
+            nnconstraints ["nnconstraints"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+            oncommit ["oncommit"]: OnCommitAction,
+            tablespacename ["tablespacename"]: Option<String>,
+            access_method ["accessMethod"]: Option<String>,
+            if_not_exists ["if_not_exists"]: bool,
+        }
+        Constraint (161, "Constraint") {
+            contype ["contype"]: ConstrType,
+            conname ["conname"]: Option<String>,
+            deferrable ["deferrable"]: bool,
+            initdeferred ["initdeferred"]: bool,
+            is_enforced ["is_enforced"]: bool,
+            skip_validation ["skip_validation"]: bool,
+            initially_valid ["initially_valid"]: bool,
+            is_no_inherit ["is_no_inherit"]: bool,
+            raw_expr ["raw_expr"]: Option<Box<Node>>,
+            cooked_expr ["cooked_expr"]: Option<String>,
+            generated_when ["generated_when"]: u8,
+            generated_kind ["generated_kind"]: u8,
+            nulls_not_distinct ["nulls_not_distinct"]: bool,
+            keys ["keys"]: Vec<Node>,
+            without_overlaps ["without_overlaps"]: bool,
+            including ["including"]: Vec<Node>,
+            exclusions ["exclusions"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+            indexname ["indexname"]: Option<String>,
+            indexspace ["indexspace"]: Option<String>,
+            reset_default_tblspc ["reset_default_tblspc"]: bool,
+            access_method ["access_method"]: Option<String>,
+            where_clause ["where_clause"]: Option<Box<Node>>,
+            pktable ["pktable"]: Option<Box<RangeVar>>,
+            fk_attrs ["fk_attrs"]: Vec<Node>,
+            pk_attrs ["pk_attrs"]: Vec<Node>,
+            fk_with_period ["fk_with_period"]: bool,
+            pk_with_period ["pk_with_period"]: bool,
+            fk_matchtype ["fk_matchtype"]: u8,
+            fk_upd_action ["fk_upd_action"]: u8,
+            fk_del_action ["fk_del_action"]: u8,
+            fk_del_set_cols ["fk_del_set_cols"]: Vec<Node>,
+            old_conpfeqop ["old_conpfeqop"]: Vec<Node>,
+            old_pktable_oid ["old_pktable_oid"]: u32,
+            location ["location"]: Location,
+        }
+        CreateTableSpaceStmt (162, "CreateTableSpaceStmt") {
+            tablespacename ["tablespacename"]: Option<String>,
+            owner ["owner"]: Option<Box<RoleSpec>>,
+            location ["location"]: Option<String>,
+            options ["options"]: Vec<Node>,
+        }
+        DropTableSpaceStmt (163, "DropTableSpaceStmt") {
+            tablespacename ["tablespacename"]: Option<String>,
+            missing_ok ["missing_ok"]: bool,
+        }
+        AlterTableSpaceOptionsStmt (164, "AlterTableSpaceOptionsStmt") {
+            tablespacename ["tablespacename"]: Option<String>,
+            options ["options"]: Vec<Node>,
+            is_reset ["isReset"]: bool,
+        }
+        AlterTableMoveAllStmt (165, "AlterTableMoveAllStmt") {
+            orig_tablespacename ["orig_tablespacename"]: Option<String>,
+            objtype ["objtype"]: ObjectType,
+            roles ["roles"]: Vec<Node>,
+            new_tablespacename ["new_tablespacename"]: Option<String>,
+            nowait ["nowait"]: bool,
+        }
+        CreateExtensionStmt (166, "CreateExtensionStmt") {
+            extname ["extname"]: Option<String>,
+            if_not_exists ["if_not_exists"]: bool,
+            options ["options"]: Vec<Node>,
+        }
+        AlterExtensionStmt (167, "AlterExtensionStmt") {
+            extname ["extname"]: Option<String>,
+            options ["options"]: Vec<Node>,
+        }
+        AlterExtensionContentsStmt (168, "AlterExtensionContentsStmt") {
+            extname ["extname"]: Option<String>,
+            action ["action"]: i32,
+            objtype ["objtype"]: ObjectType,
+            object ["object"]: Option<Box<Node>>,
+        }
+        CreateFdwStmt (169, "CreateFdwStmt") {
+            fdwname ["fdwname"]: Option<String>,
+            func_options ["func_options"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+        }
+        AlterFdwStmt (170, "AlterFdwStmt") {
+            fdwname ["fdwname"]: Option<String>,
+            func_options ["func_options"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+        }
+        CreateForeignServerStmt (171, "CreateForeignServerStmt") {
+            servername ["servername"]: Option<String>,
+            servertype ["servertype"]: Option<String>,
+            version ["version"]: Option<String>,
+            fdwname ["fdwname"]: Option<String>,
+            if_not_exists ["if_not_exists"]: bool,
+            options ["options"]: Vec<Node>,
+        }
+        AlterForeignServerStmt (172, "AlterForeignServerStmt") {
+            servername ["servername"]: Option<String>,
+            version ["version"]: Option<String>,
+            options ["options"]: Vec<Node>,
+            has_version ["has_version"]: bool,
+        }
+        CreateForeignTableStmt (173, "CreateForeignTableStmt") {
+            base ["base"]: CreateStmt,
+            servername ["servername"]: Option<String>,
+            options ["options"]: Vec<Node>,
+        }
+        CreateUserMappingStmt (174, "CreateUserMappingStmt") {
+            user ["user"]: Option<Box<RoleSpec>>,
+            servername ["servername"]: Option<String>,
+            if_not_exists ["if_not_exists"]: bool,
+            options ["options"]: Vec<Node>,
+        }
+        AlterUserMappingStmt (175, "AlterUserMappingStmt") {
+            user ["user"]: Option<Box<RoleSpec>>,
+            servername ["servername"]: Option<String>,
+            options ["options"]: Vec<Node>,
+        }
+        DropUserMappingStmt (176, "DropUserMappingStmt") {
+            user ["user"]: Option<Box<RoleSpec>>,
+            servername ["servername"]: Option<String>,
+            missing_ok ["missing_ok"]: bool,
+        }
+        ImportForeignSchemaStmt (177, "ImportForeignSchemaStmt") {
+            server_name ["server_name"]: Option<String>,
+            remote_schema ["remote_schema"]: Option<String>,
+            local_schema ["local_schema"]: Option<String>,
+            list_type ["list_type"]: ImportForeignSchemaType,
+            table_list ["table_list"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+        }
+        CreatePolicyStmt (178, "CreatePolicyStmt") {
+            policy_name ["policy_name"]: Option<String>,
+            table ["table"]: Option<Box<RangeVar>>,
+            cmd_name ["cmd_name"]: Option<String>,
+            permissive ["permissive"]: bool,
+            roles ["roles"]: Vec<Node>,
+            qual ["qual"]: Option<Box<Node>>,
+            with_check ["with_check"]: Option<Box<Node>>,
+        }
+        AlterPolicyStmt (179, "AlterPolicyStmt") {
+            policy_name ["policy_name"]: Option<String>,
+            table ["table"]: Option<Box<RangeVar>>,
+            roles ["roles"]: Vec<Node>,
+            qual ["qual"]: Option<Box<Node>>,
+            with_check ["with_check"]: Option<Box<Node>>,
+        }
+        CreateAmStmt (180, "CreateAmStmt") {
+            amname ["amname"]: Option<String>,
+            handler_name ["handler_name"]: Vec<Node>,
+            amtype ["amtype"]: u8,
+        }
+        CreateTrigStmt (181, "CreateTrigStmt") {
+            replace ["replace"]: bool,
+            isconstraint ["isconstraint"]: bool,
+            trigname ["trigname"]: Option<String>,
+            relation ["relation"]: Option<Box<RangeVar>>,
+            funcname ["funcname"]: Vec<Node>,
+            args ["args"]: Vec<Node>,
+            row ["row"]: bool,
+            timing ["timing"]: i16,
+            events ["events"]: i16,
+            columns ["columns"]: Vec<Node>,
+            when_clause ["whenClause"]: Option<Box<Node>>,
+            transition_rels ["transitionRels"]: Vec<Node>,
+            deferrable ["deferrable"]: bool,
+            initdeferred ["initdeferred"]: bool,
+            constrrel ["constrrel"]: Option<Box<RangeVar>>,
+        }
+        CreateEventTrigStmt (182, "CreateEventTrigStmt") {
+            trigname ["trigname"]: Option<String>,
+            eventname ["eventname"]: Option<String>,
+            whenclause ["whenclause"]: Vec<Node>,
+            funcname ["funcname"]: Vec<Node>,
+        }
+        AlterEventTrigStmt (183, "AlterEventTrigStmt") {
+            trigname ["trigname"]: Option<String>,
+            tgenabled ["tgenabled"]: u8,
+        }
+        CreatePLangStmt (184, "CreatePLangStmt") {
+            replace ["replace"]: bool,
+            plname ["plname"]: Option<String>,
+            plhandler ["plhandler"]: Vec<Node>,
+            plinline ["plinline"]: Vec<Node>,
+            plvalidator ["plvalidator"]: Vec<Node>,
+            pltrusted ["pltrusted"]: bool,
+        }
+        CreateRoleStmt (185, "CreateRoleStmt") {
+            stmt_type ["stmt_type"]: RoleStmtType,
+            role ["role"]: Option<String>,
+            options ["options"]: Vec<Node>,
+        }
+        AlterRoleStmt (186, "AlterRoleStmt") {
+            role ["role"]: Option<Box<RoleSpec>>,
+            options ["options"]: Vec<Node>,
+            action ["action"]: i32,
+        }
+        AlterRoleSetStmt (187, "AlterRoleSetStmt") {
+            role ["role"]: Option<Box<RoleSpec>>,
+            database ["database"]: Option<String>,
+            setstmt ["setstmt"]: Option<Box<VariableSetStmt>>,
+        }
+        DropRoleStmt (188, "DropRoleStmt") {
+            roles ["roles"]: Vec<Node>,
+            missing_ok ["missing_ok"]: bool,
+        }
+        CreateSeqStmt (189, "CreateSeqStmt") {
+            sequence ["sequence"]: Option<Box<RangeVar>>,
+            options ["options"]: Vec<Node>,
+            owner_id ["ownerId"]: u32,
+            for_identity ["for_identity"]: bool,
+            if_not_exists ["if_not_exists"]: bool,
+        }
+        AlterSeqStmt (190, "AlterSeqStmt") {
+            sequence ["sequence"]: Option<Box<RangeVar>>,
+            options ["options"]: Vec<Node>,
+            for_identity ["for_identity"]: bool,
+            missing_ok ["missing_ok"]: bool,
+        }
+        DefineStmt (191, "DefineStmt") {
+            kind ["kind"]: ObjectType,
+            oldstyle ["oldstyle"]: bool,
+            defnames ["defnames"]: Vec<Node>,
+            args ["args"]: Vec<Node>,
+            definition ["definition"]: Vec<Node>,
+            if_not_exists ["if_not_exists"]: bool,
+            replace ["replace"]: bool,
+        }
+        CreateDomainStmt (192, "CreateDomainStmt") {
+            domainname ["domainname"]: Vec<Node>,
+            type_name ["typeName"]: Option<Box<TypeName>>,
+            coll_clause ["collClause"]: Option<Box<CollateClause>>,
+            constraints ["constraints"]: Vec<Node>,
+        }
+        CreateOpClassStmt (193, "CreateOpClassStmt") {
+            opclassname ["opclassname"]: Vec<Node>,
+            opfamilyname ["opfamilyname"]: Vec<Node>,
+            amname ["amname"]: Option<String>,
+            datatype ["datatype"]: Option<Box<TypeName>>,
+            items ["items"]: Vec<Node>,
+            is_default ["isDefault"]: bool,
+        }
+        CreateOpClassItem (194, "CreateOpClassItem") {
+            itemtype ["itemtype"]: i32,
+            name ["name"]: Option<Box<ObjectWithArgs>>,
+            number ["number"]: i32,
+            order_family ["order_family"]: Vec<Node>,
+            class_args ["class_args"]: Vec<Node>,
+            storedtype ["storedtype"]: Option<Box<TypeName>>,
+        }
+        CreateOpFamilyStmt (195, "CreateOpFamilyStmt") {
+            opfamilyname ["opfamilyname"]: Vec<Node>,
+            amname ["amname"]: Option<String>,
+        }
+        AlterOpFamilyStmt (196, "AlterOpFamilyStmt") {
+            opfamilyname ["opfamilyname"]: Vec<Node>,
+            amname ["amname"]: Option<String>,
+            is_drop ["isDrop"]: bool,
+            items ["items"]: Vec<Node>,
+        }
+        DropStmt (197, "DropStmt") {
+            objects ["objects"]: Vec<Node>,
+            remove_type ["removeType"]: ObjectType,
+            behavior ["behavior"]: DropBehavior,
+            missing_ok ["missing_ok"]: bool,
+            concurrent ["concurrent"]: bool,
+        }
+        TruncateStmt (198, "TruncateStmt") {
+            relations ["relations"]: Vec<Node>,
+            restart_seqs ["restart_seqs"]: bool,
+            behavior ["behavior"]: DropBehavior,
+        }
+        CommentStmt (199, "CommentStmt") {
+            objtype ["objtype"]: ObjectType,
+            object ["object"]: Option<Box<Node>>,
+            comment ["comment"]: Option<String>,
+        }
+        SecLabelStmt (200, "SecLabelStmt") {
+            objtype ["objtype"]: ObjectType,
+            object ["object"]: Option<Box<Node>>,
+            provider ["provider"]: Option<String>,
+            label ["label"]: Option<String>,
+        }
+        DeclareCursorStmt (201, "DeclareCursorStmt") {
+            portalname ["portalname"]: Option<String>,
+            options ["options"]: i32,
+            query ["query"]: Option<Box<Node>>,
+        }
+        ClosePortalStmt (202, "ClosePortalStmt") {
+            portalname ["portalname"]: Option<String>,
+        }
+        FetchStmt (203, "FetchStmt") {
+            direction ["direction"]: FetchDirection,
+            how_many ["howMany"]: i64,
+            portalname ["portalname"]: Option<String>,
+            ismove ["ismove"]: bool,
+            direction_keyword ["direction_keyword"]: FetchDirectionKeywords,
+            location ["location"]: Location,
+        }
+        IndexStmt (204, "IndexStmt") {
+            idxname ["idxname"]: Option<String>,
+            relation ["relation"]: Option<Box<RangeVar>>,
+            access_method ["accessMethod"]: Option<String>,
+            table_space ["tableSpace"]: Option<String>,
+            index_params ["indexParams"]: Vec<Node>,
+            index_including_params ["indexIncludingParams"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            exclude_op_names ["excludeOpNames"]: Vec<Node>,
+            idxcomment ["idxcomment"]: Option<String>,
+            index_oid ["indexOid"]: u32,
+            old_number ["oldNumber"]: u32,
+            old_create_subid ["oldCreateSubid"]: u32,
+            old_first_relfilelocator_subid ["oldFirstRelfilelocatorSubid"]: u32,
+            unique ["unique"]: bool,
+            nulls_not_distinct ["nulls_not_distinct"]: bool,
+            primary ["primary"]: bool,
+            isconstraint ["isconstraint"]: bool,
+            iswithoutoverlaps ["iswithoutoverlaps"]: bool,
+            deferrable ["deferrable"]: bool,
+            initdeferred ["initdeferred"]: bool,
+            transformed ["transformed"]: bool,
+            concurrent ["concurrent"]: bool,
+            if_not_exists ["if_not_exists"]: bool,
+            reset_default_tblspc ["reset_default_tblspc"]: bool,
+        }
+        CreateStatsStmt (205, "CreateStatsStmt") {
+            defnames ["defnames"]: Vec<Node>,
+            stat_types ["stat_types"]: Vec<Node>,
+            exprs ["exprs"]: Vec<Node>,
+            relations ["relations"]: Vec<Node>,
+            stxcomment ["stxcomment"]: Option<String>,
+            transformed ["transformed"]: bool,
+            if_not_exists ["if_not_exists"]: bool,
+            owner ["owner"]: u32,
+        }
+        StatsElem (206, "StatsElem") {
+            name ["name"]: Option<String>,
+            expr ["expr"]: Option<Box<Node>>,
+        }
+        AlterStatsStmt (207, "AlterStatsStmt") {
+            defnames ["defnames"]: Vec<Node>,
+            stxstattarget ["stxstattarget"]: Option<Box<Node>>,
+            missing_ok ["missing_ok"]: bool,
+        }
+        CreateFunctionStmt (208, "CreateFunctionStmt") {
+            is_procedure ["is_procedure"]: bool,
+            replace ["replace"]: bool,
+            funcname ["funcname"]: Vec<Node>,
+            parameters ["parameters"]: Vec<Node>,
+            return_type ["returnType"]: Option<Box<TypeName>>,
+            options ["options"]: Vec<Node>,
+            sql_body ["sql_body"]: Option<Box<Node>>,
+        }
+        FunctionParameter (209, "FunctionParameter") {
+            name ["name"]: Option<String>,
+            arg_type ["argType"]: Option<Box<TypeName>>,
+            mode ["mode"]: FunctionParameterMode,
+            defexpr ["defexpr"]: Option<Box<Node>>,
+            location ["location"]: Location,
+        }
+        AlterFunctionStmt (210, "AlterFunctionStmt") {
+            objtype ["objtype"]: ObjectType,
+            func ["func"]: Option<Box<ObjectWithArgs>>,
+            actions ["actions"]: Vec<Node>,
+        }
+        DoStmt (211, "DoStmt") {
+            args ["args"]: Vec<Node>,
+        }
+        InlineCodeBlock (212, "InlineCodeBlock") {
+            source_text ["source_text"]: Option<String>,
+            lang_oid ["langOid"]: u32,
+            lang_is_trusted ["langIsTrusted"]: bool,
+            atomic ["atomic"]: bool,
+        }
+        CallStmt (213, "CallStmt") {
+            funccall ["funccall"]: Option<Box<FuncCall>>,
+            funcexpr ["funcexpr"]: Option<Box<FuncExpr>>,
+            outargs ["outargs"]: Vec<Node>,
+        }
+        CallContext (214, "CallContext") {
+            atomic ["atomic"]: bool,
+        }
+        RenameStmt (215, "RenameStmt") {
+            rename_type ["renameType"]: ObjectType,
+            relation_type ["relationType"]: ObjectType,
+            relation ["relation"]: Option<Box<RangeVar>>,
+            object ["object"]: Option<Box<Node>>,
+            subname ["subname"]: Option<String>,
+            newname ["newname"]: Option<String>,
+            behavior ["behavior"]: DropBehavior,
+            missing_ok ["missing_ok"]: bool,
+        }
+        AlterObjectDependsStmt (216, "AlterObjectDependsStmt") {
+            object_type ["objectType"]: ObjectType,
+            relation ["relation"]: Option<Box<RangeVar>>,
+            object ["object"]: Option<Box<Node>>,
+            extname ["extname"]: Option<String>,
+            remove ["remove"]: bool,
+        }
+        AlterObjectSchemaStmt (217, "AlterObjectSchemaStmt") {
+            object_type ["objectType"]: ObjectType,
+            relation ["relation"]: Option<Box<RangeVar>>,
+            object ["object"]: Option<Box<Node>>,
+            newschema ["newschema"]: Option<String>,
+            missing_ok ["missing_ok"]: bool,
+        }
+        AlterOwnerStmt (218, "AlterOwnerStmt") {
+            object_type ["objectType"]: ObjectType,
+            relation ["relation"]: Option<Box<RangeVar>>,
+            object ["object"]: Option<Box<Node>>,
+            newowner ["newowner"]: Option<Box<RoleSpec>>,
+        }
+        AlterOperatorStmt (219, "AlterOperatorStmt") {
+            opername ["opername"]: Option<Box<ObjectWithArgs>>,
+            options ["options"]: Vec<Node>,
+        }
+        AlterTypeStmt (220, "AlterTypeStmt") {
+            type_name ["typeName"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+        }
+        RuleStmt (221, "RuleStmt") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            rulename ["rulename"]: Option<String>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            event ["event"]: CmdType,
+            instead ["instead"]: bool,
+            actions ["actions"]: Vec<Node>,
+            replace ["replace"]: bool,
+        }
+        NotifyStmt (222, "NotifyStmt") {
+            conditionname ["conditionname"]: Option<String>,
+            payload ["payload"]: Option<String>,
+            payload_location ["payload_location"]: Location,
+        }
+        ListenStmt (223, "ListenStmt") {
+            conditionname ["conditionname"]: Option<String>,
+        }
+        UnlistenStmt (224, "UnlistenStmt") {
+            conditionname ["conditionname"]: Option<String>,
+        }
+        TransactionStmt (225, "TransactionStmt") {
+            kind ["kind"]: TransactionStmtKind,
+            options ["options"]: Vec<Node>,
+            savepoint_name ["savepoint_name"]: Option<String>,
+            gid ["gid"]: Option<String>,
+            chain ["chain"]: bool,
+            location ["location"]: Location,
+        }
+        CompositeTypeStmt (226, "CompositeTypeStmt") {
+            typevar ["typevar"]: Option<Box<RangeVar>>,
+            coldeflist ["coldeflist"]: Vec<Node>,
+        }
+        CreateEnumStmt (227, "CreateEnumStmt") {
+            type_name ["typeName"]: Vec<Node>,
+            vals ["vals"]: Vec<Node>,
+        }
+        CreateRangeStmt (228, "CreateRangeStmt") {
+            type_name ["typeName"]: Vec<Node>,
+            params ["params"]: Vec<Node>,
+        }
+        AlterEnumStmt (229, "AlterEnumStmt") {
+            type_name ["typeName"]: Vec<Node>,
+            old_val ["oldVal"]: Option<String>,
+            new_val ["newVal"]: Option<String>,
+            new_val_neighbor ["newValNeighbor"]: Option<String>,
+            new_val_is_after ["newValIsAfter"]: bool,
+            skip_if_new_val_exists ["skipIfNewValExists"]: bool,
+        }
+        ViewStmt (230, "ViewStmt") {
+            view ["view"]: Option<Box<RangeVar>>,
+            aliases ["aliases"]: Vec<Node>,
+            query ["query"]: Option<Box<Node>>,
+            replace ["replace"]: bool,
+            options ["options"]: Vec<Node>,
+            with_check_option ["withCheckOption"]: ViewCheckOption,
+        }
+        LoadStmt (231, "LoadStmt") {
+            filename ["filename"]: Option<String>,
+        }
+        CreatedbStmt (232, "CreatedbStmt") {
+            dbname ["dbname"]: Option<String>,
+            options ["options"]: Vec<Node>,
+        }
+        AlterDatabaseStmt (233, "AlterDatabaseStmt") {
+            dbname ["dbname"]: Option<String>,
+            options ["options"]: Vec<Node>,
+        }
+        AlterDatabaseRefreshCollStmt (234, "AlterDatabaseRefreshCollStmt") {
+            dbname ["dbname"]: Option<String>,
+        }
+        AlterDatabaseSetStmt (235, "AlterDatabaseSetStmt") {
+            dbname ["dbname"]: Option<String>,
+            setstmt ["setstmt"]: Option<Box<VariableSetStmt>>,
+        }
+        DropdbStmt (236, "DropdbStmt") {
+            dbname ["dbname"]: Option<String>,
+            missing_ok ["missing_ok"]: bool,
+            options ["options"]: Vec<Node>,
+        }
+        AlterSystemStmt (237, "AlterSystemStmt") {
+            setstmt ["setstmt"]: Option<Box<VariableSetStmt>>,
+        }
+        VacuumStmt (238, "VacuumStmt") {
+            options ["options"]: Vec<Node>,
+            rels ["rels"]: Vec<Node>,
+            is_vacuumcmd ["is_vacuumcmd"]: bool,
+        }
+        VacuumRelation (239, "VacuumRelation") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            oid ["oid"]: u32,
+            va_cols ["va_cols"]: Vec<Node>,
+        }
+        RepackStmt (240, "RepackStmt") {
+            command ["command"]: RepackCommand,
+            relation ["relation"]: Option<Box<VacuumRelation>>,
+            indexname ["indexname"]: Option<String>,
+            usingindex ["usingindex"]: bool,
+            params ["params"]: Vec<Node>,
+        }
+        ExplainStmt (241, "ExplainStmt") {
+            query ["query"]: Option<Box<Node>>,
+            options ["options"]: Vec<Node>,
+        }
+        CreateTableAsStmt (242, "CreateTableAsStmt") {
+            query ["query"]: Option<Box<Node>>,
+            into ["into"]: Option<Box<IntoClause>>,
+            objtype ["objtype"]: ObjectType,
+            is_select_into ["is_select_into"]: bool,
+            if_not_exists ["if_not_exists"]: bool,
+        }
+        RefreshMatViewStmt (243, "RefreshMatViewStmt") {
+            concurrent ["concurrent"]: bool,
+            skip_data ["skipData"]: bool,
+            relation ["relation"]: Option<Box<RangeVar>>,
+        }
+        CheckPointStmt (244, "CheckPointStmt") {
+            options ["options"]: Vec<Node>,
+        }
+        DiscardStmt (245, "DiscardStmt") {
+            target ["target"]: DiscardMode,
+        }
+        LockStmt (246, "LockStmt") {
+            relations ["relations"]: Vec<Node>,
+            mode ["mode"]: i32,
+            nowait ["nowait"]: bool,
+        }
+        ConstraintsSetStmt (247, "ConstraintsSetStmt") {
+            constraints ["constraints"]: Vec<Node>,
+            deferred ["deferred"]: bool,
+        }
+        ReindexStmt (248, "ReindexStmt") {
+            kind ["kind"]: ReindexObjectType,
+            relation ["relation"]: Option<Box<RangeVar>>,
+            name ["name"]: Option<String>,
+            params ["params"]: Vec<Node>,
+        }
+        CreateConversionStmt (249, "CreateConversionStmt") {
+            conversion_name ["conversion_name"]: Vec<Node>,
+            for_encoding_name ["for_encoding_name"]: Option<String>,
+            to_encoding_name ["to_encoding_name"]: Option<String>,
+            func_name ["func_name"]: Vec<Node>,
+            def ["def"]: bool,
+        }
+        CreateCastStmt (250, "CreateCastStmt") {
+            sourcetype ["sourcetype"]: Option<Box<TypeName>>,
+            targettype ["targettype"]: Option<Box<TypeName>>,
+            func ["func"]: Option<Box<ObjectWithArgs>>,
+            context ["context"]: CoercionContext,
+            inout ["inout"]: bool,
+        }
+        CreateTransformStmt (251, "CreateTransformStmt") {
+            replace ["replace"]: bool,
+            type_name ["type_name"]: Option<Box<TypeName>>,
+            lang ["lang"]: Option<String>,
+            fromsql ["fromsql"]: Option<Box<ObjectWithArgs>>,
+            tosql ["tosql"]: Option<Box<ObjectWithArgs>>,
+        }
+        PrepareStmt (252, "PrepareStmt") {
+            name ["name"]: Option<String>,
+            argtypes ["argtypes"]: Vec<Node>,
+            query ["query"]: Option<Box<Node>>,
+        }
+        ExecuteStmt (253, "ExecuteStmt") {
+            name ["name"]: Option<String>,
+            params ["params"]: Vec<Node>,
+        }
+        DeallocateStmt (254, "DeallocateStmt") {
+            name ["name"]: Option<String>,
+            isall ["isall"]: bool,
+            location ["location"]: Location,
+        }
+        DropOwnedStmt (255, "DropOwnedStmt") {
+            roles ["roles"]: Vec<Node>,
+            behavior ["behavior"]: DropBehavior,
+        }
+        ReassignOwnedStmt (256, "ReassignOwnedStmt") {
+            roles ["roles"]: Vec<Node>,
+            newrole ["newrole"]: Option<Box<RoleSpec>>,
+        }
+        AlterTSDictionaryStmt (257, "AlterTSDictionaryStmt") {
+            dictname ["dictname"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+        }
+        AlterTSConfigurationStmt (258, "AlterTSConfigurationStmt") {
+            kind ["kind"]: AlterTSConfigType,
+            cfgname ["cfgname"]: Vec<Node>,
+            tokentype ["tokentype"]: Vec<Node>,
+            dicts ["dicts"]: Vec<Node>,
+            r#override ["override"]: bool,
+            replace ["replace"]: bool,
+            missing_ok ["missing_ok"]: bool,
+        }
+        PublicationTable (259, "PublicationTable") {
+            relation ["relation"]: Option<Box<RangeVar>>,
+            where_clause ["whereClause"]: Option<Box<Node>>,
+            columns ["columns"]: Vec<Node>,
+            except ["except"]: bool,
+        }
+        PublicationObjSpec (260, "PublicationObjSpec") {
+            pubobjtype ["pubobjtype"]: PublicationObjSpecType,
+            name ["name"]: Option<String>,
+            pubtable ["pubtable"]: Option<Box<PublicationTable>>,
+            location ["location"]: Location,
+        }
+        PublicationAllObjSpec (261, "PublicationAllObjSpec") {
+            pubobjtype ["pubobjtype"]: PublicationAllObjType,
+            except_tables ["except_tables"]: Vec<Node>,
+            location ["location"]: Location,
+        }
+        CreatePublicationStmt (262, "CreatePublicationStmt") {
+            pubname ["pubname"]: Option<String>,
+            options ["options"]: Vec<Node>,
+            pubobjects ["pubobjects"]: Vec<Node>,
+            for_all_tables ["for_all_tables"]: bool,
+            for_all_sequences ["for_all_sequences"]: bool,
+        }
+        AlterPublicationStmt (263, "AlterPublicationStmt") {
+            pubname ["pubname"]: Option<String>,
+            options ["options"]: Vec<Node>,
+            pubobjects ["pubobjects"]: Vec<Node>,
+            action ["action"]: AlterPublicationAction,
+            for_all_tables ["for_all_tables"]: bool,
+            for_all_sequences ["for_all_sequences"]: bool,
+        }
+        CreateSubscriptionStmt (264, "CreateSubscriptionStmt") {
+            subname ["subname"]: Option<String>,
+            servername ["servername"]: Option<String>,
+            conninfo ["conninfo"]: Option<String>,
+            publication ["publication"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+            conninfo_location ["conninfo_location"]: Location,
+        }
+        AlterSubscriptionStmt (265, "AlterSubscriptionStmt") {
+            kind ["kind"]: AlterSubscriptionType,
+            subname ["subname"]: Option<String>,
+            servername ["servername"]: Option<String>,
+            conninfo ["conninfo"]: Option<String>,
+            publication ["publication"]: Vec<Node>,
+            options ["options"]: Vec<Node>,
+            conninfo_location ["conninfo_location"]: Location,
+        }
+        DropSubscriptionStmt (266, "DropSubscriptionStmt") {
+            subname ["subname"]: Option<String>,
+            missing_ok ["missing_ok"]: bool,
+            behavior ["behavior"]: DropBehavior,
+        }
+        WaitStmt (267, "WaitStmt") {
+            lsn_literal ["lsn_literal"]: Option<String>,
+            options ["options"]: Vec<Node>,
+            lsn_location ["lsn_location"]: Location,
+        }
+    }
+}
