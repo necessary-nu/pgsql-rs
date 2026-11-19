@@ -1,6 +1,8 @@
 //! PostgreSQL 19 PL/pgSQL body grammar. See src/postgres/COPYRIGHT.
 #![forbid(unsafe_code)]
 mod body;
+mod catalog;
+pub use catalog::{Builtin, NativeSql, BUILTINS};
 mod compile;
 mod driver;
 mod scope;
