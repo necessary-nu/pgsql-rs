@@ -170,6 +170,17 @@ def lower(s, ty="Value"):
         if ty == "Option<Box<RangeVar>>":
             return f"Some(Box::new({value}))"
         return convert(f"Value::Node({value}.into())", ty)
+    if (name, len(args)) in {("makeTypeNameFromNameList", 1), ("located_type_name", 2)}:
+        names = lower(args[0], "Vec<Node>")
+        location = lower(args[1], "Location") if len(args) == 2 else "Location::UNKNOWN"
+        result = f"crate::types::named({names}, Vec::new(), {location})"
+        if ty == "Option<Box<TypeName>>":
+            return f"Some(Box::new({result}))"
+        if ty == "Node":
+            return f"Node::from({result})"
+        if ty == "Value":
+            return f"Value::Node({result}.into())"
+        raise Unsupported(s)
     if name == "with_persistence" and len(args) == 2:
         return convert(f"persistence({lower(args[0])}, {lower(args[1], 'i32')})?", ty)
     if name == "pstrdup" and len(args) == 1:
@@ -349,6 +360,8 @@ def compile_action(raw, symbols):
     body = re.sub(r"\(yyvsp\[(-?\d+)\]\.(\w+)\)", lambda m: f"${count + int(m[1])}.{m[2]}", body)
     body = re.sub(r"\(yylsp\[(-?\d+)\]\)", lambda m: f"@{count + int(m[1])}", body)
     body = re.sub(r"\(yyval\.(\w+)\)", lambda m: f"result.{m[1]}", body)
+    body = re.sub(r"(\w+->\w+) = makeTypeNameFromNameList\((\$\d+\.list)\); \1->location = (@\d+);",
+                  r"\1 = located_type_name(\2, \3);", body)
     # makeNode followed by assignments through $$ is the same allocation form.
     if m := re.fullmatch(r"result\.(\w+) = makeNode\((\w+)\); (result\.\1->.*;)", body):
         kind, rec, tail = m.groups()
