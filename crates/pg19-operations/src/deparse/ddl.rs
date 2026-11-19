@@ -1,5 +1,8 @@
+mod alter;
+mod constraints;
 mod object;
 mod session;
+mod table;
 use super::query::{named, relation};
 use super::writer::{names, required, Plan, Role};
 use super::{ident, literal, Error, Result};
@@ -15,6 +18,16 @@ fn role(r: &RoleSpec) -> Result<String> {
         _ => return Err(Error::InvalidField("RoleSpec.roletype")),
     };
     Ok(name.to_owned())
+}
+
+fn relation_name(r: &RangeVar, p: &mut Plan<'_>) -> Result<()> {
+    p.mark(r.location);
+    for part in [&r.catalogname, &r.schemaname].into_iter().flatten() {
+        p.text(ident(part)?);
+        p.text(".")
+    }
+    p.text(named(&r.relname, "RangeVar.relname")?);
+    Ok(())
 }
 
 fn relation_list(nodes: &[Node], p: &mut Plan<'_>) -> Result<()> {
@@ -220,7 +233,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("RETURN ");
             p.expr(required(&s.returnval, "ReturnStmt.returnval")?)
         }
-        _ => return Ok(false),
+        _ => return table::statement(n, p),
     }
     Ok(true)
 }

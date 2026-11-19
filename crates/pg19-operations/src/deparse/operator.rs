@@ -121,7 +121,7 @@ pub(super) fn precedence(n: &Node) -> Prec {
         _ => Prec::Atom,
     }
 }
-fn restricted(n: &Node) -> bool {
+pub(super) fn restricted(n: &Node) -> bool {
     match n {
         Node::AExpr(a) => !matches!(
             a.kind,
