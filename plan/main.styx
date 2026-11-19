@@ -561,6 +561,13 @@ children (
                         kind @note
                         text "The byte-for-byte gate verified all 54,266 successful corpus inputs. Seven paired rounds after specializing native reductions and reusing parser scratch measured Rust/C of 1.77/0.97 (SELECT 1), 2.19/1.15 (aggregate join), and 1.92/1.18 (corpus), parse/parse plus JSON. Leave the latency requirement open until all six pass on the same run."
                     }
+
+                    {
+                        at 2026-11-19T23:22:51.657696921Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "All 54,471 reference cases matched. With a 1 KiB initial buffer for nonempty statement JSON, seven paired median Rust/C ratios were 1.216, 1.431 and 1.536 for raw SELECT 1, aggregate join and corpus. Parse plus JSON passed on all three at 0.713, 0.907 and 0.933. The 54,266 successful corpus outputs matched byte for byte. Per-type record pools and compact semantic handles both slowed raw parsing in paired trials. The raw-parse requirement remains open."
+                    }
                 )
             }
         )

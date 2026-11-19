@@ -308,7 +308,7 @@ pub fn node_json(node: &Node) -> std::result::Result<String, EncodeError> {
 // [spec:pgq:req:codec.json-envelope]
 pub fn statements_json(stmts: &[RawStmt]) -> std::result::Result<String, EncodeError> {
     let mut w = Writer {
-        text: String::with_capacity(256),
+        text: String::with_capacity(if stmts.is_empty() { 32 } else { 1024 }),
         depth: 0,
     };
     w.object(|w| {
