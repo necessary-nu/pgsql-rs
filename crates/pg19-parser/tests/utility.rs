@@ -85,3 +85,29 @@ fn deeply_nested_argument_types_are_copied_independently() {
         .join()
         .unwrap();
 }
+
+#[test]
+fn ordered_variadic_arguments_compare_deep_type_modifiers() {
+    std::thread::Builder::new()
+        .stack_size(2 * 1024 * 1024)
+        .spawn(|| {
+            let modifier = format!("1{}", "+1".repeat(20_000));
+            let arg = format!("VARIADIC custom_type({modifier})");
+            let sql = format!("DROP AGGREGATE test({arg} ORDER BY {arg})");
+            let parsed = parse(&sql, ParseMode::Sql, Options::default()).unwrap();
+            let [pg19_nodes::Node::RawStmt(stmt)] = parsed.as_slice() else {
+                panic!()
+            };
+            let Some(pg19_nodes::Node::DropStmt(drop)) = stmt.stmt.as_deref() else {
+                panic!()
+            };
+            let [pg19_nodes::Node::ObjectWithArgs(sig)] = drop.objects.as_slice() else {
+                panic!()
+            };
+            assert_eq!(sig.objargs.len(), 1);
+            assert_eq!(sig.objfuncargs.len(), 1);
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}

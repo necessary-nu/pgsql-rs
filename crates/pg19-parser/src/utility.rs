@@ -7,7 +7,7 @@ pub(crate) mod definition;
 mod foreign_key;
 mod partition;
 mod publication;
-mod routine;
+pub(crate) mod routine;
 pub(crate) mod trigger;
 pub(crate) mod view;
 

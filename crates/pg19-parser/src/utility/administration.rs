@@ -211,3 +211,47 @@ pub(crate) fn alter_constraint(rhs: &mut Reduction<'_, Value>) -> Result<Value, 
         .into(),
     ))
 }
+
+pub(crate) fn foreign_table(
+    rhs: &mut Reduction<'_, Value>,
+    if_not_exists: bool,
+    partition: bool,
+) -> Result<Value, Failure> {
+    let rel = if if_not_exists { 7 } else { 4 };
+    let Some(mut relation) = record!(rhs.take(rel), RangeVar) else {
+        return Err("expected foreign relation".into());
+    };
+    relation.relpersistence = b'p';
+    let (table_elts, inh_relations, partbound, server) = if partition {
+        (
+            rhs.take(rel + 4).list()?,
+            vec![rhs.take(rel + 3).node()?],
+            record!(rhs.take(rel + 5), PartitionBoundSpec),
+            rel + 7,
+        )
+    } else {
+        (
+            rhs.take(rel + 2).list()?,
+            rhs.take(rel + 4).list()?,
+            None,
+            rel + 6,
+        )
+    };
+    let base = CreateStmt {
+        relation: Some(relation),
+        table_elts,
+        inh_relations,
+        partbound,
+        if_not_exists,
+        oncommit: OnCommitAction::ONCOMMIT_NOOP,
+        ..Default::default()
+    };
+    Ok(Value::Node(
+        CreateForeignTableStmt {
+            base,
+            servername: Some(rhs.take(server).text()?),
+            options: rhs.take(server + 1).list()?,
+        }
+        .into(),
+    ))
+}
