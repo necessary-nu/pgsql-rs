@@ -1,3 +1,5 @@
+mod access;
+mod copy;
 mod object;
 mod session;
 use super::query::{named, relation};
@@ -73,6 +75,7 @@ fn enum_change(s: &AlterEnumStmt, p: &mut Plan<'_>) -> Result<()> {
 
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
+        Node::CopyStmt(s) => copy::statement(s, p)?,
         Node::DropStmt(s) => object::drop_objects(s, p)?,
         Node::CommentStmt(s) => {
             p.text("COMMENT ON ");
@@ -220,7 +223,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("RETURN ");
             p.expr(required(&s.returnval, "ReturnStmt.returnval")?)
         }
-        _ => return Ok(false),
+        _ => return access::statement(n, p),
     }
     Ok(true)
 }
