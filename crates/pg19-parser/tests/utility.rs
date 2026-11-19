@@ -3,6 +3,7 @@ use pg19_lexer::Options;
 use pg19_parser::{parse, Error};
 use serde_json::{json, Value};
 
+// [spec:pgq:sem:grammar.utility-actions/test]
 #[test]
 fn utility_trees_match_patched_postgres() {
     for line in include_str!("utility.jsonl").lines() {
@@ -110,4 +111,56 @@ fn ordered_variadic_arguments_compare_deep_type_modifiers() {
         .unwrap()
         .join()
         .unwrap();
+}
+
+// [spec:pgq:sem:grammar.utility-actions/test]
+#[test]
+fn utility_statements_preserve_options_and_byte_locations() {
+    use pg19_nodes::{Node, RepackCommand, TransactionStmtKind};
+    let sql = "/* é */ WAIT FOR LSN '0/16B6C50'; REPACK t USING INDEX i; CREATE TABLE x (a int, b text); BEGIN ISOLATION LEVEL SERIALIZABLE, READ ONLY;";
+    let statements = pg19_parser::parse_statements(sql, Options::default()).unwrap();
+    let [wait, repack, create, begin] = statements.as_slice() else {
+        panic!("expected four statements")
+    };
+    let Some(Node::WaitStmt(wait)) = wait.stmt.as_deref() else {
+        panic!("expected WAIT")
+    };
+    assert_eq!(wait.lsn_literal.as_deref(), Some("0/16B6C50"));
+    assert_eq!(wait.lsn_location.byte_offset(), sql.find("'0/16"));
+    let Some(Node::RepackStmt(repack)) = repack.stmt.as_deref() else {
+        panic!("expected REPACK")
+    };
+    assert_eq!(repack.command, RepackCommand::REPACK_COMMAND_REPACK);
+    assert!(repack.usingindex);
+    assert_eq!(repack.indexname.as_deref(), Some("i"));
+    let rel = repack.relation.as_ref().unwrap().relation.as_ref().unwrap();
+    assert_eq!(rel.relname.as_deref(), Some("t"));
+    assert_eq!(rel.location.byte_offset(), sql.find("t USING"));
+    let Some(Node::CreateStmt(create)) = create.stmt.as_deref() else {
+        panic!("expected CREATE TABLE")
+    };
+    assert_eq!(
+        create.relation.as_ref().unwrap().relname.as_deref(),
+        Some("x")
+    );
+    let [Node::ColumnDef(a), Node::ColumnDef(b)] = create.table_elts.as_slice() else {
+        panic!("expected two column definitions")
+    };
+    assert_eq!(
+        (a.colname.as_deref(), b.colname.as_deref()),
+        (Some("a"), Some("b"))
+    );
+    assert_eq!(a.location.byte_offset(), sql.find("a int"));
+    assert_eq!(b.location.byte_offset(), sql.find("b text"));
+    let Some(Node::TransactionStmt(begin)) = begin.stmt.as_deref() else {
+        panic!("expected BEGIN")
+    };
+    assert_eq!(begin.kind, TransactionStmtKind::TRANS_STMT_BEGIN);
+    let [Node::DefElem(isolation), Node::DefElem(readonly)] = begin.options.as_slice() else {
+        panic!("expected two transaction options")
+    };
+    assert_eq!(isolation.defname.as_deref(), Some("transaction_isolation"));
+    assert_eq!(isolation.location.byte_offset(), sql.find("ISOLATION"));
+    assert_eq!(readonly.defname.as_deref(), Some("transaction_read_only"));
+    assert_eq!(readonly.location.byte_offset(), sql.find("READ ONLY"));
 }
