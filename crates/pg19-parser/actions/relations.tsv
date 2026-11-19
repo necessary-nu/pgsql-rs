@@ -1,0 +1,8 @@
+# Native relation-name and inheritance actions.
+relation_expr: qualified_name	835c0f6188a4924ba42e410035db4672c8911070fdb49c0b58d1a051245a727a	Utility(crate::utility::Utility::Relation(1, true))
+relation_expr: extended_relation_expr	740a7303b6930b3be9aa74b88448675456a1db694d6d4926afca3a6560f78f2d	Take(1)
+extended_relation_expr: qualified_name '*'	62a5bdf6475d4838a2d09fdc4b88a51283666a03130b9bfe901b9daa1c0c27c8	Utility(crate::utility::Utility::Relation(1, true))
+extended_relation_expr: ONLY qualified_name	f25441cc532ebe76ade03faa3a50f81b92d745e99ee41768a1cf0f8fd1cb4901	Utility(crate::utility::Utility::Relation(2, false))
+extended_relation_expr: ONLY '(' qualified_name ')'	93d71b7d21e2b98e299d1c4417f32dcaf1cea9f72f4ce932de969b91d1f2012e	Utility(crate::utility::Utility::Relation(3, false))
+qualified_name: ColId	fdb18e985b9c1e3005f6fbac6e6141c5ea3e8f95e8d035c4163fd39ab690f4f0	Utility(crate::utility::Utility::Qualified(false))
+qualified_name: ColId indirection	424b054a16ff3da8eee14a8fa5c71aa8f207d61ac50220ba2325586acd6b6918	Utility(crate::utility::Utility::Qualified(true))

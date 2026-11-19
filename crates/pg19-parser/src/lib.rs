@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 mod expr;
 mod query;
+mod utility;
 mod value;
 
 use pg19_engine::{Actions, ParseError, ParseMode, Reduction};
@@ -40,6 +41,7 @@ impl std::error::Error for Error {}
 pub(crate) enum Failure {
     Value(&'static str),
     Syntax(&'static str),
+    At(String, &'static str, pg19_nodes::Location),
 }
 impl From<&'static str> for Failure {
     fn from(s: &'static str) -> Self {
@@ -53,6 +55,7 @@ enum Op {
     Nil,
     Single,
     Append(isize),
+    Utility(utility::Utility),
     Expr(expr::Expr),
     Query(query::Query),
 }
@@ -88,6 +91,7 @@ impl Actions for Parser<'_> {
                     items.push(rhs.take(i).node()?);
                     Value::List(items)
                 }
+                Op::Utility(op) => utility::reduce(op, rhs)?,
                 Op::Expr(e) => expr::reduce(e, rhs)?,
                 Op::Query(q) => query::reduce(q, rhs)?,
             })
@@ -97,6 +101,12 @@ impl Actions for Parser<'_> {
                 rule: rule.info(),
                 expected,
             },
+            Failure::At(message, sqlstate, location) => {
+                Error::Diagnostic(match location.byte_offset() {
+                    Some(offset) => pg19_lexer::Error::at(self.sql, offset, message, sqlstate),
+                    None => pg19_lexer::Error::without_position(message, sqlstate),
+                })
+            }
             Failure::Syntax(message) => {
                 let (a, b) = rhs.scanner_span();
                 Error::Diagnostic(pg19_lexer::Error::near(self.sql, a, b, message))
