@@ -92,6 +92,59 @@ fn var_args<'a>(args: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
     Ok(())
 }
 
+fn time_zone<'a>(args: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
+    let [value] = args else {
+        return Err(Error::InvalidField("TIME ZONE argument"));
+    };
+    match value {
+        Node::TypeCast(cast) => zone_interval(cast, p),
+        Node::AConst(AConst {
+            val: Literal::String(s),
+            location,
+        }) if pg19_lexer::keyword(s).is_some() => {
+            p.mark(*location);
+            p.text(literal(s)?);
+            Ok(())
+        }
+        _ => var_args(args, p),
+    }
+}
+
+fn zone_interval<'a>(cast: &'a TypeCast, p: &mut Plan<'a>) -> Result<()> {
+    let ty = super::required(&cast.type_name, "time zone interval type")?;
+    let value = super::required(&cast.arg, "time zone interval value")?;
+    if !matches!(ty.names.as_slice(), [Node::String(schema), Node::String(name)] if schema == "pg_catalog" && name == "interval")
+        || !matches!(
+            value,
+            Node::AConst(AConst {
+                val: Literal::String(_),
+                ..
+            })
+        )
+    {
+        return Err(Error::InvalidField("time zone interval"));
+    }
+    p.text("interval");
+    if let [Node::AConst(AConst {
+        val: Literal::Integer(32767),
+        ..
+    }), Node::AConst(AConst {
+        val: Literal::Integer(precision),
+        ..
+    })] = ty.typmods.as_slice()
+    {
+        p.text(format!("({precision}) "));
+        p.expr(value);
+    } else {
+        p.text(" ");
+        p.expr(value);
+        if !ty.typmods.is_empty() {
+            crate::deparse::expr::interval_mods(&ty.typmods, p)?;
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn setting<'a>(s: &'a VariableSetStmt, p: &mut Plan<'a>) -> Result<()> {
     use VariableSetKind as K;
     if s.kind == K::VAR_RESET_ALL {
@@ -114,7 +167,7 @@ pub(super) fn setting<'a>(s: &'a VariableSetStmt, p: &mut Plan<'a>) -> Result<()
             if s.kind == K::VAR_SET_DEFAULT {
                 p.text("DEFAULT")
             } else {
-                var_args(&s.args, p)?
+                time_zone(&s.args, p)?
             }
         }
         K::VAR_SET_VALUE if name == "xmloption" && s.jumble_args => {

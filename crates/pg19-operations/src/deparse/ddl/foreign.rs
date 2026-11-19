@@ -49,6 +49,7 @@ fn wrapper(
         let word = match d.defname.as_deref() {
             Some("handler") => "HANDLER",
             Some("validator") => "VALIDATOR",
+            Some("connection") => "CONNECTION",
             _ => return Err(Error::InvalidField("FDW handler name")),
         };
         p.text(if d.arg.is_some() { " " } else { " NO " });

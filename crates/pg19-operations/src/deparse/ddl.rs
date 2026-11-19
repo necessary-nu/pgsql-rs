@@ -4,6 +4,7 @@ mod alter;
 mod catalog;
 mod constraints;
 mod copy;
+mod cursor;
 mod definition;
 mod foreign;
 pub(in crate::deparse) mod index;
@@ -119,6 +120,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
         || foreign::statement(n, p)?
         || admin::statement(n, p)?
         || replication::statement(n, p)?
+        || cursor::statement(n, p)?
     {
         return Ok(true);
     }
