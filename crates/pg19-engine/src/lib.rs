@@ -77,6 +77,7 @@ struct Frame<V> {
 pub struct Reduction<'a, V> {
     stack: &'a mut [Frame<V>],
     start: usize,
+    scanner_span: (usize, usize),
     /// The initial `@$` is the first known position on the RHS or -1.
     pub lhs_location: Location,
 }
@@ -87,6 +88,12 @@ impl<V: Default> Reduction<'_, V> {
         (self.start - 1)
             .checked_add_signed(n)
             .expect("reference before the parse stack")
+    }
+
+    /// Half-open byte span of the last token fetched by the parser, including
+    /// pending lookahead. At EOF both offsets are the end of the SQL text.
+    pub fn scanner_span(&self) -> (usize, usize) {
+        self.scanner_span
     }
 
     pub fn value(&self, n: isize) -> &V {
@@ -117,6 +124,7 @@ fn reduce<A: Actions>(
     stack: &mut Vec<Frame<A::Value>>,
     rule: Production,
     actions: &mut A,
+    scanner_span: (usize, usize),
 ) -> Result<(), A::Error> {
     let start = stack.len() - rule.rhs_len();
     let state = goto(stack[start - 1].state, rule);
@@ -128,6 +136,7 @@ fn reduce<A: Actions>(
     let mut rhs = Reduction {
         stack,
         start,
+        scanner_span,
         lhs_location: location,
     };
     let value = if rule.info().action.is_some() {
@@ -216,7 +225,7 @@ pub fn parse<A: Actions>(
                 });
             }
             Action::Reduce(rule) => {
-                reduce(&mut stack, rule, actions).map_err(ParseError::Action)?
+                reduce(&mut stack, rule, actions, span).map_err(ParseError::Action)?
             }
             Action::Accept => {
                 stack.pop(); // The accepting state is reached by shifting EOF after parse_toplevel.

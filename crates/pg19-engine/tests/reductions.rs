@@ -187,3 +187,54 @@ fn empty_symbols_keep_prefix_values_and_locations() {
     );
     assert_eq!(actions.reductions, [first, first, second]);
 }
+
+struct InvalidColumnRef<'a>(&'a str);
+
+impl Actions for InvalidColumnRef<'_> {
+    type Value = ();
+    type Error = pg19_lexer::Error;
+
+    fn shift(&mut self, _: Token) {}
+
+    fn reduce(&mut self, rule: Production, rhs: &mut Reduction<'_, ()>) -> Result<(), Self::Error> {
+        if rule.info().production == "columnref: ColId indirection" {
+            let (start, end) = rhs.scanner_span();
+            return Err(pg19_lexer::Error::near(
+                self.0,
+                start,
+                end,
+                r#"improper use of "*""#,
+            ));
+        }
+        Ok(())
+    }
+}
+
+// [spec:pgq:req:grammar.reductions/test]
+#[test]
+fn action_diagnostics_follow_lookahead_and_eof() {
+    // These diagnostics come from makeColumnRef in the patched 19.0 C reference.
+    for (sql, message, position) in [
+        (
+            "SELECT é.*.b /* gap */ FROM t",
+            r#"improper use of "*" at or near "FROM""#,
+            24,
+        ),
+        (
+            "SELECT a.*.b /* trailing */",
+            r#"improper use of "*" at end of input"#,
+            28,
+        ),
+    ] {
+        let mut actions = InvalidColumnRef(sql);
+        let Err(ParseError::Action(err)) =
+            parse(sql, ParseMode::Sql, Options::default(), &mut actions)
+        else {
+            panic!("expected a column reference action error for {sql}");
+        };
+        assert_eq!(
+            (err.sqlstate, err.message.as_str(), err.position),
+            ("42601", message, position)
+        );
+    }
+}
