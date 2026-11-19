@@ -30,7 +30,10 @@ pub(super) fn signature(
             .into(),
         ));
     }
-    let objfuncargs = rhs.take(2).list()?;
+    object_signature(rhs.take(1).list()?, rhs.take(2).list()?)
+}
+
+fn object_signature(objname: Vec<Node>, objfuncargs: Vec<Node>) -> Result<Value, Failure> {
     let mut objargs = Vec::new();
     for arg in &objfuncargs {
         let param = parameter(arg)?;
@@ -49,7 +52,7 @@ pub(super) fn signature(
     }
     Ok(Value::Node(
         ObjectWithArgs {
-            objname: rhs.take(1).list()?,
+            objname,
             objargs,
             objfuncargs,
             args_unspecified: false,
@@ -140,4 +143,62 @@ pub(super) fn transform(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure
         }
         .into(),
     ))
+}
+
+pub(crate) fn aggregate_signature(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    let args = rhs.take(2).list()?;
+    let first = args
+        .into_iter()
+        .next()
+        .ok_or("expected aggregate arguments")?;
+    let params = match first {
+        Node::Null => Vec::new(),
+        Node::List(items) => items.into_vec(),
+        _ => return Err("expected aggregate parameter list".into()),
+    };
+    object_signature(rhs.take(1).list()?, params)
+}
+
+pub(crate) fn aggregate_arg(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    let arg = rhs.take(1).node()?;
+    if !matches!(
+        parameter(&arg)?.mode,
+        FunctionParameterMode::FUNC_PARAM_DEFAULT
+            | FunctionParameterMode::FUNC_PARAM_IN
+            | FunctionParameterMode::FUNC_PARAM_VARIADIC
+    ) {
+        return Err(Failure::At(
+            "aggregates cannot have output arguments".to_owned(),
+            "0A000",
+            rhs.location(1),
+        ));
+    }
+    Ok(Value::Node(arg))
+}
+
+pub(crate) fn ordered_args(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    let mut direct = rhs.take(2).list()?;
+    let ordered = rhs.take(5).list()?;
+    let count = i32::try_from(direct.len()).map_err(|_| "too many direct aggregate arguments")?;
+    let last = parameter(direct.last().ok_or("expected direct aggregate parameter")?)?;
+    if last.mode == FunctionParameterMode::FUNC_PARAM_VARIADIC {
+        let first = parameter(
+            ordered
+                .first()
+                .ok_or("expected ordered aggregate parameter")?,
+        )?;
+        let direct_type = last.arg_type.as_deref().ok_or("expected direct type")?;
+        let ordered_type = first.arg_type.as_deref().ok_or("expected ordered type")?;
+        if ordered.len() != 1
+            || first.mode != FunctionParameterMode::FUNC_PARAM_VARIADIC
+            || !direct_type
+                .pg_equal(ordered_type)
+                .map_err(|_| "unsupported PostgreSQL equality tag")?
+        {
+            return Err(Failure::At("an ordered-set aggregate with a VARIADIC direct argument must have one VARIADIC aggregated argument of the same data type".to_owned(),"0A000",first.location));
+        }
+    } else {
+        direct.extend(ordered);
+    }
+    Ok(Value::List(vec![direct.into(), Node::Integer(count)]))
 }

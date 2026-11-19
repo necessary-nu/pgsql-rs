@@ -1,12 +1,13 @@
 //! PostgreSQL utility grammar actions and their shared relation-name reductions.
 pub(crate) mod access;
+pub(crate) mod administration;
 pub(crate) mod constraint;
 mod copy;
 pub(crate) mod definition;
 mod foreign_key;
 mod partition;
 mod publication;
-mod routine;
+pub(crate) mod routine;
 pub(crate) mod trigger;
 pub(crate) mod view;
 
