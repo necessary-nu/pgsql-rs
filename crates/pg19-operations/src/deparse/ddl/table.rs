@@ -111,10 +111,11 @@ fn table_like(s: &TableLikeClause, p: &mut Plan<'_>) -> Result<()> {
 
 pub(super) fn partition<'a>(s: &'a PartitionSpec, p: &mut Plan<'a>) -> Result<()> {
     p.mark(s.location);
+    p.clause("PARTITION BY ");
     p.text(match s.strategy {
-        PartitionStrategy::PARTITION_STRATEGY_RANGE => "PARTITION BY RANGE (",
-        PartitionStrategy::PARTITION_STRATEGY_LIST => "PARTITION BY LIST (",
-        PartitionStrategy::PARTITION_STRATEGY_HASH => "PARTITION BY HASH (",
+        PartitionStrategy::PARTITION_STRATEGY_RANGE => "RANGE (",
+        PartitionStrategy::PARTITION_STRATEGY_LIST => "LIST (",
+        PartitionStrategy::PARTITION_STRATEGY_HASH => "HASH (",
         _ => return Err(Error::InvalidField("PartitionSpec.strategy")),
     });
     for (i, n) in s.part_params.iter().enumerate() {
@@ -170,10 +171,15 @@ pub(super) fn bound<'a>(s: &'a PartitionBoundSpec, p: &mut Plan<'a>) -> Result<(
 }
 
 fn elements<'a>(nodes: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
+    if nodes.is_empty() {
+        p.text(" ()");
+        return Ok(());
+    }
     p.text(" (");
+    p.enter();
     for (i, n) in nodes.iter().enumerate() {
         if i > 0 {
-            p.text(", ")
+            p.comma()
         }
         match n {
             Node::ColumnDef(c) => column(c, p)?,
@@ -182,6 +188,7 @@ fn elements<'a>(nodes: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
             _ => return Err(Error::InvalidField("CreateStmt.tableElts")),
         }
     }
+    p.leave();
     p.text(")");
     Ok(())
 }
@@ -221,7 +228,6 @@ pub(super) fn create<'a>(s: &'a CreateStmt, foreign: bool, p: &mut Plan<'a>) -> 
         p.text(")")
     }
     if let Some(z) = s.partspec.as_deref() {
-        p.text(" ");
         partition(z, p)?
     }
     if let Some(am) = &s.access_method {

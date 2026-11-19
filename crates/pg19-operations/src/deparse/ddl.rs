@@ -169,15 +169,17 @@ fn general<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("CREATE TYPE ");
             p.text(names(&s.type_name, ".")?);
             p.text(" AS ENUM (");
+            p.enter();
             for (i, value) in s.vals.iter().enumerate() {
                 let Node::String(s) = value else {
                     return Err(Error::InvalidField("CreateEnumStmt.vals"));
                 };
                 if i > 0 {
-                    p.text(", ")
+                    p.comma()
                 }
                 p.text(literal(s)?);
             }
+            p.leave();
             p.text(")");
         }
         Node::AlterEnumStmt(s) => enum_change(s, p)?,
