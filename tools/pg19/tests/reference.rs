@@ -79,6 +79,7 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
     for (krate, test) in [
         ("pg19-lexer", "scan"),
         ("pg19-engine", "diagnostics"),
+        ("pg19-parser", "expressions"),
         ("pg19-reference", "native_tree"),
     ] {
         assert!(

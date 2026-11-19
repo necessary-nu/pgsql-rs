@@ -98,3 +98,21 @@ reference crate's full import integration test.
 ```sh
 python3 tools/pg19/regress/test_corpus.py "$run"
 ```
+
+## Measuring native action coverage
+
+The parser example runs the checked-in Rust actions, lexer and native tree
+writer. Build the example and run it against the saved patched outcomes.
+
+```sh
+cargo build --release --locked -p pg19-parser --example pg19-native
+python3 tools/pg19/regress/probes.py coverage target/release/examples/pg19-native "$out"
+```
+
+Each unmapped action is listed with its PG19 production, source line, action
+digest, number of affected cases and an example case ID. Only the first missing
+action in each case is observable. The command compares scanner output for
+every case, including cases that reach an unmapped action. For completed
+parses it also compares the complete tree or diagnostic. Exit status 0 means
+all outcomes matched, 1 reports differences and 2 reports incomplete action
+coverage. To inspect one case, pass its SQL and probe flags to the example.

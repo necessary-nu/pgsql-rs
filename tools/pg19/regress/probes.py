@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from collections import Counter
 from itertools import islice
 from pathlib import Path
 
@@ -70,6 +71,47 @@ def compare(candidate, out, reference, jobs):
     return errors == 0
 
 
+def coverage(candidate, out):
+    missing = Counter()
+    examples = {}
+    differences = Counter()
+    count = matched = 0
+    with gzip.open(out / "outcomes.jsonl.gz", "rt", encoding="utf-8") as expected:
+        pairs = zip(rows(out / "cases.jsonl"), map(json.loads, expected), strict=True)
+        while batch := list(islice(pairs, 128)):
+            result = subprocess.run([candidate, "--batch"], check=True,
+                                    stdout=subprocess.PIPE, text=True, timeout=60,
+                                    input="".join(line(case) for case, _ in batch))
+            responses = map(json.loads, result.stdout.removesuffix("\n").split("\n"))
+            for (case, oracle), observed in zip(batch, responses, strict=True):
+                case_id = case["id"]
+                if not case_id == oracle["id"] == observed["id"]:
+                    raise ValueError(f"mismatched case IDs at {case_id}")
+                count += 1
+                actual = observed["result"]
+                rule = actual.get("missing_action")
+                if rule:
+                    name = rule["production"]
+                    missing[name] += 1
+                    examples.setdefault(name, {"case": case_id, **rule})
+                fields = ("tokens", "scan_error") if rule else ("tokens", "scan_error", "tree", "parse_error")
+                wrong = [field for field in fields if actual[field] != oracle["patched"][field]]
+                if "action_error" in actual:
+                    wrong.append("action_error")
+                if wrong:
+                    print(line({"id": case_id, "different": wrong}), end="")
+                    differences.update(wrong)
+                if not wrong and not rule:
+                    matched += 1
+    for name, instances in missing.most_common():
+        print(line({"blocked_cases": instances, **examples[name]}), end="")
+    print(line({"cases": count, "matched": matched, "unmapped": sum(missing.values()),
+                "distinct_first_missing_actions": len(missing), "different": differences}), end="")
+    if not count:
+        raise ValueError("empty regression corpus")
+    return 1 if differences else 2 if missing else 0
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -78,10 +120,15 @@ if __name__ == "__main__":
     cmp = sub.add_parser("compare")
     cmp.add_argument("candidate", type=Path)
     cmp.add_argument("--reference", choices=("stock", "patched"), default="patched")
+    cov = sub.add_parser("coverage")
+    cov.add_argument("candidate", type=Path)
+    cov.add_argument("out", type=Path)
     for arg in (cap, cmp):
         arg.add_argument("out", type=Path)
         arg.add_argument("--jobs", type=int, default=4)
     args = parser.parse_args()
+    if args.command == "coverage":
+        raise SystemExit(coverage(args.candidate.resolve(), args.out))
     if args.jobs < 1:
         parser.error("--jobs must be positive")
     if args.command == "capture":
