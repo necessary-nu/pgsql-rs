@@ -29,6 +29,7 @@ pub(super) enum Utility {
     Definition(definition::Definition),
     PercentType(bool),
     RoutineBody,
+    Transform,
     PartitionSpec,
     Publication(Option<AlterPublicationAction>, bool),
     PublicationTail(bool),
@@ -111,6 +112,7 @@ pub(super) fn range_name(
 
 pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     match op {
+        Utility::Transform => routine::transform(rhs),
         Utility::Cluster(rel, idx) => {
             let relation = record!(rhs.take(rel), RangeVar);
             let params = flag_options(rhs, &[(2, "verbose")])?;
