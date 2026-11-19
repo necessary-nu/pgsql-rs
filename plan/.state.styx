@@ -122,6 +122,18 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule split.scanner}
     )}
+    {id parser.diagnostics, covered_rules (
+        grammar.diagnostics
+        grammar.string-settings
+    ), covered_claims (
+        {impl_name rust, rule grammar.diagnostics}
+        {impl_name rust, rule grammar.string-settings}
+    )}
+    {id parser.engine, covered_rules (
+        grammar.reductions
+    ), covered_claims (
+        {impl_name rust, rule grammar.reductions}
+    )}
     {id parser.lexer, covered_rules (
         lex.byte-spans
         lex.comments

@@ -23,6 +23,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pg19-engine"
+version = "0.1.0"
+dependencies = [
+ "pg19-lexer",
+ "pg19-nodes",
+ "pg19-tables",
+ "serde_json",
+]
+
+[[package]]
 name = "pg19-lexer"
 version = "0.1.0"
 dependencies = [
