@@ -1,9 +1,16 @@
+mod access;
+mod admin;
 mod alter;
 mod constraints;
+mod copy;
 mod definition;
+mod foreign;
 pub(in crate::deparse) mod index;
 mod object;
+mod ownership;
+mod policy;
 mod privileges;
+mod replication;
 mod routine;
 mod sequence;
 mod session;
@@ -104,7 +111,14 @@ fn lock_mode(mode: i32) -> Result<&'static str> {
 }
 
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
-    if general(n, p)? || table::statement(n, p)? {
+    if general(n, p)?
+        || table::statement(n, p)?
+        || access::statement(n, p)?
+        || policy::statement(n, p)?
+        || foreign::statement(n, p)?
+        || admin::statement(n, p)?
+        || replication::statement(n, p)?
+    {
         return Ok(true);
     }
     routine::statement(n, p)
@@ -112,6 +126,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
 
 fn general<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
+        Node::CopyStmt(s) => copy::statement(s, p)?,
         Node::GrantStmt(s) => privileges::grant(s, p)?,
         Node::IndexStmt(s) => index::index(s, p)?,
         Node::DropStmt(s) => object::drop_objects(s, p)?,

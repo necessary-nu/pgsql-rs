@@ -211,7 +211,7 @@ printf '%s' 'SELECT a, b, c, d, e, f FROM xyz WHERE a = b' | "$run/summary/summa
 cargo test --locked -p pg19-operations --test summary
 ```
 
-The build adapts the reference to PG19’s RepackStmt, WaitStmt and split subscription refresh kinds in the import directory. The fixture check reads the original C summary and truncation tests, verifies their expected truncated SQL, and compares the resulting wire messages and diagnostics with the checked-in snapshots. Use `check-summary.py --write` with the rebuilt probe when reviewing a version change.
+The build adapts the reference in the import directory for PG19’s REPACK and WAIT statements, publication targets and subscription commands. It also preserves quoted utility identifiers, numeric database options and database collation refreshes. The fixture check reads the original C summary and truncation tests, verifies their expected truncated SQL, and compares the resulting wire messages and diagnostics with the checked-in snapshots. Use `check-summary.py --write` with the rebuilt probe when reviewing a version change.
 
 To repeat the full entity and diagnostic comparison, point the ignored integration test at the extracted regression corpus and the probe.
 
