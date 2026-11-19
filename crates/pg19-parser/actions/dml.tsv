@@ -1,0 +1,8 @@
+# PostgreSQL production, Bison action SHA-256, native operation.
+InsertStmt: opt_with_clause INSERT INTO insert_target insert_rest opt_on_conflict returning_clause	63403385a42f0a5ba40da9fe08dd3f63f271b7d97b646a64029d0fb1b987c827	Dml(crate::dml::Dml::Insert)
+insert_target: qualified_name AS ColId	98563199f08b09b53d45c2ecab48477b2040bb356064692c35388fe3b47d1ba9	Dml(crate::dml::Dml::RelationAlias(3))
+insert_column_item: ColId opt_indirection	6d37fe8e1874b2ac02c4886b377481c3ecbf333fc04494df70e439f6328b4d13	Dml(crate::dml::Dml::Target)
+set_clause: set_target '=' a_expr	24af71296a27274c8ac58d3ee1a05597e88cab02ed54f042896be11c2c13fef9	Dml(crate::dml::Dml::Assignment)
+set_target: ColId opt_indirection	9484cc7ac1775194c115a77b1e7ab573611ebdca111bad2af82261e7f93d5de9	Dml(crate::dml::Dml::Target)
+relation_expr_opt_alias: relation_expr ColId	bd3b69a4ba2a4f01137b6236cb91bbc7248df846ec74cde12832c98dd5fbf03a	Dml(crate::dml::Dml::RelationAlias(2))
+relation_expr_opt_alias: relation_expr AS ColId	0094720ad11d174073a2957338cdc3bbcfa1fa1ff821a16297e801002bd201d2	Dml(crate::dml::Dml::RelationAlias(3))

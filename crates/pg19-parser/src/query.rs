@@ -14,6 +14,12 @@ pub(super) enum Query {
     Assignment,
     ParameterName,
     Values(bool),
+    Options {
+        with: bool,
+        sort: Option<isize>,
+        locks: Option<isize>,
+        limit: Option<isize>,
+    },
     First,
     Next,
     Target(Option<isize>),
@@ -103,6 +109,47 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 ..Default::default()
             };
             super::limits::apply(&mut stmt, rhs.take(9), false)?;
+            Value::Node(stmt.into())
+        }
+        Query::Options {
+            with,
+            sort,
+            locks,
+            limit,
+        } => {
+            let mut stmt = rhs.take(if with { 2 } else { 1 }).select()?;
+            if let Some(i) = sort {
+                let order = rhs.take(i).list()?;
+                if !order.is_empty() {
+                    if !stmt.sort_clause.is_empty() {
+                        return Err(Failure::At(
+                            "multiple ORDER BY clauses not allowed".into(),
+                            "42601",
+                            super::location::expression_location(&order),
+                        ));
+                    }
+                    stmt.sort_clause = order;
+                }
+            }
+            if let Some(i) = locks {
+                stmt.locking_clause.extend(rhs.take(i).list()?);
+            }
+            if let Some(i) = limit {
+                super::limits::apply(&mut stmt, rhs.take(i), true)?;
+            }
+            if with {
+                let Node::WithClause(with) = rhs.take(1).node()? else {
+                    return Err("expected WITH clause".into());
+                };
+                if stmt.with_clause.is_some() {
+                    return Err(Failure::At(
+                        "multiple WITH clauses not allowed".into(),
+                        "42601",
+                        with.location,
+                    ));
+                }
+                stmt.with_clause = Some(with.into_box());
+            }
             Value::Node(stmt.into())
         }
         Query::Values(more) => {

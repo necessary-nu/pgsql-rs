@@ -46,7 +46,7 @@ fn expression_trees_match_patched_postgres() {
 #[test]
 fn unsupported_actions_report_the_upstream_rule() {
     let error = parse(
-        "SELECT CASE WHEN x THEN y END",
+        "SELECT XMLPARSE(CONTENT t)",
         ParseMode::Sql,
         Options::default(),
     )
