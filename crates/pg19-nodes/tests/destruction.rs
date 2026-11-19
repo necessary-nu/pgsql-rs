@@ -169,3 +169,45 @@ fn clones_embedded_records_siblings_and_nullable_values() {
     let copy = node.clone();
     assert_eq!(node, copy);
 }
+
+#[test]
+fn type_equality_uses_postgres_fields_at_any_depth() {
+    small_stack(|| {
+        let original = TypeName {
+            names: vec![Node::String("custom".into())],
+            typmods: vec![
+                additions(),
+                Node::AConst(AConst {
+                    val: Literal::String("value".into()),
+                    location: Location::UNKNOWN,
+                }),
+            ],
+            array_bounds: vec![Node::Integer(-1)],
+            ..Default::default()
+        };
+        let mut other = original.clone();
+        let changed_location = Location::from_pg(17).unwrap();
+        other.location = changed_location;
+        let Node::AConst(c) = &mut other.typmods[1] else {
+            panic!()
+        };
+        c.location = changed_location;
+        let Node::AExpr(op) = &mut other.typmods[0] else {
+            panic!()
+        };
+        op.location = changed_location;
+        assert_eq!(original.pg_equal(&other), Ok(true));
+        let mut leaf = &mut other.typmods[0];
+        while let Node::AExpr(op) = leaf {
+            leaf = op.lexpr.as_deref_mut().unwrap();
+        }
+        *leaf = Node::Integer(-20);
+        assert_eq!(original.pg_equal(&other), Ok(false));
+        let mut other = original.clone();
+        other.array_bounds.clear();
+        assert_eq!(original.pg_equal(&other), Ok(false));
+        other.array_bounds = original.array_bounds.clone();
+        other.setof = true;
+        assert_eq!(original.pg_equal(&other), Ok(false));
+    });
+}

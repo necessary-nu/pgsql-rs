@@ -122,6 +122,35 @@ def emit_enum(name, enum):
         lines.append(f"        {item['name']} = {value},")
     return lines + ["    }"]
 
+def equal_fields(build, selected, header):
+    generated = (build / "src/backend/nodes/equalfuncs.funcs.c").read_text()
+    result = [header + "compare_records! {"]
+    unsupported = []
+    for name in selected:
+        native = name.replace("_", "")
+        m = re.search(rf"^_equal{name}\([^\n]*\)\n\{{(.*?)^\}}", generated, re.M | re.S)
+        if not m:
+            if name not in {"CallContext", "InlineCodeBlock"}:
+                raise ValueError(f"unrecognized PostgreSQL equality handler for {name}")
+            unsupported.append(native)
+            continue
+        plain, edges = [], []
+        for stmt in m[1].split(";"):
+            stmt = stmt.strip()
+            if stmt in ("return true", ""):
+                continue
+            call = re.fullmatch(r"COMPARE_(SCALAR|STRING|BITMAPSET|NODE|LOCATION)_FIELD\(([\w.]+)\)", stmt)
+            if not call:
+                raise ValueError(f"unrecognized equality operation for {name}: {stmt}")
+            kind, field = call.groups()
+            if kind != "LOCATION":
+                target = edges if kind == "NODE" else plain
+                target.append(".".join(field_name(part) for part in field.split(".")))
+        result.append(f'    {native} {{ plain {{ {", ".join(plain)} }} edges {{ {", ".join(edges)} }} }}')
+    result.extend([f'    @unsupported {{ {", ".join(unsupported)} }}', "}"])
+    return result
+
+
 def generate(run, check):
     source, build = run / "patched-source", run / "patched"
     tags_text = (build / "src/backend/nodes/nodetags.h").read_text()
@@ -168,7 +197,7 @@ def generate(run, check):
     for name in sorted(used_enums):
         enum_lines.extend(emit_enum(name, enums[name]))
     enum_lines.append("}")
-    for path, lines in [("nodes.in", nodes), ("enums.in", enum_lines), ("edges.in", edges)]:
+    for path, lines in [("nodes.in", nodes), ("enums.in", enum_lines), ("edges.in", edges), ("equal.in", equal_fields(build, selected, header))]:
         dest = ROOT / "src" / path
         contents = "\n".join(lines) + "\n"
         if check:

@@ -1,0 +1,231 @@
+// Generated from the patched PostgreSQL 19.0 node headers by generate.py. See COPYRIGHT.postgresql.
+compare_records! {
+    Alias { plain { aliasname } edges { colnames } }
+    RangeVar { plain { catalogname, schemaname, relname, inh, relpersistence } edges { alias } }
+    TableFunc { plain { functype, notnulls, ordinalitycol } edges { ns_uris, ns_names, docexpr, rowexpr, colnames, coltypes, coltypmods, colcollations, colexprs, coldefexprs, colvalexprs, passingvalexprs, plan } }
+    IntoClause { plain { access_method, on_commit, table_space_name, skip_data } edges { rel, col_names, options, view_query } }
+    GroupingFunc { plain { agglevelsup } edges { args } }
+    MergeSupportFunc { plain { msftype, msfcollid } edges {  } }
+    FuncExpr { plain { funcid, funcresulttype, funcretset, funcvariadic, funccollid, inputcollid } edges { args } }
+    NamedArgExpr { plain { name, argnumber } edges { arg } }
+    BoolExpr { plain { boolop } edges { args } }
+    SubLink { plain { sub_link_type, sub_link_id } edges { testexpr, oper_name, subselect } }
+    CaseExpr { plain { casetype, casecollid } edges { arg, args, defresult } }
+    CaseWhen { plain {  } edges { expr, result } }
+    RowExpr { plain { row_typeid } edges { args, colnames } }
+    CoalesceExpr { plain { coalescetype, coalescecollid } edges { args } }
+    MinMaxExpr { plain { minmaxtype, minmaxcollid, inputcollid, op } edges { args } }
+    SQLValueFunction { plain { op, r#type, typmod } edges {  } }
+    XmlExpr { plain { op, name, xmloption, indent, r#type, typmod } edges { named_args, arg_names, args } }
+    JsonFormat { plain { format_type, encoding } edges {  } }
+    JsonReturning { plain { typid, typmod } edges { format } }
+    JsonValueExpr { plain {  } edges { raw_expr, formatted_expr, format } }
+    JsonIsPredicate { plain { item_type, unique_keys, expr_base_type } edges { expr, format } }
+    JsonBehavior { plain { btype, coerce } edges { expr } }
+    NullTest { plain { nulltesttype, argisrow } edges { arg } }
+    BooleanTest { plain { booltesttype } edges { arg } }
+    SetToDefault { plain { type_id, type_mod, collation } edges {  } }
+    CurrentOfExpr { plain { cvarno, cursor_name, cursor_param } edges {  } }
+    JoinExpr { plain { jointype, is_natural, rtindex } edges { larg, rarg, using_clause, join_using_alias, quals, alias } }
+    FromExpr { plain {  } edges { fromlist, quals } }
+    OnConflictExpr { plain { action, constraint, lock_strength, excl_rel_index } edges { arbiter_elems, arbiter_where, on_conflict_set, on_conflict_where, excl_rel_tlist } }
+    Query { plain { command_type, query_source, can_set_tag, result_relation, has_aggs, has_window_funcs, has_target_sr_fs, has_sub_links, has_distinct_on, has_recursive, has_modifying_cte, has_for_update, has_row_security, has_group_rte, is_return, merge_target_relation, r#override, returning_old_alias, returning_new_alias, group_distinct, limit_option } edges { utility_stmt, cte_list, rtable, rteperminfos, jointree, merge_action_list, merge_join_condition, target_list, on_conflict, returning_list, group_clause, grouping_sets, having_qual, window_clause, distinct_clause, sort_clause, limit_offset, limit_count, row_marks, set_operations, constraint_deps, with_check_options } }
+    TypeName { plain { type_oid, setof, pct_type, typemod } edges { names, typmods, array_bounds } }
+    ColumnRef { plain {  } edges { fields } }
+    ParamRef { plain { number } edges {  } }
+    AExpr { plain { kind } edges { name, lexpr, rexpr } }
+    TypeCast { plain {  } edges { arg, type_name } }
+    CollateClause { plain {  } edges { arg, collname } }
+    RoleSpec { plain { roletype, rolename } edges {  } }
+    FuncCall { plain { ignore_nulls, agg_within_group, agg_star, agg_distinct, func_variadic } edges { funcname, args, agg_order, agg_filter, over } }
+    AStar { plain {  } edges {  } }
+    AIndices { plain { is_slice } edges { lidx, uidx } }
+    AIndirection { plain {  } edges { arg, indirection } }
+    AArrayExpr { plain {  } edges { elements } }
+    ResTarget { plain { name } edges { indirection, val } }
+    MultiAssignRef { plain { colno, ncolumns } edges { source } }
+    SortBy { plain { sortby_dir, sortby_nulls } edges { node, use_op } }
+    WindowDef { plain { name, refname, frame_options } edges { partition_clause, order_clause, start_offset, end_offset } }
+    RangeSubselect { plain { lateral } edges { subquery, alias } }
+    RangeFunction { plain { lateral, ordinality, is_rowsfrom } edges { functions, alias, coldeflist } }
+    RangeTableFunc { plain { lateral } edges { docexpr, rowexpr, namespaces, columns, alias } }
+    RangeTableFuncCol { plain { colname, for_ordinality, is_not_null } edges { type_name, colexpr, coldefexpr } }
+    RangeTableSample { plain {  } edges { relation, method, args, repeatable } }
+    ColumnDef { plain { colname, compression, inhcount, is_local, is_not_null, is_from_type, storage, storage_name, identity, generated, coll_oid } edges { type_name, raw_default, cooked_default, identity_sequence, coll_clause, constraints, fdwoptions } }
+    TableLikeClause { plain { options, relation_oid } edges { relation } }
+    IndexElem { plain { name, indexcolname, ordering, nulls_ordering } edges { expr, collation, opclass, opclassopts } }
+    DefElem { plain { defnamespace, defname, defaction } edges { arg } }
+    LockingClause { plain { strength, wait_policy } edges { locked_rels } }
+    XmlSerialize { plain { xmloption, indent } edges { expr, type_name } }
+    PartitionElem { plain { name } edges { expr, collation, opclass } }
+    PartitionSpec { plain { strategy } edges { part_params } }
+    PartitionBoundSpec { plain { strategy, is_default, modulus, remainder } edges { listdatums, lowerdatums, upperdatums } }
+    PartitionRangeDatum { plain { kind } edges { value } }
+    PartitionCmd { plain { concurrent } edges { name, bound } }
+    RangeTblEntry { plain { rtekind, relid, inh, relkind, rellockmode, perminfoindex, security_barrier, jointype, joinmergedcols, funcordinality, ctename, ctelevelsup, self_reference, enrname, enrtuples, lateral, in_from_cl } edges { alias, eref, tablesample, subquery, joinaliasvars, joinleftcols, joinrightcols, join_using_alias, functions, tablefunc, values_lists, coltypes, coltypmods, colcollations, groupexprs, security_quals } }
+    RTEPermissionInfo { plain { relid, inh, required_perms, check_as_user, selected_cols, inserted_cols, updated_cols } edges {  } }
+    RangeTblFunction { plain { funccolcount, funcparams } edges { funcexpr, funccolnames, funccoltypes, funccoltypmods, funccolcollations } }
+    TableSampleClause { plain { tsmhandler } edges { args, repeatable } }
+    WithCheckOption { plain { kind, relname, polname, cascaded } edges { qual } }
+    SortGroupClause { plain { tle_sort_group_ref, eqop, sortop, reverse_sort, nulls_first, hashable } edges {  } }
+    GroupingSet { plain { kind } edges { content } }
+    WindowClause { plain { name, refname, frame_options, start_in_range_func, end_in_range_func, in_range_coll, in_range_asc, in_range_nulls_first, winref, copied_order } edges { partition_clause, order_clause, start_offset, end_offset } }
+    RowMarkClause { plain { rti, strength, wait_policy, pushed_down } edges {  } }
+    WithClause { plain { recursive } edges { ctes } }
+    InferClause { plain { conname } edges { index_elems, where_clause } }
+    OnConflictClause { plain { action, lock_strength } edges { infer, target_list, where_clause } }
+    CTESearchClause { plain { search_breadth_first, search_seq_column } edges { search_col_list } }
+    CTECycleClause { plain { cycle_mark_column, cycle_path_column, cycle_mark_type, cycle_mark_typmod, cycle_mark_collation, cycle_mark_neop } edges { cycle_col_list, cycle_mark_value, cycle_mark_default } }
+    CommonTableExpr { plain { ctename, ctematerialized, cterecursive, cterefcount } edges { aliascolnames, ctequery, search_clause, cycle_clause, ctecolnames, ctecoltypes, ctecoltypmods, ctecolcollations } }
+    MergeWhenClause { plain { match_kind, command_type, r#override } edges { condition, target_list, values } }
+    ReturningOption { plain { option, value } edges {  } }
+    ReturningClause { plain {  } edges { options, exprs } }
+    TriggerTransition { plain { name, is_new, is_table } edges {  } }
+    JsonOutput { plain {  } edges { type_name, returning } }
+    JsonArgument { plain { name } edges { val } }
+    JsonFuncExpr { plain { op, column_name, wrapper, quotes } edges { context_item, pathspec, passing, output, on_empty, on_error } }
+    JsonTablePathSpec { plain { name } edges { string } }
+    JsonTable { plain { lateral } edges { context_item, pathspec, passing, columns, on_error, alias } }
+    JsonTableColumn { plain { coltype, name, wrapper, quotes } edges { type_name, pathspec, format, columns, on_empty, on_error } }
+    JsonKeyValue { plain {  } edges { key, value } }
+    JsonParseExpr { plain { unique_keys } edges { expr, output } }
+    JsonScalarExpr { plain {  } edges { expr, output } }
+    JsonSerializeExpr { plain {  } edges { expr, output } }
+    JsonObjectConstructor { plain { absent_on_null, unique } edges { exprs, output } }
+    JsonArrayConstructor { plain { absent_on_null } edges { exprs, output } }
+    JsonArrayQueryConstructor { plain { absent_on_null } edges { query, output, format } }
+    JsonAggConstructor { plain {  } edges { output, agg_filter, agg_order, over } }
+    JsonObjectAgg { plain { absent_on_null, unique } edges { constructor, arg } }
+    JsonArrayAgg { plain { absent_on_null } edges { constructor, arg } }
+    RawStmt { plain {  } edges { stmt } }
+    InsertStmt { plain { r#override } edges { relation, cols, select_stmt, on_conflict_clause, returning_clause, with_clause } }
+    DeleteStmt { plain {  } edges { relation, using_clause, where_clause, returning_clause, with_clause } }
+    UpdateStmt { plain {  } edges { relation, target_list, where_clause, from_clause, returning_clause, with_clause } }
+    MergeStmt { plain {  } edges { relation, source_relation, join_condition, merge_when_clauses, returning_clause, with_clause } }
+    SelectStmt { plain { group_distinct, limit_option, op, all } edges { distinct_clause, into_clause, target_list, from_clause, where_clause, group_clause, having_clause, window_clause, values_lists, sort_clause, limit_offset, limit_count, locking_clause, with_clause, larg, rarg } }
+    SetOperationStmt { plain { op, all } edges { larg, rarg, col_types, col_typmods, col_collations, group_clauses } }
+    ReturnStmt { plain {  } edges { returnval } }
+    PLAssignStmt { plain { name, nnames } edges { indirection, val } }
+    CreateSchemaStmt { plain { schemaname, if_not_exists } edges { authrole, schema_elts } }
+    AlterTableStmt { plain { objtype, missing_ok } edges { relation, cmds } }
+    AlterTableCmd { plain { subtype, name, num, behavior, missing_ok, recurse } edges { newowner, def } }
+    ATAlterConstraint { plain { conname, alter_enforceability, is_enforced, alter_deferrability, deferrable, initdeferred, alter_inheritability, noinherit } edges {  } }
+    ReplicaIdentityStmt { plain { identity_type, name } edges {  } }
+    AlterCollationStmt { plain {  } edges { collname } }
+    AlterDomainStmt { plain { subtype, name, behavior, missing_ok } edges { type_name, def } }
+    GrantStmt { plain { is_grant, targtype, objtype, grant_option, behavior } edges { objects, privileges, grantees, grantor } }
+    ObjectWithArgs { plain { args_unspecified } edges { objname, objargs, objfuncargs } }
+    AccessPriv { plain { priv_name } edges { cols } }
+    GrantRoleStmt { plain { is_grant, behavior } edges { granted_roles, grantee_roles, opt, grantor } }
+    AlterDefaultPrivilegesStmt { plain {  } edges { options, action } }
+    CopyStmt { plain { is_from, is_program, filename } edges { relation, query, attlist, options, where_clause } }
+    VariableSetStmt { plain { kind, name, jumble_args, is_local } edges { args } }
+    VariableShowStmt { plain { name } edges {  } }
+    CreateStmt { plain { oncommit, tablespacename, access_method, if_not_exists } edges { relation, table_elts, inh_relations, partbound, partspec, of_typename, constraints, nnconstraints, options } }
+    Constraint { plain { contype, conname, deferrable, initdeferred, is_enforced, skip_validation, initially_valid, is_no_inherit, cooked_expr, generated_when, generated_kind, nulls_not_distinct, without_overlaps, indexname, indexspace, reset_default_tblspc, access_method, fk_with_period, pk_with_period, fk_matchtype, fk_upd_action, fk_del_action, old_pktable_oid } edges { raw_expr, keys, including, exclusions, options, where_clause, pktable, fk_attrs, pk_attrs, fk_del_set_cols, old_conpfeqop } }
+    CreateTableSpaceStmt { plain { tablespacename, location } edges { owner, options } }
+    DropTableSpaceStmt { plain { tablespacename, missing_ok } edges {  } }
+    AlterTableSpaceOptionsStmt { plain { tablespacename, is_reset } edges { options } }
+    AlterTableMoveAllStmt { plain { orig_tablespacename, objtype, new_tablespacename, nowait } edges { roles } }
+    CreateExtensionStmt { plain { extname, if_not_exists } edges { options } }
+    AlterExtensionStmt { plain { extname } edges { options } }
+    AlterExtensionContentsStmt { plain { extname, action, objtype } edges { object } }
+    CreateFdwStmt { plain { fdwname } edges { func_options, options } }
+    AlterFdwStmt { plain { fdwname } edges { func_options, options } }
+    CreateForeignServerStmt { plain { servername, servertype, version, fdwname, if_not_exists } edges { options } }
+    AlterForeignServerStmt { plain { servername, version, has_version } edges { options } }
+    CreateForeignTableStmt { plain { base.oncommit, base.tablespacename, base.access_method, base.if_not_exists, servername } edges { base.relation, base.table_elts, base.inh_relations, base.partbound, base.partspec, base.of_typename, base.constraints, base.nnconstraints, base.options, options } }
+    CreateUserMappingStmt { plain { servername, if_not_exists } edges { user, options } }
+    AlterUserMappingStmt { plain { servername } edges { user, options } }
+    DropUserMappingStmt { plain { servername, missing_ok } edges { user } }
+    ImportForeignSchemaStmt { plain { server_name, remote_schema, local_schema, list_type } edges { table_list, options } }
+    CreatePolicyStmt { plain { policy_name, cmd_name, permissive } edges { table, roles, qual, with_check } }
+    AlterPolicyStmt { plain { policy_name } edges { table, roles, qual, with_check } }
+    CreateAmStmt { plain { amname, amtype } edges { handler_name } }
+    CreateTrigStmt { plain { replace, isconstraint, trigname, row, timing, events, deferrable, initdeferred } edges { relation, funcname, args, columns, when_clause, transition_rels, constrrel } }
+    CreateEventTrigStmt { plain { trigname, eventname } edges { whenclause, funcname } }
+    AlterEventTrigStmt { plain { trigname, tgenabled } edges {  } }
+    CreatePLangStmt { plain { replace, plname, pltrusted } edges { plhandler, plinline, plvalidator } }
+    CreateRoleStmt { plain { stmt_type, role } edges { options } }
+    AlterRoleStmt { plain { action } edges { role, options } }
+    AlterRoleSetStmt { plain { database } edges { role, setstmt } }
+    DropRoleStmt { plain { missing_ok } edges { roles } }
+    CreateSeqStmt { plain { owner_id, for_identity, if_not_exists } edges { sequence, options } }
+    AlterSeqStmt { plain { for_identity, missing_ok } edges { sequence, options } }
+    DefineStmt { plain { kind, oldstyle, if_not_exists, replace } edges { defnames, args, definition } }
+    CreateDomainStmt { plain {  } edges { domainname, type_name, coll_clause, constraints } }
+    CreateOpClassStmt { plain { amname, is_default } edges { opclassname, opfamilyname, datatype, items } }
+    CreateOpClassItem { plain { itemtype, number } edges { name, order_family, class_args, storedtype } }
+    CreateOpFamilyStmt { plain { amname } edges { opfamilyname } }
+    AlterOpFamilyStmt { plain { amname, is_drop } edges { opfamilyname, items } }
+    DropStmt { plain { remove_type, behavior, missing_ok, concurrent } edges { objects } }
+    TruncateStmt { plain { restart_seqs, behavior } edges { relations } }
+    CommentStmt { plain { objtype, comment } edges { object } }
+    SecLabelStmt { plain { objtype, provider, label } edges { object } }
+    DeclareCursorStmt { plain { portalname, options } edges { query } }
+    ClosePortalStmt { plain { portalname } edges {  } }
+    FetchStmt { plain { direction, how_many, portalname, ismove, direction_keyword } edges {  } }
+    IndexStmt { plain { idxname, access_method, table_space, idxcomment, index_oid, old_number, old_create_subid, old_first_relfilelocator_subid, unique, nulls_not_distinct, primary, isconstraint, iswithoutoverlaps, deferrable, initdeferred, transformed, concurrent, if_not_exists, reset_default_tblspc } edges { relation, index_params, index_including_params, options, where_clause, exclude_op_names } }
+    CreateStatsStmt { plain { stxcomment, transformed, if_not_exists, owner } edges { defnames, stat_types, exprs, relations } }
+    StatsElem { plain { name } edges { expr } }
+    AlterStatsStmt { plain { missing_ok } edges { defnames, stxstattarget } }
+    CreateFunctionStmt { plain { is_procedure, replace } edges { funcname, parameters, return_type, options, sql_body } }
+    FunctionParameter { plain { name, mode } edges { arg_type, defexpr } }
+    AlterFunctionStmt { plain { objtype } edges { func, actions } }
+    DoStmt { plain {  } edges { args } }
+    CallStmt { plain {  } edges { funccall, funcexpr, outargs } }
+    RenameStmt { plain { rename_type, relation_type, subname, newname, behavior, missing_ok } edges { relation, object } }
+    AlterObjectDependsStmt { plain { object_type, remove } edges { relation, object, extname } }
+    AlterObjectSchemaStmt { plain { object_type, newschema, missing_ok } edges { relation, object } }
+    AlterOwnerStmt { plain { object_type } edges { relation, object, newowner } }
+    AlterOperatorStmt { plain {  } edges { opername, options } }
+    AlterTypeStmt { plain {  } edges { type_name, options } }
+    RuleStmt { plain { rulename, event, instead, replace } edges { relation, where_clause, actions } }
+    NotifyStmt { plain { conditionname, payload } edges {  } }
+    ListenStmt { plain { conditionname } edges {  } }
+    UnlistenStmt { plain { conditionname } edges {  } }
+    TransactionStmt { plain { kind, savepoint_name, gid, chain } edges { options } }
+    CompositeTypeStmt { plain {  } edges { typevar, coldeflist } }
+    CreateEnumStmt { plain {  } edges { type_name, vals } }
+    CreateRangeStmt { plain {  } edges { type_name, params } }
+    AlterEnumStmt { plain { old_val, new_val, new_val_neighbor, new_val_is_after, skip_if_new_val_exists } edges { type_name } }
+    ViewStmt { plain { replace, with_check_option } edges { view, aliases, query, options } }
+    LoadStmt { plain { filename } edges {  } }
+    CreatedbStmt { plain { dbname } edges { options } }
+    AlterDatabaseStmt { plain { dbname } edges { options } }
+    AlterDatabaseRefreshCollStmt { plain { dbname } edges {  } }
+    AlterDatabaseSetStmt { plain { dbname } edges { setstmt } }
+    DropdbStmt { plain { dbname, missing_ok } edges { options } }
+    AlterSystemStmt { plain {  } edges { setstmt } }
+    VacuumStmt { plain { is_vacuumcmd } edges { options, rels } }
+    VacuumRelation { plain { oid } edges { relation, va_cols } }
+    RepackStmt { plain { command, indexname, usingindex } edges { relation, params } }
+    ExplainStmt { plain {  } edges { query, options } }
+    CreateTableAsStmt { plain { objtype, is_select_into, if_not_exists } edges { query, into } }
+    RefreshMatViewStmt { plain { concurrent, skip_data } edges { relation } }
+    CheckPointStmt { plain {  } edges { options } }
+    DiscardStmt { plain { target } edges {  } }
+    LockStmt { plain { mode, nowait } edges { relations } }
+    ConstraintsSetStmt { plain { deferred } edges { constraints } }
+    ReindexStmt { plain { kind, name } edges { relation, params } }
+    CreateConversionStmt { plain { for_encoding_name, to_encoding_name, def } edges { conversion_name, func_name } }
+    CreateCastStmt { plain { context, inout } edges { sourcetype, targettype, func } }
+    CreateTransformStmt { plain { replace, lang } edges { type_name, fromsql, tosql } }
+    PrepareStmt { plain { name } edges { argtypes, query } }
+    ExecuteStmt { plain { name } edges { params } }
+    DeallocateStmt { plain { name, isall } edges {  } }
+    DropOwnedStmt { plain { behavior } edges { roles } }
+    ReassignOwnedStmt { plain {  } edges { roles, newrole } }
+    AlterTSDictionaryStmt { plain {  } edges { dictname, options } }
+    AlterTSConfigurationStmt { plain { kind, r#override, replace, missing_ok } edges { cfgname, tokentype, dicts } }
+    PublicationTable { plain { except } edges { relation, where_clause, columns } }
+    PublicationObjSpec { plain { pubobjtype, name } edges { pubtable } }
+    PublicationAllObjSpec { plain { pubobjtype } edges { except_tables } }
+    CreatePublicationStmt { plain { pubname, for_all_tables, for_all_sequences } edges { options, pubobjects } }
+    AlterPublicationStmt { plain { pubname, action, for_all_tables, for_all_sequences } edges { options, pubobjects } }
+    CreateSubscriptionStmt { plain { subname, servername, conninfo } edges { publication, options } }
+    AlterSubscriptionStmt { plain { kind, subname, servername, conninfo } edges { publication, options } }
+    DropSubscriptionStmt { plain { subname, missing_ok, behavior } edges {  } }
+    WaitStmt { plain { lsn_literal } edges { options } }
+    @unsupported { InlineCodeBlock, CallContext }
+}
