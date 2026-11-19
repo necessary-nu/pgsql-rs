@@ -91,3 +91,25 @@ the mapping after reviewing an upstream change, run
 The JSON fixtures in `crates/pg19-codec/tests` capture the C serializer linked
 to the patched PG19 backend for `SELECT DISTINCT 0, NULL, false, '', '<é>',
 B'10', 0.50, 7;` and `REPACK t USING INDEX i; WAIT FOR LSN '0/16B6C50'`.
+
+## Comparing native Rust trees
+
+The reference tool's Rust library exposes `pg19_reference::node_text(&Node)`,
+`nodes_text(&[Node])`, and `statements_text(&[RawStmt])`. Each returns
+`Result<String, TreeError>`. Use `nodes_text` for a raw parse result in any
+mode, including a list of type names. Compare its UTF-8 bytes directly with
+the probe's decoded JSON `tree` string. Empty parse results print as `<>`.
+The writer keeps pending fields on a heap stack so nested expressions can be
+compared on the calling thread.
+
+After importing PostgreSQL, verify the field writers and live snapshots with
+
+```sh
+python3 tools/pg19/generate-tree-output.py "$run" --check
+PG19_REFERENCE_DIR="$run" cargo test -p pg19-reference --test native_tree -- --include-ignored
+```
+
+Omit `--check` to regenerate. The generator reads the patched backend's
+`outfuncs.funcs.c`, `outfuncs.switch.c` and `outfuncs.c`. When the recorded
+`outfuncs.c` digest changes, review its token, scalar and custom node writers
+against the Rust code in `tools/pg19/src/tree`.
