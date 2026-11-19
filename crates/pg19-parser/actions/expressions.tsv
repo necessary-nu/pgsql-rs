@@ -71,8 +71,6 @@ a_expr: a_expr IS DISTINCT FROM a_expr %prec IS	70e44bea68e97f61ca9716ff1dccc5c7
 a_expr: a_expr IS NOT DISTINCT FROM a_expr %prec IS	9671c15eb39d3146ba85f3e44d70e9948975595a7a47f45e0103b0406c232d8e	Expr(E::Operator(AExprKind::AEXPR_NOT_DISTINCT, "=", 6))
 a_expr: a_expr IS DOCUMENT_P %prec IS	416f835d3af87fb49948a72ba390029b9571b0f2c138d90805ae49889466b83c	Expr(E::Document(false))
 a_expr: a_expr IS NOT DOCUMENT_P %prec IS	3a787645fa0bb0395beee1d7ebf111d1f32e00a72021c4896cd72dad3a163ec0	Expr(E::Document(true))
-a_expr: a_expr IS NOT NORMALIZED %prec IS	9d7ccc3129120295809af90230014e35db8c6c88582ce28d55308518a45e03a8	Expr(E::Logic(BoolExprType::NOT_EXPR))
-a_expr: a_expr IS NOT unicode_normal_form NORMALIZED %prec IS	815f6df15f6004a5920655c623d1f0beb08f2bbf6dfc4ec237bf85a1f1dc472f	Expr(E::Logic(BoolExprType::NOT_EXPR))
 b_expr: c_expr	60adc05c09b8e2965a42c0e72f4b3fb22b483884eeda3b51a0ebe5eb47d74853	Take(1)
 b_expr: '+' b_expr %prec UMINUS	9cfc096adaf749f6d1809e6c3613e077f9a78bc4f0689be42e8def54ce8f019a	Expr(E::Positive)
 b_expr: '-' b_expr %prec UMINUS	05ef982976af9ec9b03126a5d6cdc8ddb9183198bef8ff9c50a66c421136c392	Expr(E::Negative)

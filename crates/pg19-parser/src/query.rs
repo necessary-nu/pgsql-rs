@@ -14,6 +14,8 @@ pub(super) enum Query {
     Assignment,
     ParameterName,
     Values(bool),
+    Table,
+    GroupingSet(GroupingSetKind, Option<isize>),
     Options {
         with: bool,
         sort: Option<isize>,
@@ -151,6 +153,39 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 stmt.with_clause = Some(with.into_box());
             }
             Value::Node(stmt.into())
+        }
+        Query::Table => {
+            let column = ColumnRef {
+                fields: vec![AStar {}.into()],
+                location: Location::UNKNOWN,
+            };
+            let target = ResTarget {
+                val: Some(Box::new(column.into())),
+                location: Location::UNKNOWN,
+                ..Default::default()
+            };
+            Value::Node(
+                SelectStmt {
+                    target_list: vec![target.into()],
+                    from_clause: vec![rhs.take(2).node()?],
+                    ..Default::default()
+                }
+                .into(),
+            )
+        }
+        Query::GroupingSet(kind, items) => {
+            let content = items
+                .map(|i| rhs.take(i).list())
+                .transpose()?
+                .unwrap_or_default();
+            Value::Node(
+                GroupingSet {
+                    kind,
+                    content,
+                    location: rhs.location(1),
+                }
+                .into(),
+            )
         }
         Query::Values(more) => {
             let mut stmt = if more {

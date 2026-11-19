@@ -5,6 +5,7 @@ use pg19_nodes::*;
 
 pub(super) enum Dml {
     Insert,
+    MergeWhen,
     RelationAlias(isize),
     Target,
     Assignment,
@@ -12,6 +13,14 @@ pub(super) enum Dml {
 
 pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(match op {
+        Dml::MergeWhen => {
+            let Node::MergeWhenClause(mut action) = rhs.take(4).node()? else {
+                return Err("expected MERGE action".into());
+            };
+            action.match_kind = MergeMatchKind(rhs.take(1).integer()?);
+            action.condition = rhs.take(2).optional()?;
+            Value::Node(action.into())
+        }
         Dml::Insert => {
             let Node::InsertStmt(mut insert) = rhs.take(5).node()? else {
                 return Err("expected InsertStmt".into());

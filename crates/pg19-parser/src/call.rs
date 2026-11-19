@@ -124,7 +124,7 @@ pub(super) fn reduce(op: Call, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
         .into(),
         Call::NamedWindow => WindowDef {
             name: Some(rhs.take(2).text()?),
-            frame_options: 0x2 | 0x20 | 0x400,
+            frame_options: crate::window::DEFAULTS,
             location: rhs.location(2),
             ..Default::default()
         }
