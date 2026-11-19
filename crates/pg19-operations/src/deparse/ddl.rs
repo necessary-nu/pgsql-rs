@@ -1,8 +1,10 @@
+mod admin;
 mod alter;
 mod constraints;
 pub(in crate::deparse) mod index;
 mod object;
 mod privileges;
+mod replication;
 mod session;
 mod table;
 use super::query::{named, relation};
@@ -101,6 +103,13 @@ fn lock_mode(mode: i32) -> Result<&'static str> {
 }
 
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
+    if admin::statement(n, p)? || replication::statement(n, p)? {
+        return Ok(true);
+    }
+    general(n, p)
+}
+
+fn general<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
         Node::GrantStmt(s) => privileges::grant(s, p)?,
         Node::IndexStmt(s) => index::index(s, p)?,
