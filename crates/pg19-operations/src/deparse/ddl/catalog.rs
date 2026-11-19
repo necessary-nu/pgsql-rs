@@ -101,7 +101,19 @@ fn transform<'a>(s: &'a CreateTransformStmt, p: &mut Plan<'a>) -> Result<()> {
 
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
-        Node::DefineStmt(s) if s.kind != ObjectType::OBJECT_TYPE => define::define(s, p)?,
+        Node::DefineStmt(s) => define::define(s, p)?,
+        Node::CreateRangeStmt(s) => {
+            p.text("CREATE TYPE ");
+            p.text(qualified(&s.type_name, "CreateRangeStmt.typeName")?);
+            p.text(" AS RANGE ");
+            parameters(&s.params, p)?;
+        }
+        Node::AlterTypeStmt(s) => {
+            p.text("ALTER TYPE ");
+            p.text(qualified(&s.type_name, "AlterTypeStmt.typeName")?);
+            p.text(" SET ");
+            operator_options(&s.options, p)?;
+        }
         Node::AlterTSConfigurationStmt(s) => define::text_config(s, p)?,
         Node::AlterTSDictionaryStmt(s) => {
             p.text("ALTER TEXT SEARCH DICTIONARY ");
@@ -235,7 +247,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     Ok(true)
 }
 
-pub(super) fn parameters<'a>(items: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
+fn parameters<'a>(items: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
     p.text("(");
     for (i, item) in items.iter().enumerate() {
         let Node::DefElem(option) = item else {
@@ -255,7 +267,7 @@ pub(super) fn parameters<'a>(items: &'a [Node], p: &mut Plan<'a>) -> Result<()> 
     Ok(())
 }
 
-pub(super) fn operator_options<'a>(options: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
+fn operator_options<'a>(options: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
     p.text("(");
     for (i, n) in options.iter().enumerate() {
         if i > 0 {
