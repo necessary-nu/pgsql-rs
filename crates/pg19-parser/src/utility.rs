@@ -5,8 +5,10 @@ mod copy;
 pub(crate) mod definition;
 mod foreign_key;
 mod partition;
+mod publication;
 mod routine;
 pub(crate) mod trigger;
+pub(crate) mod view;
 
 use super::{value::Value, Failure};
 use pg19_engine::Reduction;
@@ -15,18 +17,22 @@ use pg19_nodes::*;
 use crate::records::{optional_text, record};
 
 pub(super) enum Utility {
-    Cluster(isize, isize, Option<isize>),
+    Cluster(isize, isize),
     VacuumLegacy,
     ExplainAnalyze,
     NegativeFloat,
     Signature(bool),
+    CreateAs(view::Source, bool),
+    RecursiveView(bool),
+    GeneratedColumn,
     TableFunction,
     Definition(definition::Definition),
     PercentType(bool),
     RoutineBody,
     PartitionSpec,
+    Publication(Option<AlterPublicationAction>, bool),
+    PublicationTail(bool),
     HashBound,
-    AlterPartition(AlterTableType, bool),
     Reindex { relation: bool, schema: bool },
     AllColumns(isize),
     Copy(bool),
@@ -74,7 +80,15 @@ fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Fail
             parts.push(name);
         }
     }
-    if parts.len() > 3 {
+    Ok(Value::Node(range_name(parts, location, true)?.into()))
+}
+
+pub(super) fn range_name(
+    mut parts: Vec<String>,
+    location: Location,
+    inherit: bool,
+) -> Result<RangeVar, Failure> {
+    if !(1..=3).contains(&parts.len()) {
         return Err(Failure::At(
             format!(
                 "improper qualified name (too many dotted names): {}",
@@ -84,28 +98,22 @@ fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Fail
             location,
         ));
     }
-    Ok(Value::Node(
-        RangeVar {
-            relname: parts.pop(),
-            schemaname: parts.pop(),
-            catalogname: parts.pop(),
-            relpersistence: b'p',
-            inh: true,
-            location,
-            ..Default::default()
-        }
-        .into(),
-    ))
+    Ok(RangeVar {
+        relname: parts.pop(),
+        schemaname: parts.pop(),
+        catalogname: parts.pop(),
+        location,
+        inh: inherit,
+        relpersistence: b'p',
+        ..Default::default()
+    })
 }
 
 pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     match op {
-        Utility::Cluster(rel, idx, options) => {
+        Utility::Cluster(rel, idx) => {
             let relation = record!(rhs.take(rel), RangeVar);
-            let params = match options {
-                Some(pos) => rhs.take(pos).list()?,
-                None => flag_options(rhs, &[(2, "verbose")])?,
-            };
+            let params = flag_options(rhs, &[(2, "verbose")])?;
             Ok(Value::Node(
                 RepackStmt {
                     command: RepackCommand::REPACK_COMMAND_CLUSTER,
@@ -229,13 +237,18 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
         }
         .into()])),
         Utility::Definition(action) => action.reduce(rhs),
+        Utility::CreateAs(source, exists) => view::create_as(rhs, source, exists),
+        Utility::RecursiveView(replace) => view::recursive(rhs, replace),
+        Utility::GeneratedColumn => constraint::generated_column(rhs),
         Utility::Signature(qualified) => routine::signature(rhs, qualified),
         Utility::TableFunction => routine::table_function(rhs),
         Utility::PercentType(setof) => routine::percent_type(rhs, setof),
         Utility::RoutineBody => routine::body(rhs),
         Utility::PartitionSpec => partition::spec(rhs),
+        Utility::Publication(action, all) => publication::publication(rhs, action, all),
+        Utility::PublicationTail(dotted) => publication::continuation(rhs, dotted),
         Utility::HashBound => partition::hash_bound(rhs),
-        Utility::AlterPartition(subtype, bound) => partition::alter(rhs, subtype, bound),
+
         Utility::Copy(query) => copy::copy(rhs, query),
         Utility::NegativeFloat => {
             let text = rhs.take(2).text()?;

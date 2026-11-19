@@ -1019,6 +1019,78 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // partition_cmd: ATTACH PARTITION qualified_name PartitionBoundSpec
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_AttachPartition,
+                def: Some(Box::new(
+                    PartitionCmd {
+                        name: record!(rhs.take(3), RangeVar),
+                        bound: record!(rhs.take(4), PartitionBoundSpec),
+                        concurrent: false,
+                    }
+                    .into(),
+                )),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // partition_cmd: DETACH PARTITION qualified_name opt_concurrently
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_DetachPartition,
+                def: Some(Box::new(
+                    PartitionCmd {
+                        name: record!(rhs.take(3), RangeVar),
+                        bound: None,
+                        concurrent: rhs.take(4).integer()? != 0,
+                    }
+                    .into(),
+                )),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // partition_cmd: DETACH PARTITION qualified_name FINALIZE
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_DetachPartitionFinalize,
+                def: Some(Box::new(
+                    PartitionCmd {
+                        name: record!(rhs.take(3), RangeVar),
+                        bound: None,
+                        concurrent: false,
+                    }
+                    .into(),
+                )),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // index_partition_cmd: ATTACH PARTITION qualified_name
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_AttachPartition,
+                def: Some(Box::new(
+                    PartitionCmd {
+                        name: record!(rhs.take(3), RangeVar),
+                        bound: None,
+                        concurrent: false,
+                    }
+                    .into(),
+                )),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // alter_table_cmd: ADD_P columnDef
     |rhs| {
         Ok(Value::Node(
@@ -1196,6 +1268,27 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // alter_table_cmd: ALTER opt_column ColId ADD_P GENERATED generated_when AS IDENTITY_P OptParenthesizedSeqOptList
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_AddIdentity,
+                name: optional_text(rhs.take(3))?,
+                def: Some(Box::new(
+                    Constraint {
+                        contype: ConstrType::CONSTR_IDENTITY,
+                        generated_when: (rhs.take(6).integer()?) as u8,
+                        options: rhs.take(9).list()?,
+                        location: rhs.location(5),
+                        ..Default::default()
+                    }
+                    .into(),
+                )),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // alter_table_cmd: ALTER opt_column ColId alter_identity_column_option_list
     |rhs| {
         Ok(Value::Node(
@@ -1258,6 +1351,27 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // alter_table_cmd: ALTER opt_column ColId opt_set_data TYPE_P Typename opt_collate_clause alter_using
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_AlterColumnType,
+                name: optional_text(rhs.take(3))?,
+                def: Some(Box::new(
+                    ColumnDef {
+                        type_name: record!(rhs.take(6), TypeName),
+                        coll_clause: record!(rhs.take(7), CollateClause),
+                        raw_default: optional_node(rhs.take(8))?,
+                        location: rhs.location(3),
+                        ..Default::default()
+                    }
+                    .into(),
+                )),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // alter_table_cmd: ALTER opt_column ColId alter_generic_options
     |rhs| {
         Ok(Value::Node(
@@ -1276,6 +1390,25 @@ pub(super) const ACTIONS: &[Action] = &[
             AlterTableCmd {
                 subtype: AlterTableType::AT_AddConstraint,
                 def: optional_node(rhs.take(2))?,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // alter_table_cmd: ALTER CONSTRAINT name INHERIT
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_AlterConstraint,
+                def: Some(Box::new(
+                    ATAlterConstraint {
+                        conname: optional_text(rhs.take(3))?,
+                        alter_inheritability: true,
+                        noinherit: false,
+                        ..Default::default()
+                    }
+                    .into(),
+                )),
                 ..Default::default()
             }
             .into(),
@@ -1808,6 +1941,21 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // AlterCompositeTypeStmt: ALTER TYPE_P any_name alter_type_cmds
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableStmt {
+                relation: Some(Box::new(any_relation(
+                    rhs.take(3).list()?,
+                    rhs.location(3),
+                )?)),
+                cmds: rhs.take(4).list()?,
+                objtype: ObjectType::OBJECT_TYPE,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // alter_type_cmd: ADD_P ATTRIBUTE TableFuncElement opt_drop_behavior
     |rhs| {
         Ok(Value::Node(
@@ -1815,6 +1963,28 @@ pub(super) const ACTIONS: &[Action] = &[
                 subtype: AlterTableType::AT_AddColumn,
                 def: optional_node(rhs.take(3))?,
                 behavior: DropBehavior(rhs.take(4).integer()?),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // alter_type_cmd: ALTER ATTRIBUTE ColId opt_set_data TYPE_P Typename opt_collate_clause opt_drop_behavior
+    |rhs| {
+        Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_AlterColumnType,
+                name: optional_text(rhs.take(3))?,
+                def: Some(Box::new(
+                    ColumnDef {
+                        type_name: record!(rhs.take(6), TypeName),
+                        coll_clause: record!(rhs.take(7), CollateClause),
+                        raw_default: None,
+                        location: rhs.location(3),
+                        ..Default::default()
+                    }
+                    .into(),
+                )),
+                behavior: DropBehavior(rhs.take(8).integer()?),
                 ..Default::default()
             }
             .into(),
@@ -2792,6 +2962,17 @@ pub(super) const ACTIONS: &[Action] = &[
                 table_space_name: optional_text(rhs.take(5))?,
                 view_query: None,
                 skip_data: false,
+            }
+            .into(),
+        ))
+    },
+    // RefreshMatViewStmt: REFRESH MATERIALIZED VIEW opt_concurrently qualified_name opt_with_data
+    |rhs| {
+        Ok(Value::Node(
+            RefreshMatViewStmt {
+                concurrent: rhs.take(4).integer()? != 0,
+                relation: record!(rhs.take(5), RangeVar),
+                skip_data: rhs.take(6).integer()? == 0,
             }
             .into(),
         ))
@@ -3822,6 +4003,19 @@ pub(super) const ACTIONS: &[Action] = &[
                 args: Vec::new(),
                 definition: Vec::new(),
                 ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // DefineStmt: CREATE TYPE_P any_name AS '(' OptTableFuncElementList ')'
+    |rhs| {
+        Ok(Value::Node(
+            CompositeTypeStmt {
+                typevar: Some(Box::new(any_relation(
+                    rhs.take(3).list()?,
+                    rhs.location(3),
+                )?)),
+                coldeflist: rhs.take(6).list()?,
             }
             .into(),
         ))
@@ -6525,6 +6719,25 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // RenameStmt: ALTER TYPE_P any_name RENAME ATTRIBUTE name TO name opt_drop_behavior
+    |rhs| {
+        Ok(Value::Node(
+            RenameStmt {
+                rename_type: ObjectType::OBJECT_ATTRIBUTE,
+                relation_type: ObjectType::OBJECT_TYPE,
+                relation: Some(Box::new(any_relation(
+                    rhs.take(3).list()?,
+                    rhs.location(3),
+                )?)),
+                subname: optional_text(rhs.take(6))?,
+                newname: optional_text(rhs.take(8))?,
+                behavior: DropBehavior(rhs.take(9).integer()?),
+                missing_ok: false,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // AlterObjectDependsStmt: ALTER FUNCTION function_with_argtypes opt_no DEPENDS ON EXTENSION name
     |rhs| {
         Ok(Value::Node(
@@ -7285,6 +7498,22 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // PublicationObjSpec: TABLE relation_expr opt_column_list OptWhereClause
+    |rhs| {
+        Ok(Value::Node(
+            PublicationObjSpec {
+                pubobjtype: PublicationObjSpecType::PUBLICATIONOBJ_TABLE,
+                pubtable: Some(Box::new(PublicationTable {
+                    relation: record!(rhs.take(2), RangeVar),
+                    columns: rhs.take(3).list()?,
+                    where_clause: optional_node(rhs.take(4))?,
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // PublicationObjSpec: TABLES IN_P SCHEMA ColId
     |rhs| {
         Ok(Value::Node(
@@ -7303,6 +7532,22 @@ pub(super) const ACTIONS: &[Action] = &[
             PublicationObjSpec {
                 pubobjtype: PublicationObjSpecType::PUBLICATIONOBJ_TABLES_IN_CUR_SCHEMA,
                 location: rhs.location(4),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // PublicationObjSpec: extended_relation_expr opt_column_list OptWhereClause
+    |rhs| {
+        Ok(Value::Node(
+            PublicationObjSpec {
+                pubobjtype: PublicationObjSpecType::PUBLICATIONOBJ_CONTINUATION,
+                pubtable: Some(Box::new(PublicationTable {
+                    relation: record!(rhs.take(1), RangeVar),
+                    columns: rhs.take(2).list()?,
+                    where_clause: optional_node(rhs.take(3))?,
+                    ..Default::default()
+                })),
                 ..Default::default()
             }
             .into(),
@@ -7335,6 +7580,22 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::Node(
             PublicationAllObjSpec {
                 pubobjtype: PublicationAllObjType::PUBLICATION_ALL_SEQUENCES,
+                location: rhs.location(1),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // PublicationExceptObjSpec: relation_expr
+    |rhs| {
+        Ok(Value::Node(
+            PublicationObjSpec {
+                pubobjtype: PublicationObjSpecType::PUBLICATIONOBJ_EXCEPT_TABLE,
+                pubtable: Some(Box::new(PublicationTable {
+                    except: true,
+                    relation: record!(rhs.take(1), RangeVar),
+                    ..Default::default()
+                })),
                 location: rhs.location(1),
                 ..Default::default()
             }
@@ -7854,6 +8115,34 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // ViewStmt: CREATE OptTemp VIEW qualified_name opt_column_list opt_reloptions AS SelectStmt opt_check_option
+    |rhs| {
+        Ok(Value::Node(
+            ViewStmt {
+                view: record!(persistence(rhs.take(4), rhs.take(2).integer()?)?, RangeVar),
+                aliases: rhs.take(5).list()?,
+                query: optional_node(rhs.take(8))?,
+                replace: false,
+                options: rhs.take(6).list()?,
+                with_check_option: ViewCheckOption(rhs.take(9).integer()?),
+            }
+            .into(),
+        ))
+    },
+    // ViewStmt: CREATE OR REPLACE OptTemp VIEW qualified_name opt_column_list opt_reloptions AS SelectStmt opt_check_option
+    |rhs| {
+        Ok(Value::Node(
+            ViewStmt {
+                view: record!(persistence(rhs.take(6), rhs.take(4).integer()?)?, RangeVar),
+                aliases: rhs.take(7).list()?,
+                query: optional_node(rhs.take(10))?,
+                replace: true,
+                options: rhs.take(8).list()?,
+                with_check_option: ViewCheckOption(rhs.take(11).integer()?),
+            }
+            .into(),
+        ))
+    },
     // LoadStmt: LOAD file_name
     |rhs| {
         Ok(Value::Node(
@@ -8022,6 +8311,21 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // CreateDomainStmt: CREATE DOMAIN_P any_name opt_as Typename ColQualList
+    |rhs| {
+        Ok({
+            let (constraints, coll_clause) = column_qualifiers(rhs.take(6).list()?)?;
+            Value::Node(
+                CreateDomainStmt {
+                    domainname: rhs.take(3).list()?,
+                    type_name: record!(rhs.take(5), TypeName),
+                    constraints,
+                    coll_clause,
+                }
+                .into(),
+            )
+        })
     },
     // AlterDomainStmt: ALTER DOMAIN_P any_name alter_column_default
     |rhs| {
@@ -8261,6 +8565,22 @@ pub(super) const ACTIONS: &[Action] = &[
                 indexname: None,
                 usingindex: rhs.take(3).integer()? != 0,
                 params: rhs.take(2).list()?,
+            }
+            .into(),
+        ))
+    },
+    // RepackStmt: CLUSTER '(' utility_option_list ')' qualified_name cluster_index_specification
+    |rhs| {
+        Ok(Value::Node(
+            RepackStmt {
+                command: RepackCommand::REPACK_COMMAND_CLUSTER,
+                relation: Some(Box::new(VacuumRelation {
+                    relation: record!(rhs.take(5), RangeVar),
+                    ..Default::default()
+                })),
+                indexname: optional_text(rhs.take(6))?,
+                usingindex: true,
+                params: rhs.take(3).list()?,
             }
             .into(),
         ))
@@ -9955,6 +10275,52 @@ pub(super) const ACTIONS: &[Action] = &[
             JsonArgument {
                 val: record!(rhs.take(1), JsonValueExpr),
                 name: optional_text(rhs.take(3))?,
+            }
+            .into(),
+        ))
+    },
+    // json_returning_clause_opt: RETURNING Typename json_format_clause_opt
+    |rhs| {
+        Ok(Value::Node(
+            JsonOutput {
+                type_name: record!(rhs.take(2), TypeName),
+                returning: Some(Box::new(JsonReturning {
+                    format: record!(rhs.take(3), JsonFormat),
+                    ..Default::default()
+                })),
+            }
+            .into(),
+        ))
+    },
+    // json_aggregate_func: JSON_OBJECTAGG '(' json_name_and_value json_object_constructor_null_clause_opt json_key_uniqueness_constraint_opt json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonObjectAgg {
+                arg: record!(rhs.take(3), JsonKeyValue),
+                absent_on_null: rhs.take(4).integer()? != 0,
+                unique: rhs.take(5).integer()? != 0,
+                constructor: Some(Box::new(JsonAggConstructor {
+                    output: record!(rhs.take(6), JsonOutput),
+                    agg_order: Vec::new(),
+                    location: rhs.location(1),
+                    ..Default::default()
+                })),
+            }
+            .into(),
+        ))
+    },
+    // json_aggregate_func: JSON_ARRAYAGG '(' json_value_expr json_array_aggregate_order_by_clause_opt json_array_constructor_null_clause_opt json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonArrayAgg {
+                arg: record!(rhs.take(3), JsonValueExpr),
+                absent_on_null: rhs.take(5).integer()? != 0,
+                constructor: Some(Box::new(JsonAggConstructor {
+                    agg_order: rhs.take(4).list()?,
+                    output: record!(rhs.take(6), JsonOutput),
+                    location: rhs.location(1),
+                    ..Default::default()
+                })),
             }
             .into(),
         ))
