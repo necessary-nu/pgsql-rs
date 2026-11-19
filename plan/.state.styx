@@ -271,7 +271,19 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule grammar.query-actions}
     )}
-    {id parser.reduce}
+    {id parser.reduce, covered_rules (
+        grammar.overlay-differences
+        grammar.parse-modes
+        grammar.raw-sql
+        grammar.runtime
+        grammar.sql-families
+    ), covered_claims (
+        {impl_name rust, rule grammar.overlay-differences}
+        {impl_name rust, rule grammar.parse-modes}
+        {impl_name rust, rule grammar.raw-sql}
+        {impl_name rust, rule grammar.runtime}
+        {impl_name rust, rule grammar.sql-families}
+    )}
     {id parser.tables, covered_rules (
         grammar.action-inventory
         grammar.tables
