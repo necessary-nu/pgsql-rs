@@ -115,3 +115,11 @@ The checker links the C serializer to the patched PG19 backend and compares
 its output byte for byte with the native codec fixtures in
 `crates/pg19-codec/tests`. To inspect a difference, run the built
 `"$schema_dir/../json-probe" 'SELECT 0'` with the SQL under review.
+
+The fingerprint generator reads the same PG19 headers and applies the
+repository's version 3 field-selection rules. The Rust visitor and the C
+walker share the generator's field order and overrides. The checker rebuilds
+the C walker and compares its seeded XXH3-64 digests with the versioned
+fixtures in `crates/pg19-operations/tests/fingerprint-v3.jsonl`. To inspect a
+digest, pipe SQL into `"$schema_dir/../fingerprint-probe" 0 0`.
+The arguments are the fingerprint option bits and PostgreSQL raw parse mode.

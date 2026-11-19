@@ -1,0 +1,16 @@
+{"sql": "SELECT x, y FROM z", "options": 0, "version": 3, "hex": "330267237da5535f"}
+{"sql": "SELECT y, x FROM z", "options": 0, "version": 3, "hex": "330267237da5535f"}
+{"sql": "SELECT x, x, y FROM z", "options": 0, "version": 3, "hex": "330267237da5535f"}
+{"sql": "SELECT x FROM s.t AS a", "options": 0, "version": 3, "hex": "250750abf24fa7ed"}
+{"sql": "SELECT x FROM s.t AS a", "options": 1, "version": 3, "hex": "fb21bbb7f498cf13"}
+{"sql": "SELECT x FROM s.t AS a", "options": 2, "version": 3, "hex": "cb1a3ceabb2c7daf"}
+{"sql": "SELECT x FROM s.t AS a", "options": 3, "version": 3, "hex": "8ca96e52a909b313"}
+{"sql": "SELECT x FROM orders_2024_01", "options": 0, "version": 3, "hex": "f0facfcb85e2a4e6"}
+{"sql": "SELECT x FROM orders_2024_02", "options": 0, "version": 3, "hex": "f0facfcb85e2a4e6"}
+{"sql": "SELECT x FROM orders_2024_01", "options": 19, "version": 3, "hex": "9828499306132ebd"}
+{"sql": "SELECT x FROM orders_2024_02", "options": 19, "version": 3, "hex": "08cff87d3842a178"}
+{"sql": "SELECT 0", "options": 0, "version": 3, "hex": "50fde20626009aba"}
+{"sql": "SELECT NULL", "options": 0, "version": 3, "hex": "50fde20626009aba"}
+{"sql": "SELECT $1", "options": 0, "version": 3, "hex": "50fde20626009aba"}
+{"sql": "REPACK t USING INDEX i", "options": 0, "version": 3, "hex": "3e7f54db097eb49f"}
+{"sql": "WAIT FOR LSN '0/16B6C50'", "options": 0, "version": 3, "hex": "f4747693580dca4a"}

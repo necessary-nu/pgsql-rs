@@ -5,6 +5,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
+pg19-nodes = { path = "../pg19-nodes" }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
 pg19-lexer = { path = "../pg19-lexer" }
 
 [dev-dependencies]

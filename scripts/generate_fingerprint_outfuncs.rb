@@ -237,8 +237,8 @@ class Generator
     [nil, 'payload_location'] => :skip,
     [nil, 'list_start'] => :skip,
     [nil, 'list_end'] => :skip,
-    ['ResTarget', 'name'] => FINGERPRINT_RES_TARGET_NAME,
-    ['A_Expr', 'kind'] => FINGERPRINT_A_EXPR_KIND,
+    ['ResTarget', 'name'] => :res_target_name,
+    ['A_Expr', 'kind'] => :a_expr_kind,
     ['A_Expr', 'rexpr_list_start'] => :skip,
     ['A_Expr', 'rexpr_list_end'] => :skip,
     ['PrepareStmt', 'name'] => :skip,
@@ -275,89 +275,73 @@ class Generator
 
   IGNORE_FOR_GENERATOR = ['Integer', 'Float', 'String', 'BitString', 'List']
 
-  def generate_fingerprint_defs!
-    @fingerprint_defs = {}
+  def field_kind(type, name, field_type)
+    override = FINGERPRINT_OVERRIDE_FIELDS[[type, name]] || FINGERPRINT_OVERRIDE_FIELDS[[nil, name]]
+    return override if override
 
+    case field_type
+    when 'Node', 'JsonTablePlan' then :node
+    when 'Node*', 'Expr*', 'JsonTablePlan*' then :node_ptr
+    when 'List*' then :list
+    when 'CreateStmt' then :embedded
+    when 'char' then :char
+    when 'char*' then :char_ptr
+    when 'String*' then :string
+    when 'bool' then :bool
+    when 'Datum', 'void*', 'Expr', 'NodeTag' then :ignore
+    when *INT_TYPES then :int
+    when *LONG_INT_TYPES then :long_int
+    when *UINT64_TYPES then :uint64
+    when *INT_ARRAY_TYPES then :int_array
+    when *FLOAT_TYPES then :float
+    else
+      return :specific_node_ptr if field_type.end_with?('*') && @nodetypes.include?(field_type.chop)
+      return :enum if @all_known_enums.include?(field_type)
+      raise "unmapped fingerprint field #{type}.#{name}: #{field_type}"
+    end
+  end
+
+  def layout
+    nodes = {}
     ['nodes/parsenodes', 'nodes/primnodes'].each do |group|
       @struct_defs[group].each do |type, struct_def|
-        next if struct_def['fields'].nil?
+        next unless struct_def['fields']
         next if IGNORE_FOR_GENERATOR.include?(type)
-
-        if FINGERPRINT_SKIP_NODES.include?(type)
-          fingerprint_def = "  // Intentionally ignoring all fields for fingerprinting\n"
+        nodes[type] = if FINGERPRINT_SKIP_NODES.include?(type)
+          :skip
         elsif FINGERPRINT_CUSTOM_NODES.include?(type)
-          fingerprint_def = :custom
+          :custom
         else
-          fingerprint_def = ''
-          struct_def['fields'].reject { |f| f['name'].nil? }.sort_by { |f| f['name'] }.each do |field|
-            name = field['name']
-            field_type = field['c_type']
-
-            fp_override = FINGERPRINT_OVERRIDE_FIELDS[[type, field['name']]] || FINGERPRINT_OVERRIDE_FIELDS[[nil, field['name']]]
-            if fp_override
-              if fp_override == :skip
-                fp_override = format("  // Intentionally ignoring node->%s for fingerprinting\n\n", name)
-              end
-              fingerprint_def += fp_override
-              next
-            end
-
-            case field_type
-            # when '[][]Node'
-            #  fingerprint_def += format(FINGERPRINT_NODE_ARRAY_ARRAY, name: name)
-            # when '[]Node'
-            #  fingerprint_def += format(FINGERPRINT_NODE_ARRAY, name: name)
-            when 'Node'
-              fingerprint_def += format(FINGERPRINT_NODE, name: name, cast: '')
-            when 'Node*', 'Expr*'
-              fingerprint_def += format(FINGERPRINT_NODE_PTR, name: name, cast: '')
-            when 'JsonTablePlan'
-              fingerprint_def += format(FINGERPRINT_NODE, name: name, cast: '(Node*)')
-            when 'JsonTablePlan*'
-              fingerprint_def += format(FINGERPRINT_NODE_PTR, name: name, cast: '(Node*)')
-            when 'List*'
-              fingerprint_def += format(FINGERPRINT_LIST, name: name)
-            when 'CreateStmt'
-              fingerprint_def += format("  _fingerprintString(ctx, \"%s\");\n", name)
-              fingerprint_def += format("  _fingerprintCreateStmt(ctx, (const CreateStmt*) &node->%s, node, \"%s\", depth);\n", name, name)
-            when 'char'
-              fingerprint_def += format(FINGERPRINT_CHAR, name: name)
-            when 'char*'
-              fingerprint_def += format(FINGERPRINT_CHAR_PTR, name: name)
-            when 'String*'
-              fingerprint_def += format(FINGERPRINT_STRING, name: name)
-            when 'bool'
-              fingerprint_def += format(FINGERPRINT_BOOL, name: name)
-            when 'Datum', 'void*', 'Expr', 'NodeTag'
-              # Ignore
-            when *INT_TYPES
-              fingerprint_def += format(FINGERPRINT_INT, name: name)
-            when *LONG_INT_TYPES
-              fingerprint_def += format(FINGERPRINT_LONG_INT, name: name)
-            when *UINT64_TYPES
-              fingerprint_def += format(FINGERPRINT_UINT64, name: name)
-            when *INT_ARRAY_TYPES
-              fingerprint_def += format(FINGERPRINT_INT_ARRAY, name: name)
-            when *FLOAT_TYPES
-              fingerprint_def += format(FINGERPRINT_FLOAT, name: name)
-            else
-              if field_type.end_with?('*') && @nodetypes.include?(field_type[0..-2])
-                typename = field_type[0..-2]
-                fingerprint_def += format(FINGERPRINT_SPECIFIC_NODE_PTR, name: name, typename: typename)
-              elsif @all_known_enums.include?(field_type)
-                fingerprint_def += format(FINGERPRINT_ENUM, name: name, typename: field_type)
-              else
-                # This shouldn't happen - if it does the above is missing something :-)
-                puts type
-                puts name
-                puts field_type
-                raise type
-              end
-            end
-          end
+          fields = struct_def['fields'].select { |f| f['name'] }.sort_by { |f| f['name'] }
+          fields.map { |f| [f['name'], f['c_type'], field_kind(type, f['name'], f['c_type'])] }
         end
+      end
+    end
+    nodes
+  end
 
-        @fingerprint_defs[type] = fingerprint_def
+  def field_writer(name, field_type, kind)
+    case kind
+    when :ignore then ''
+    when :skip then format("  // Intentionally ignoring node->%s for fingerprinting\n\n", name)
+    when :res_target_name then FINGERPRINT_RES_TARGET_NAME
+    when :a_expr_kind then FINGERPRINT_A_EXPR_KIND
+    when :embedded
+      format("  _fingerprintString(ctx, \"%s\");\n", name) +
+        format("  _fingerprintCreateStmt(ctx, (const CreateStmt*) &node->%s, node, \"%s\", depth);\n", name, name)
+    else
+      template = self.class.const_get("FINGERPRINT_#{kind.to_s.upcase}")
+      format(template, name: name, typename: field_type.delete_suffix('*'),
+             cast: field_type.start_with?('JsonTablePlan') ? '(Node*)' : '')
+    end
+  end
+
+  def generate_fingerprint_defs!
+    @fingerprint_defs = layout.transform_values do |fields|
+      case fields
+      when :skip then "  // Intentionally ignoring all fields for fingerprinting\n"
+      when :custom then :custom
+      else fields.map { |field| field_writer(*field) }.join
       end
     end
   end
@@ -408,4 +392,8 @@ class Generator
   end
 end
 
-Generator.new.generate!
+if ARGV == ['--layout']
+  puts JSON.generate(Generator.new.layout)
+else
+  Generator.new.generate!
+end

@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T17:43:25.258755579Z
+last_sync_at 2026-11-19T18:15:01.505135097Z
 
 rule_versions (
     {id api.native, version 0}
@@ -111,16 +111,23 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule codec.json-envelope}
         {impl_name rust, rule codec.json-fields}
+    ), rule_versions_seen (
+        {id codec.json-envelope, version 0}
+        {id codec.json-fields, version 0}
     )}
     {id codec.schema, covered_rules (
         codec.schema-import
     ), covered_claims (
         {impl_name rust, rule codec.schema-import}
+    ), rule_versions_seen (
+        {id codec.schema-import, version 0}
     )}
     {id operations.split-scanner, covered_rules (
         split.scanner
     ), covered_claims (
         {impl_name rust, rule split.scanner}
+    ), rule_versions_seen (
+        {id split.scanner, version 0}
     )}
     {id parser.diagnostics, covered_rules (
         grammar.diagnostics
@@ -128,12 +135,18 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule grammar.diagnostics}
         {impl_name rust, rule grammar.string-settings}
+    ), rule_versions_seen (
+        {id grammar.diagnostics, version 0}
+        {id grammar.string-settings, version 0}
     )}
     {id parser.engine, covered_rules (
         grammar.reductions
     ), covered_claims (
         {impl_name rust, rule grammar.reductions}
+    ), rule_versions_seen (
+        {id grammar.reductions, version 0}
     )}
+    {id parser.expressions}
     {id parser.lexer, covered_rules (
         lex.byte-spans
         lex.comments
@@ -150,6 +163,14 @@ impl_evidence (
         {impl_name rust, rule lex.parser-lookahead}
         {impl_name rust, rule lex.quoted-values}
         {impl_name rust, rule lex.unicode-escape}
+    ), rule_versions_seen (
+        {id lex.byte-spans, version 0}
+        {id lex.comments, version 0}
+        {id lex.keywords, version 0}
+        {id lex.numbers-and-parameters, version 0}
+        {id lex.parser-lookahead, version 0}
+        {id lex.quoted-values, version 0}
+        {id lex.unicode-escape, version 0}
     )}
     {id parser.nodes, covered_rules (
         tree.node-layout
@@ -159,6 +180,10 @@ impl_evidence (
         {impl_name rust, rule tree.node-layout}
         {impl_name rust, rule tree.node-locations}
         {impl_name rust, rule tree.statement-spans}
+    ), rule_versions_seen (
+        {id tree.node-layout, version 0}
+        {id tree.node-locations, version 0}
+        {id tree.statement-spans, version 0}
     )}
     {id parser.tables, covered_rules (
         grammar.action-inventory
@@ -166,6 +191,9 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule grammar.action-inventory}
         {impl_name rust, rule grammar.tables}
+    ), rule_versions_seen (
+        {id grammar.action-inventory, version 0}
+        {id grammar.tables, version 0}
     )}
     {id reference.corpus, covered_rules (
         corpus.compare
@@ -187,6 +215,17 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
+    )}
+    {id operations.fingerprint-tree, covered_rules (
+        fingerprint.aliases
+        fingerprint.digest
+        fingerprint.lists
+        fingerprint.relation-digits
+    ), covered_claims (
+        {impl_name rust, rule fingerprint.aliases}
+        {impl_name rust, rule fingerprint.digest}
+        {impl_name rust, rule fingerprint.lists}
+        {impl_name rust, rule fingerprint.relation-digits}
     )}
 )
 

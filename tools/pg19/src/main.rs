@@ -208,10 +208,12 @@ fn main() -> Result<()> {
                     .arg(Path::new(TOOLS).join("../../crates/pg19-codec/generate-json.py"))
                     .arg(work)
                     .arg("--check"))?;
-                run(Command::new("python3")
-                    .arg(Path::new(TOOLS).join("tests/check-json.py"))
-                    .arg(dir)
-                    .arg(work))?;
+                for check in ["tests/check-json.py", "tests/check-fingerprint.py"] {
+                    run(Command::new("python3")
+                        .arg(Path::new(TOOLS).join(check))
+                        .arg(dir)
+                        .arg(work))?;
+                }
             }
             Ok(())
         }

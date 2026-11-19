@@ -296,17 +296,11 @@ children (
 
             {
                 id operations.fingerprint
-                title "Fingerprint raw trees with compatibility options"
+                title "Fingerprint SQL in the selected parse mode"
                 implements {
-                    rust (
-                        [spec:pgq:req:fingerprint.digest]
-                        [spec:pgq:req:fingerprint.constants]
-                        [spec:pgq:req:fingerprint.lists]
-                        [spec:pgq:req:fingerprint.aliases]
-                        [spec:pgq:req:fingerprint.relation-digits]
-                    )
+                    rust ([spec:pgq:req:fingerprint.constants])
                 }
-                deps (parser.reduce)
+                deps (parser.reduce operations.fingerprint-tree)
             }
 
             {
@@ -379,6 +373,28 @@ children (
                     rust ([spec:pgq:req:split.boundaries])
                 }
                 deps (operations.split-scanner operations.split-parser)
+            }
+
+            {
+                id operations.fingerprint-tree
+                title "Hash native PG19 raw trees with compatibility options"
+                implements {
+                    rust (
+                        [spec:pgq:req:fingerprint.digest]
+                        [spec:pgq:req:fingerprint.lists]
+                        [spec:pgq:req:fingerprint.aliases]
+                        [spec:pgq:req:fingerprint.relation-digits]
+                    )
+                }
+                deps (parser.nodes)
+                log (
+                    {
+                        at 2026-11-19T18:15:52.627518944Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
         )
     }

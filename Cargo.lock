@@ -48,7 +48,9 @@ name = "pg19-operations"
 version = "0.1.0"
 dependencies = [
  "pg19-lexer",
+ "pg19-nodes",
  "serde_json",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -135,6 +137,12 @@ name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
+
+[[package]]
+name = "xxhash-rust"
+version = "0.8.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aee1b19627c7c60102ab80d3a9cbe18de90bfe03bfa6c3715447681f0e8c8af6"
 
 [[package]]
 name = "zmij"
