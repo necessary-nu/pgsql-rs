@@ -22,6 +22,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "pg19-nodes"
+version = "0.1.0"
+
+[[package]]
 name = "pg19-reference"
 version = "0.1.0"
 

@@ -122,6 +122,15 @@ impl_evidence (
         {impl_name rust, rule lex.quoted-values}
         {impl_name rust, rule lex.unicode-escape}
     )}
+    {id parser.nodes, covered_rules (
+        tree.node-layout
+        tree.node-locations
+        tree.statement-spans
+    ), covered_claims (
+        {impl_name rust, rule tree.node-layout}
+        {impl_name rust, rule tree.node-locations}
+        {impl_name rust, rule tree.statement-spans}
+    )}
     {id parser.tables, covered_rules (
         grammar.action-inventory
         grammar.tables

@@ -93,6 +93,14 @@ children (
                     rust ([spec:pgq:req:tree.node-layout] [spec:pgq:req:tree.statement-spans] [spec:pgq:req:tree.node-locations])
                 }
                 deps (reference.corpus)
+                log (
+                    {
+                        at 2026-11-19T17:44:44.87328253Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
 
             {
