@@ -175,3 +175,44 @@ fn verify_routine_reference_fixtures() {
 
 #[path = "support/samples.rs"]
 mod samples;
+
+fn check_native_routine_cases(source: Option<&std::path::Path>) {
+    let cases: Vec<Value> = serde_json::from_str(include_str!(
+        "../../../tools/pg19/plpgsql/fixtures/cases.json"
+    ))
+    .unwrap();
+    let expected: Value = serde_json::from_str(include_str!(
+        "../../../tools/pg19/plpgsql/fixtures/expected.json"
+    ))
+    .unwrap();
+    for case in cases {
+        let sql = if let Some(text) = case["sql"].as_str() {
+            text.to_owned()
+        } else if let Some(source) = source {
+            let bytes = std::fs::read(source.join(case["path"].as_str().unwrap())).unwrap();
+            let start = case["start"].as_u64().unwrap() as usize;
+            let end = case["end"].as_u64().unwrap() as usize;
+            std::str::from_utf8(&bytes[start..end]).unwrap().to_owned()
+        } else {
+            continue;
+        };
+        let name = case["id"].as_str().unwrap();
+        assert_eq!(
+            outcome(parse_routines(&sql, Options::default())),
+            expected[name],
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn native_entrypoint_matches_checked_routines_and_errors() {
+    check_native_routine_cases(None);
+}
+
+#[test]
+#[ignore = "uses the pinned PG19 upstream regression SQL"]
+fn native_entrypoint_matches_upstream_routines() {
+    let reference = std::path::PathBuf::from(std::env::var_os("PG19_REFERENCE_DIR").unwrap());
+    check_native_routine_cases(Some(&reference.join("patched-source")));
+}

@@ -81,6 +81,23 @@ pub fn block(b: &Block) -> Value {
         v["label"] = json!(label);
     }
     statements(&mut v, "body", &b.body);
+    if !b.exceptions.is_empty() {
+        let handlers: Vec<_> = b
+            .exceptions
+            .iter()
+            .map(|handler| {
+                let conditions: Vec<_> = handler
+                    .conditions
+                    .iter()
+                    .map(|name| json!({"PLpgSQL_condition":{"condname":name}}))
+                    .collect();
+                let mut item = json!({"conditions":conditions});
+                statements(&mut item, "action", &handler.action);
+                json!({"PLpgSQL_exception": item})
+            })
+            .collect();
+        v["exceptions"] = json!({"PLpgSQL_exception_block":{"exc_list":handlers}});
+    }
     json!({"PLpgSQL_stmt_block":v})
 }
 
@@ -154,6 +171,29 @@ fn statement(s: &Statement) -> Value {
             }
             optional_expr(&mut v, "cond", condition);
             json!({"PLpgSQL_stmt_exit":v})
+        }
+        Statement::Raise {
+            lineno,
+            level,
+            condition,
+            message,
+            params,
+            options,
+        } => {
+            let mut v = json!({"lineno":lineno, "elog_level":level});
+            if let Some(name) = condition {
+                v["condname"] = json!(name);
+            }
+            if let Some(message) = message {
+                v["message"] = json!(message);
+            }
+            if !params.is_empty() {
+                v["params"] = params.iter().map(expression).collect();
+            }
+            if !options.is_empty() {
+                v["options"] = options.iter().map(|(ty,e)|json!({"PLpgSQL_raise_option":{"opt_type":ty,"expr":expression(e)}})).collect();
+            }
+            json!({"PLpgSQL_stmt_raise":v})
         }
         Statement::Assert {
             lineno,

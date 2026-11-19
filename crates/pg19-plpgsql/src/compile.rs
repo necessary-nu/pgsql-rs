@@ -1,4 +1,5 @@
 mod control;
+mod exception;
 mod execsql;
 mod loops;
 mod target;
@@ -63,6 +64,8 @@ enum Reduced {
     Datum(usize),
     LoopVariable(Token, Option<Box<crate::Target>>),
     For(Box<crate::Target>, Box<crate::ForSource>),
+    Handlers(Vec<crate::ExceptionHandler>),
+    Conditions(Vec<String>),
     Elsifs(Vec<crate::Elsif>),
     LoopBody {
         body: Vec<Statement>,
@@ -365,6 +368,11 @@ fn block(rhs: &mut Reduction<Reduced>, scanner: &BodyScanner) -> Result<Reduced,
         lineno: scanner.line(rhs.location(2)),
         label,
         body: rhs.take(3).list(),
+        exceptions: match rhs.take(4) {
+            Reduced::Handlers(v) => v,
+            Reduced::None => Vec::new(),
+            _ => unreachable!(),
+        },
     })))
 }
 
@@ -462,6 +470,13 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
             "for_control" => self.for_control(rhs, s),
             "stmt_for" => self.finish_for(rhs, s),
             "stmt_dynexecute" => self.dynamic_execute(rhs.location(1), s),
+            "stmt_raise" => self.raise(rhs.location(1), s),
+            "@2" | "proc_condition" | "proc_conditions" | "proc_exception" | "proc_exceptions"
+            | "exception_sect"
+                if production != "%empty" || lhs == "@2" =>
+            {
+                self.exceptions(lhs, production, rhs, s)
+            }
             "stmt_return" => self.return_stmt(rhs.location(1), s),
             "stmt_assign" => self.assignment(rhs.take(1).token(), s),
             "stmt_execsql" => self.execsql(rhs.take(1).token(), s),
