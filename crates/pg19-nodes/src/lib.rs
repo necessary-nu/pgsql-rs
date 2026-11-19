@@ -8,9 +8,10 @@
 //! Build a nested list with `Node::from(vec![child])` or
 //! `Node::List(vec![child].into())`. A [NodeList] supports Vec access,
 //! iteration, and `into_vec()`. Generated record structs remain freely movable.
-//! Derived cloning, comparison and debug formatting can recurse.
+//! Cloning also uses a heap worklist. Comparison and debug formatting can recurse.
 #![forbid(unsafe_code)]
 
+mod copy;
 mod owned;
 pub use owned::{NodeBox, NodeList, NodeRecord};
 
@@ -89,12 +90,28 @@ macro_rules! node_types {
             }
         }
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, PartialEq)]
         pub enum Node {
             /// NULL list cell, e.g. the first DISTINCT marker in SelectStmt.
             Null,
             $( $value($payload), )*
             $( $record(NodeBox<$record>), )*
+        }
+        impl copy::Shape for Node {
+            fn children<'a>(&'a self, work: &mut Vec<copy::Visit<'a>>) {
+                match self {
+                    Self::Null => {},
+                    $(Self::$value(value) => copy::Child::queue(value, work),)*
+                    $(Self::$record(record) => record.as_ref().children(work),)*
+                }
+            }
+            fn assemble(&self, ready: &mut Vec<Node>) -> Node {
+                match self {
+                    Self::Null => Self::Null,
+                    $(Self::$value(value) => Self::$value(copy::Child::rebuild(value, ready)),)*
+                    $(Self::$record(record) => record.as_ref().assemble(ready),)*
+                }
+            }
         }
         impl Node {
             pub fn tag(&self) -> Option<NodeTag> {
@@ -115,7 +132,7 @@ macro_rules! node_types {
             }
         }
         $(
-            #[derive(Debug, Clone, PartialEq, Default)]
+            #[derive(Debug, PartialEq, Default)]
             pub struct $record { $( pub $field: $ty, )* }
 
             impl From<Box<$record>> for Node {

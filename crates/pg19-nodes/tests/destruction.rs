@@ -82,3 +82,90 @@ fn list_iteration_and_owner_access_preserve_values() {
     let NotifyStmt { conditionname, .. } = owner.into_inner();
     assert_eq!(conditionname.as_deref(), Some("release"));
 }
+
+#[test]
+fn deep_copies_preserve_typed_and_generic_descendants() {
+    small_stack(|| {
+        let mut lists = Node::String("terminal".into());
+        for _ in 0..DEPTH {
+            lists = Node::from(vec![Node::Null, lists]);
+        }
+        let mut select = SelectStmt {
+            target_list: vec![additions(), lists],
+            ..Default::default()
+        };
+        for _ in 0..DEPTH {
+            select = SelectStmt {
+                rarg: Some(select.into()),
+                ..Default::default()
+            };
+        }
+        let mut clone = select.clone();
+        let mut original = &select;
+        let mut copied = &mut clone;
+        for _ in 0..DEPTH {
+            original = original.rarg.as_deref().unwrap();
+            copied = copied.rarg.as_deref_mut().unwrap();
+        }
+        let [sum, lists] = copied.target_list.as_mut_slice() else {
+            panic!()
+        };
+        let mut term = sum;
+        for _ in 0..DEPTH {
+            let Node::AExpr(op) = term else { panic!() };
+            assert_eq!(op.rexpr.as_deref(), Some(&Node::Integer(1)));
+            assert_eq!(op.name.as_slice(), [Node::String("+".into())]);
+            term = op.lexpr.as_deref_mut().unwrap();
+        }
+        assert_eq!(*term, Node::Integer(0));
+        *term = Node::Integer(42);
+        let mut tail = lists;
+        for _ in 0..DEPTH {
+            let Node::List(items) = tail else { panic!() };
+            let [Node::Null, child] = items.as_mut_slice() else {
+                panic!()
+            };
+            tail = child;
+        }
+        assert_eq!(*tail, Node::String("terminal".into()));
+        let mut term = &original.target_list[0];
+        while let Node::AExpr(expr) = term {
+            term = expr.lexpr.as_deref().unwrap();
+        }
+        assert_eq!(*term, Node::Integer(0));
+    });
+}
+
+#[test]
+fn clones_embedded_records_siblings_and_nullable_values() {
+    let nested = CreateForeignTableStmt {
+        base: CreateStmt {
+            relation: Some(Box::new(RangeVar {
+                relname: Some("foo".into()),
+                location: Location::from_pg(7).unwrap(),
+                ..Default::default()
+            })),
+            table_elts: vec![
+                Node::Boolean(true),
+                Node::Float("00.0".into()),
+                Node::IntList(vec![1, 3, -2]),
+            ],
+            constraints: vec![
+                Node::Null,
+                Node::from(vec![
+                    Node::OidList(vec![1, 0]),
+                    Node::BitString("x0f".into()),
+                ]),
+            ],
+            ..Default::default()
+        },
+        servername: Some("mixed".into()),
+        options: vec![Node::AConst(AConst {
+            val: Literal::Null,
+            location: Location::UNKNOWN,
+        })],
+    };
+    let node = Node::from(nested);
+    let copy = node.clone();
+    assert_eq!(node, copy);
+}

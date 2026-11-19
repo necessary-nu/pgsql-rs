@@ -1,232 +1,232 @@
 // Generated from the patched PostgreSQL 19.0 node headers by generate.py. See COPYRIGHT.postgresql.
 record_edges! {
-    Alias { colnames }
-    RangeVar { alias }
-    TableFunc { ns_uris, ns_names, docexpr, rowexpr, colnames, coltypes, coltypmods, colcollations, colexprs, coldefexprs, colvalexprs, passingvalexprs, plan }
-    IntoClause { rel, col_names, options, view_query }
-    GroupingFunc { args, refs, cols }
-    MergeSupportFunc {  }
-    FuncExpr { args }
-    NamedArgExpr { arg }
-    BoolExpr { args }
-    SubLink { testexpr, oper_name, subselect }
-    CaseExpr { arg, args, defresult }
-    CaseWhen { expr, result }
-    RowExpr { args, colnames }
-    CoalesceExpr { args }
-    MinMaxExpr { args }
-    SQLValueFunction {  }
-    XmlExpr { named_args, arg_names, args }
-    JsonFormat {  }
-    JsonReturning { format }
-    JsonValueExpr { raw_expr, formatted_expr, format }
-    JsonIsPredicate { expr, format }
-    JsonBehavior { expr }
-    NullTest { arg }
-    BooleanTest { arg }
-    SetToDefault {  }
-    CurrentOfExpr {  }
-    JoinExpr { larg, rarg, using_clause, join_using_alias, quals, alias }
-    FromExpr { fromlist, quals }
-    OnConflictExpr { arbiter_elems, arbiter_where, on_conflict_set, on_conflict_where, excl_rel_tlist }
-    Query { utility_stmt, cte_list, rtable, rteperminfos, jointree, merge_action_list, merge_join_condition, target_list, on_conflict, returning_list, group_clause, grouping_sets, having_qual, window_clause, distinct_clause, sort_clause, limit_offset, limit_count, row_marks, set_operations, constraint_deps, with_check_options }
-    TypeName { names, typmods, array_bounds }
-    ColumnRef { fields }
-    ParamRef {  }
-    AExpr { name, lexpr, rexpr }
-    TypeCast { arg, type_name }
-    CollateClause { arg, collname }
-    RoleSpec {  }
-    FuncCall { funcname, args, agg_order, agg_filter, over }
-    AStar {  }
-    AIndices { lidx, uidx }
-    AIndirection { arg, indirection }
-    AArrayExpr { elements }
-    ResTarget { indirection, val }
-    MultiAssignRef { source }
-    SortBy { node, use_op }
-    WindowDef { partition_clause, order_clause, start_offset, end_offset }
-    RangeSubselect { subquery, alias }
-    RangeFunction { functions, alias, coldeflist }
-    RangeTableFunc { docexpr, rowexpr, namespaces, columns, alias }
-    RangeTableFuncCol { type_name, colexpr, coldefexpr }
-    RangeTableSample { relation, method, args, repeatable }
-    ColumnDef { type_name, raw_default, cooked_default, identity_sequence, coll_clause, constraints, fdwoptions }
-    TableLikeClause { relation }
-    IndexElem { expr, collation, opclass, opclassopts }
-    DefElem { arg }
-    LockingClause { locked_rels }
-    XmlSerialize { expr, type_name }
-    PartitionElem { expr, collation, opclass }
-    PartitionSpec { part_params }
-    PartitionBoundSpec { listdatums, lowerdatums, upperdatums }
-    PartitionRangeDatum { value }
-    PartitionCmd { name, bound }
-    RangeTblEntry { alias, eref, tablesample, subquery, joinaliasvars, joinleftcols, joinrightcols, join_using_alias, functions, tablefunc, values_lists, coltypes, coltypmods, colcollations, groupexprs, security_quals }
-    RTEPermissionInfo {  }
-    RangeTblFunction { funcexpr, funccolnames, funccoltypes, funccoltypmods, funccolcollations }
-    TableSampleClause { args, repeatable }
-    WithCheckOption { qual }
-    SortGroupClause {  }
-    GroupingSet { content }
-    WindowClause { partition_clause, order_clause, start_offset, end_offset }
-    RowMarkClause {  }
-    WithClause { ctes }
-    InferClause { index_elems, where_clause }
-    OnConflictClause { infer, target_list, where_clause }
-    CTESearchClause { search_col_list }
-    CTECycleClause { cycle_col_list, cycle_mark_value, cycle_mark_default }
-    CommonTableExpr { aliascolnames, ctequery, search_clause, cycle_clause, ctecolnames, ctecoltypes, ctecoltypmods, ctecolcollations }
-    MergeWhenClause { condition, target_list, values }
-    ReturningOption {  }
-    ReturningClause { options, exprs }
-    TriggerTransition {  }
-    JsonOutput { type_name, returning }
-    JsonArgument { val }
-    JsonFuncExpr { context_item, pathspec, passing, output, on_empty, on_error }
-    JsonTablePathSpec { string }
-    JsonTable { context_item, pathspec, passing, columns, on_error, alias }
-    JsonTableColumn { type_name, pathspec, format, columns, on_empty, on_error }
-    JsonKeyValue { key, value }
-    JsonParseExpr { expr, output }
-    JsonScalarExpr { expr, output }
-    JsonSerializeExpr { expr, output }
-    JsonObjectConstructor { exprs, output }
-    JsonArrayConstructor { exprs, output }
-    JsonArrayQueryConstructor { query, output, format }
-    JsonAggConstructor { output, agg_filter, agg_order, over }
-    JsonObjectAgg { constructor, arg }
-    JsonArrayAgg { constructor, arg }
-    RawStmt { stmt }
-    InsertStmt { relation, cols, select_stmt, on_conflict_clause, returning_clause, with_clause }
-    DeleteStmt { relation, using_clause, where_clause, returning_clause, with_clause }
-    UpdateStmt { relation, target_list, where_clause, from_clause, returning_clause, with_clause }
-    MergeStmt { relation, source_relation, join_condition, merge_when_clauses, returning_clause, with_clause }
-    SelectStmt { distinct_clause, into_clause, target_list, from_clause, where_clause, group_clause, having_clause, window_clause, values_lists, sort_clause, limit_offset, limit_count, locking_clause, with_clause, larg, rarg }
-    SetOperationStmt { larg, rarg, col_types, col_typmods, col_collations, group_clauses }
-    ReturnStmt { returnval }
-    PLAssignStmt { indirection, val }
-    CreateSchemaStmt { authrole, schema_elts }
-    AlterTableStmt { relation, cmds }
-    AlterTableCmd { newowner, def }
-    ATAlterConstraint {  }
-    ReplicaIdentityStmt {  }
-    AlterCollationStmt { collname }
-    AlterDomainStmt { type_name, def }
-    GrantStmt { objects, privileges, grantees, grantor }
-    ObjectWithArgs { objname, objargs, objfuncargs }
-    AccessPriv { cols }
-    GrantRoleStmt { granted_roles, grantee_roles, opt, grantor }
-    AlterDefaultPrivilegesStmt { options, action }
-    CopyStmt { relation, query, attlist, options, where_clause }
-    VariableSetStmt { args }
-    VariableShowStmt {  }
-    CreateStmt { relation, table_elts, inh_relations, partbound, partspec, of_typename, constraints, nnconstraints, options }
-    Constraint { raw_expr, keys, including, exclusions, options, where_clause, pktable, fk_attrs, pk_attrs, fk_del_set_cols, old_conpfeqop }
-    CreateTableSpaceStmt { owner, options }
-    DropTableSpaceStmt {  }
-    AlterTableSpaceOptionsStmt { options }
-    AlterTableMoveAllStmt { roles }
-    CreateExtensionStmt { options }
-    AlterExtensionStmt { options }
-    AlterExtensionContentsStmt { object }
-    CreateFdwStmt { func_options, options }
-    AlterFdwStmt { func_options, options }
-    CreateForeignServerStmt { options }
-    AlterForeignServerStmt { options }
-    CreateForeignTableStmt { base, options }
-    CreateUserMappingStmt { user, options }
-    AlterUserMappingStmt { user, options }
-    DropUserMappingStmt { user }
-    ImportForeignSchemaStmt { table_list, options }
-    CreatePolicyStmt { table, roles, qual, with_check }
-    AlterPolicyStmt { table, roles, qual, with_check }
-    CreateAmStmt { handler_name }
-    CreateTrigStmt { relation, funcname, args, columns, when_clause, transition_rels, constrrel }
-    CreateEventTrigStmt { whenclause, funcname }
-    AlterEventTrigStmt {  }
-    CreatePLangStmt { plhandler, plinline, plvalidator }
-    CreateRoleStmt { options }
-    AlterRoleStmt { role, options }
-    AlterRoleSetStmt { role, setstmt }
-    DropRoleStmt { roles }
-    CreateSeqStmt { sequence, options }
-    AlterSeqStmt { sequence, options }
-    DefineStmt { defnames, args, definition }
-    CreateDomainStmt { domainname, type_name, coll_clause, constraints }
-    CreateOpClassStmt { opclassname, opfamilyname, datatype, items }
-    CreateOpClassItem { name, order_family, class_args, storedtype }
-    CreateOpFamilyStmt { opfamilyname }
-    AlterOpFamilyStmt { opfamilyname, items }
-    DropStmt { objects }
-    TruncateStmt { relations }
-    CommentStmt { object }
-    SecLabelStmt { object }
-    DeclareCursorStmt { query }
-    ClosePortalStmt {  }
-    FetchStmt {  }
-    IndexStmt { relation, index_params, index_including_params, options, where_clause, exclude_op_names }
-    CreateStatsStmt { defnames, stat_types, exprs, relations }
-    StatsElem { expr }
-    AlterStatsStmt { defnames, stxstattarget }
-    CreateFunctionStmt { funcname, parameters, return_type, options, sql_body }
-    FunctionParameter { arg_type, defexpr }
-    AlterFunctionStmt { func, actions }
-    DoStmt { args }
-    InlineCodeBlock {  }
-    CallStmt { funccall, funcexpr, outargs }
-    CallContext {  }
-    RenameStmt { relation, object }
-    AlterObjectDependsStmt { relation, object }
-    AlterObjectSchemaStmt { relation, object }
-    AlterOwnerStmt { relation, object, newowner }
-    AlterOperatorStmt { opername, options }
-    AlterTypeStmt { type_name, options }
-    RuleStmt { relation, where_clause, actions }
-    NotifyStmt {  }
-    ListenStmt {  }
-    UnlistenStmt {  }
-    TransactionStmt { options }
-    CompositeTypeStmt { typevar, coldeflist }
-    CreateEnumStmt { type_name, vals }
-    CreateRangeStmt { type_name, params }
-    AlterEnumStmt { type_name }
-    ViewStmt { view, aliases, query, options }
-    LoadStmt {  }
-    CreatedbStmt { options }
-    AlterDatabaseStmt { options }
-    AlterDatabaseRefreshCollStmt {  }
-    AlterDatabaseSetStmt { setstmt }
-    DropdbStmt { options }
-    AlterSystemStmt { setstmt }
-    VacuumStmt { options, rels }
-    VacuumRelation { relation, va_cols }
-    RepackStmt { relation, params }
-    ExplainStmt { query, options }
-    CreateTableAsStmt { query, into }
-    RefreshMatViewStmt { relation }
-    CheckPointStmt { options }
-    DiscardStmt {  }
-    LockStmt { relations }
-    ConstraintsSetStmt { constraints }
-    ReindexStmt { relation, params }
-    CreateConversionStmt { conversion_name, func_name }
-    CreateCastStmt { sourcetype, targettype, func }
-    CreateTransformStmt { type_name, fromsql, tosql }
-    PrepareStmt { argtypes, query }
-    ExecuteStmt { params }
-    DeallocateStmt {  }
-    DropOwnedStmt { roles }
-    ReassignOwnedStmt { roles, newrole }
-    AlterTSDictionaryStmt { dictname, options }
-    AlterTSConfigurationStmt { cfgname, tokentype, dicts }
-    PublicationTable { relation, where_clause, columns }
-    PublicationObjSpec { pubtable }
-    PublicationAllObjSpec { except_tables }
-    CreatePublicationStmt { options, pubobjects }
-    AlterPublicationStmt { options, pubobjects }
-    CreateSubscriptionStmt { publication, options }
-    AlterSubscriptionStmt { publication, options }
-    DropSubscriptionStmt {  }
-    WaitStmt { options }
+    Alias { colnames } { aliasname }
+    RangeVar { alias } { catalogname, schemaname, relname, inh, relpersistence, location }
+    TableFunc { ns_uris, ns_names, docexpr, rowexpr, colnames, coltypes, coltypmods, colcollations, colexprs, coldefexprs, colvalexprs, passingvalexprs, plan } { functype, notnulls, ordinalitycol, location }
+    IntoClause { rel, col_names, options, view_query } { access_method, on_commit, table_space_name, skip_data }
+    GroupingFunc { args, refs, cols } { agglevelsup, location }
+    MergeSupportFunc {  } { msftype, msfcollid, location }
+    FuncExpr { args } { funcid, funcresulttype, funcretset, funcvariadic, funcformat, funccollid, inputcollid, location }
+    NamedArgExpr { arg } { name, argnumber, location }
+    BoolExpr { args } { boolop, location }
+    SubLink { testexpr, oper_name, subselect } { sub_link_type, sub_link_id, location }
+    CaseExpr { arg, args, defresult } { casetype, casecollid, location }
+    CaseWhen { expr, result } { location }
+    RowExpr { args, colnames } { row_typeid, row_format, location }
+    CoalesceExpr { args } { coalescetype, coalescecollid, location }
+    MinMaxExpr { args } { minmaxtype, minmaxcollid, inputcollid, op, location }
+    SQLValueFunction {  } { op, r#type, typmod, location }
+    XmlExpr { named_args, arg_names, args } { op, name, xmloption, indent, r#type, typmod, location }
+    JsonFormat {  } { format_type, encoding, location }
+    JsonReturning { format } { typid, typmod }
+    JsonValueExpr { raw_expr, formatted_expr, format } {  }
+    JsonIsPredicate { expr, format } { item_type, unique_keys, expr_base_type, location }
+    JsonBehavior { expr } { btype, coerce, location }
+    NullTest { arg } { nulltesttype, argisrow, location }
+    BooleanTest { arg } { booltesttype, location }
+    SetToDefault {  } { type_id, type_mod, collation, location }
+    CurrentOfExpr {  } { cvarno, cursor_name, cursor_param }
+    JoinExpr { larg, rarg, using_clause, join_using_alias, quals, alias } { jointype, is_natural, rtindex }
+    FromExpr { fromlist, quals } {  }
+    OnConflictExpr { arbiter_elems, arbiter_where, on_conflict_set, on_conflict_where, excl_rel_tlist } { action, constraint, lock_strength, excl_rel_index }
+    Query { utility_stmt, cte_list, rtable, rteperminfos, jointree, merge_action_list, merge_join_condition, target_list, on_conflict, returning_list, group_clause, grouping_sets, having_qual, window_clause, distinct_clause, sort_clause, limit_offset, limit_count, row_marks, set_operations, constraint_deps, with_check_options } { command_type, query_source, query_id, can_set_tag, result_relation, has_aggs, has_window_funcs, has_target_sr_fs, has_sub_links, has_distinct_on, has_recursive, has_modifying_cte, has_for_update, has_row_security, has_group_rte, is_return, merge_target_relation, r#override, returning_old_alias, returning_new_alias, group_distinct, limit_option, stmt_location, stmt_len }
+    TypeName { names, typmods, array_bounds } { type_oid, setof, pct_type, typemod, location }
+    ColumnRef { fields } { location }
+    ParamRef {  } { number, location }
+    AExpr { name, lexpr, rexpr } { kind, rexpr_list_start, rexpr_list_end, location }
+    TypeCast { arg, type_name } { location }
+    CollateClause { arg, collname } { location }
+    RoleSpec {  } { roletype, rolename, location }
+    FuncCall { funcname, args, agg_order, agg_filter, over } { ignore_nulls, agg_within_group, agg_star, agg_distinct, func_variadic, funcformat, location }
+    AStar {  } {  }
+    AIndices { lidx, uidx } { is_slice }
+    AIndirection { arg, indirection } {  }
+    AArrayExpr { elements } { list_start, list_end, location }
+    ResTarget { indirection, val } { name, location }
+    MultiAssignRef { source } { colno, ncolumns }
+    SortBy { node, use_op } { sortby_dir, sortby_nulls, location }
+    WindowDef { partition_clause, order_clause, start_offset, end_offset } { name, refname, frame_options, location }
+    RangeSubselect { subquery, alias } { lateral }
+    RangeFunction { functions, alias, coldeflist } { lateral, ordinality, is_rowsfrom }
+    RangeTableFunc { docexpr, rowexpr, namespaces, columns, alias } { lateral, location }
+    RangeTableFuncCol { type_name, colexpr, coldefexpr } { colname, for_ordinality, is_not_null, location }
+    RangeTableSample { relation, method, args, repeatable } { location }
+    ColumnDef { type_name, raw_default, cooked_default, identity_sequence, coll_clause, constraints, fdwoptions } { colname, compression, inhcount, is_local, is_not_null, is_from_type, storage, storage_name, identity, generated, coll_oid, location }
+    TableLikeClause { relation } { options, relation_oid }
+    IndexElem { expr, collation, opclass, opclassopts } { name, indexcolname, ordering, nulls_ordering, location }
+    DefElem { arg } { defnamespace, defname, defaction, location, arg_location }
+    LockingClause { locked_rels } { strength, wait_policy }
+    XmlSerialize { expr, type_name } { xmloption, indent, location }
+    PartitionElem { expr, collation, opclass } { name, location }
+    PartitionSpec { part_params } { strategy, location }
+    PartitionBoundSpec { listdatums, lowerdatums, upperdatums } { strategy, is_default, modulus, remainder, location }
+    PartitionRangeDatum { value } { kind, location }
+    PartitionCmd { name, bound } { concurrent }
+    RangeTblEntry { alias, eref, tablesample, subquery, joinaliasvars, joinleftcols, joinrightcols, join_using_alias, functions, tablefunc, values_lists, coltypes, coltypmods, colcollations, groupexprs, security_quals } { rtekind, relid, inh, relkind, rellockmode, perminfoindex, security_barrier, jointype, joinmergedcols, funcordinality, ctename, ctelevelsup, self_reference, enrname, enrtuples, lateral, in_from_cl }
+    RTEPermissionInfo {  } { relid, inh, required_perms, check_as_user, selected_cols, inserted_cols, updated_cols }
+    RangeTblFunction { funcexpr, funccolnames, funccoltypes, funccoltypmods, funccolcollations } { funccolcount, funcparams }
+    TableSampleClause { args, repeatable } { tsmhandler }
+    WithCheckOption { qual } { kind, relname, polname, cascaded }
+    SortGroupClause {  } { tle_sort_group_ref, eqop, sortop, reverse_sort, nulls_first, hashable }
+    GroupingSet { content } { kind, location }
+    WindowClause { partition_clause, order_clause, start_offset, end_offset } { name, refname, frame_options, start_in_range_func, end_in_range_func, in_range_coll, in_range_asc, in_range_nulls_first, winref, copied_order }
+    RowMarkClause {  } { rti, strength, wait_policy, pushed_down }
+    WithClause { ctes } { recursive, location }
+    InferClause { index_elems, where_clause } { conname, location }
+    OnConflictClause { infer, target_list, where_clause } { action, lock_strength, location }
+    CTESearchClause { search_col_list } { search_breadth_first, search_seq_column, location }
+    CTECycleClause { cycle_col_list, cycle_mark_value, cycle_mark_default } { cycle_mark_column, cycle_path_column, location, cycle_mark_type, cycle_mark_typmod, cycle_mark_collation, cycle_mark_neop }
+    CommonTableExpr { aliascolnames, ctequery, search_clause, cycle_clause, ctecolnames, ctecoltypes, ctecoltypmods, ctecolcollations } { ctename, ctematerialized, location, cterecursive, cterefcount }
+    MergeWhenClause { condition, target_list, values } { match_kind, command_type, r#override }
+    ReturningOption {  } { option, value, location }
+    ReturningClause { options, exprs } {  }
+    TriggerTransition {  } { name, is_new, is_table }
+    JsonOutput { type_name, returning } {  }
+    JsonArgument { val } { name }
+    JsonFuncExpr { context_item, pathspec, passing, output, on_empty, on_error } { op, column_name, wrapper, quotes, location }
+    JsonTablePathSpec { string } { name, name_location, location }
+    JsonTable { context_item, pathspec, passing, columns, on_error, alias } { lateral, location }
+    JsonTableColumn { type_name, pathspec, format, columns, on_empty, on_error } { coltype, name, wrapper, quotes, location }
+    JsonKeyValue { key, value } {  }
+    JsonParseExpr { expr, output } { unique_keys, location }
+    JsonScalarExpr { expr, output } { location }
+    JsonSerializeExpr { expr, output } { location }
+    JsonObjectConstructor { exprs, output } { absent_on_null, unique, location }
+    JsonArrayConstructor { exprs, output } { absent_on_null, location }
+    JsonArrayQueryConstructor { query, output, format } { absent_on_null, location }
+    JsonAggConstructor { output, agg_filter, agg_order, over } { location }
+    JsonObjectAgg { constructor, arg } { absent_on_null, unique }
+    JsonArrayAgg { constructor, arg } { absent_on_null }
+    RawStmt { stmt } { stmt_location, stmt_len }
+    InsertStmt { relation, cols, select_stmt, on_conflict_clause, returning_clause, with_clause } { r#override }
+    DeleteStmt { relation, using_clause, where_clause, returning_clause, with_clause } {  }
+    UpdateStmt { relation, target_list, where_clause, from_clause, returning_clause, with_clause } {  }
+    MergeStmt { relation, source_relation, join_condition, merge_when_clauses, returning_clause, with_clause } {  }
+    SelectStmt { distinct_clause, into_clause, target_list, from_clause, where_clause, group_clause, having_clause, window_clause, values_lists, sort_clause, limit_offset, limit_count, locking_clause, with_clause, larg, rarg } { group_distinct, limit_option, op, all }
+    SetOperationStmt { larg, rarg, col_types, col_typmods, col_collations, group_clauses } { op, all }
+    ReturnStmt { returnval } {  }
+    PLAssignStmt { indirection, val } { name, nnames, location }
+    CreateSchemaStmt { authrole, schema_elts } { schemaname, if_not_exists }
+    AlterTableStmt { relation, cmds } { objtype, missing_ok }
+    AlterTableCmd { newowner, def } { subtype, name, num, behavior, missing_ok, recurse }
+    ATAlterConstraint {  } { conname, alter_enforceability, is_enforced, alter_deferrability, deferrable, initdeferred, alter_inheritability, noinherit }
+    ReplicaIdentityStmt {  } { identity_type, name }
+    AlterCollationStmt { collname } {  }
+    AlterDomainStmt { type_name, def } { subtype, name, behavior, missing_ok }
+    GrantStmt { objects, privileges, grantees, grantor } { is_grant, targtype, objtype, grant_option, behavior }
+    ObjectWithArgs { objname, objargs, objfuncargs } { args_unspecified }
+    AccessPriv { cols } { priv_name }
+    GrantRoleStmt { granted_roles, grantee_roles, opt, grantor } { is_grant, behavior }
+    AlterDefaultPrivilegesStmt { options, action } {  }
+    CopyStmt { relation, query, attlist, options, where_clause } { is_from, is_program, filename }
+    VariableSetStmt { args } { kind, name, jumble_args, is_local, location }
+    VariableShowStmt {  } { name }
+    CreateStmt { relation, table_elts, inh_relations, partbound, partspec, of_typename, constraints, nnconstraints, options } { oncommit, tablespacename, access_method, if_not_exists }
+    Constraint { raw_expr, keys, including, exclusions, options, where_clause, pktable, fk_attrs, pk_attrs, fk_del_set_cols, old_conpfeqop } { contype, conname, deferrable, initdeferred, is_enforced, skip_validation, initially_valid, is_no_inherit, cooked_expr, generated_when, generated_kind, nulls_not_distinct, without_overlaps, indexname, indexspace, reset_default_tblspc, access_method, fk_with_period, pk_with_period, fk_matchtype, fk_upd_action, fk_del_action, old_pktable_oid, location }
+    CreateTableSpaceStmt { owner, options } { tablespacename, location }
+    DropTableSpaceStmt {  } { tablespacename, missing_ok }
+    AlterTableSpaceOptionsStmt { options } { tablespacename, is_reset }
+    AlterTableMoveAllStmt { roles } { orig_tablespacename, objtype, new_tablespacename, nowait }
+    CreateExtensionStmt { options } { extname, if_not_exists }
+    AlterExtensionStmt { options } { extname }
+    AlterExtensionContentsStmt { object } { extname, action, objtype }
+    CreateFdwStmt { func_options, options } { fdwname }
+    AlterFdwStmt { func_options, options } { fdwname }
+    CreateForeignServerStmt { options } { servername, servertype, version, fdwname, if_not_exists }
+    AlterForeignServerStmt { options } { servername, version, has_version }
+    CreateForeignTableStmt { base, options } { servername }
+    CreateUserMappingStmt { user, options } { servername, if_not_exists }
+    AlterUserMappingStmt { user, options } { servername }
+    DropUserMappingStmt { user } { servername, missing_ok }
+    ImportForeignSchemaStmt { table_list, options } { server_name, remote_schema, local_schema, list_type }
+    CreatePolicyStmt { table, roles, qual, with_check } { policy_name, cmd_name, permissive }
+    AlterPolicyStmt { table, roles, qual, with_check } { policy_name }
+    CreateAmStmt { handler_name } { amname, amtype }
+    CreateTrigStmt { relation, funcname, args, columns, when_clause, transition_rels, constrrel } { replace, isconstraint, trigname, row, timing, events, deferrable, initdeferred }
+    CreateEventTrigStmt { whenclause, funcname } { trigname, eventname }
+    AlterEventTrigStmt {  } { trigname, tgenabled }
+    CreatePLangStmt { plhandler, plinline, plvalidator } { replace, plname, pltrusted }
+    CreateRoleStmt { options } { stmt_type, role }
+    AlterRoleStmt { role, options } { action }
+    AlterRoleSetStmt { role, setstmt } { database }
+    DropRoleStmt { roles } { missing_ok }
+    CreateSeqStmt { sequence, options } { owner_id, for_identity, if_not_exists }
+    AlterSeqStmt { sequence, options } { for_identity, missing_ok }
+    DefineStmt { defnames, args, definition } { kind, oldstyle, if_not_exists, replace }
+    CreateDomainStmt { domainname, type_name, coll_clause, constraints } {  }
+    CreateOpClassStmt { opclassname, opfamilyname, datatype, items } { amname, is_default }
+    CreateOpClassItem { name, order_family, class_args, storedtype } { itemtype, number }
+    CreateOpFamilyStmt { opfamilyname } { amname }
+    AlterOpFamilyStmt { opfamilyname, items } { amname, is_drop }
+    DropStmt { objects } { remove_type, behavior, missing_ok, concurrent }
+    TruncateStmt { relations } { restart_seqs, behavior }
+    CommentStmt { object } { objtype, comment }
+    SecLabelStmt { object } { objtype, provider, label }
+    DeclareCursorStmt { query } { portalname, options }
+    ClosePortalStmt {  } { portalname }
+    FetchStmt {  } { direction, how_many, portalname, ismove, direction_keyword, location }
+    IndexStmt { relation, index_params, index_including_params, options, where_clause, exclude_op_names } { idxname, access_method, table_space, idxcomment, index_oid, old_number, old_create_subid, old_first_relfilelocator_subid, unique, nulls_not_distinct, primary, isconstraint, iswithoutoverlaps, deferrable, initdeferred, transformed, concurrent, if_not_exists, reset_default_tblspc }
+    CreateStatsStmt { defnames, stat_types, exprs, relations } { stxcomment, transformed, if_not_exists, owner }
+    StatsElem { expr } { name }
+    AlterStatsStmt { defnames, stxstattarget } { missing_ok }
+    CreateFunctionStmt { funcname, parameters, return_type, options, sql_body } { is_procedure, replace }
+    FunctionParameter { arg_type, defexpr } { name, mode, location }
+    AlterFunctionStmt { func, actions } { objtype }
+    DoStmt { args } {  }
+    InlineCodeBlock {  } { source_text, lang_oid, lang_is_trusted, atomic }
+    CallStmt { funccall, funcexpr, outargs } {  }
+    CallContext {  } { atomic }
+    RenameStmt { relation, object } { rename_type, relation_type, subname, newname, behavior, missing_ok }
+    AlterObjectDependsStmt { relation, object } { object_type, extname, remove }
+    AlterObjectSchemaStmt { relation, object } { object_type, newschema, missing_ok }
+    AlterOwnerStmt { relation, object, newowner } { object_type }
+    AlterOperatorStmt { opername, options } {  }
+    AlterTypeStmt { type_name, options } {  }
+    RuleStmt { relation, where_clause, actions } { rulename, event, instead, replace }
+    NotifyStmt {  } { conditionname, payload, payload_location }
+    ListenStmt {  } { conditionname }
+    UnlistenStmt {  } { conditionname }
+    TransactionStmt { options } { kind, savepoint_name, gid, chain, location }
+    CompositeTypeStmt { typevar, coldeflist } {  }
+    CreateEnumStmt { type_name, vals } {  }
+    CreateRangeStmt { type_name, params } {  }
+    AlterEnumStmt { type_name } { old_val, new_val, new_val_neighbor, new_val_is_after, skip_if_new_val_exists }
+    ViewStmt { view, aliases, query, options } { replace, with_check_option }
+    LoadStmt {  } { filename }
+    CreatedbStmt { options } { dbname }
+    AlterDatabaseStmt { options } { dbname }
+    AlterDatabaseRefreshCollStmt {  } { dbname }
+    AlterDatabaseSetStmt { setstmt } { dbname }
+    DropdbStmt { options } { dbname, missing_ok }
+    AlterSystemStmt { setstmt } {  }
+    VacuumStmt { options, rels } { is_vacuumcmd }
+    VacuumRelation { relation, va_cols } { oid }
+    RepackStmt { relation, params } { command, indexname, usingindex }
+    ExplainStmt { query, options } {  }
+    CreateTableAsStmt { query, into } { objtype, is_select_into, if_not_exists }
+    RefreshMatViewStmt { relation } { concurrent, skip_data }
+    CheckPointStmt { options } {  }
+    DiscardStmt {  } { target }
+    LockStmt { relations } { mode, nowait }
+    ConstraintsSetStmt { constraints } { deferred }
+    ReindexStmt { relation, params } { kind, name }
+    CreateConversionStmt { conversion_name, func_name } { for_encoding_name, to_encoding_name, def }
+    CreateCastStmt { sourcetype, targettype, func } { context, inout }
+    CreateTransformStmt { type_name, fromsql, tosql } { replace, lang }
+    PrepareStmt { argtypes, query } { name }
+    ExecuteStmt { params } { name }
+    DeallocateStmt {  } { name, isall, location }
+    DropOwnedStmt { roles } { behavior }
+    ReassignOwnedStmt { roles, newrole } {  }
+    AlterTSDictionaryStmt { dictname, options } {  }
+    AlterTSConfigurationStmt { cfgname, tokentype, dicts } { kind, r#override, replace, missing_ok }
+    PublicationTable { relation, where_clause, columns } { except }
+    PublicationObjSpec { pubtable } { pubobjtype, name, location }
+    PublicationAllObjSpec { except_tables } { pubobjtype, location }
+    CreatePublicationStmt { options, pubobjects } { pubname, for_all_tables, for_all_sequences }
+    AlterPublicationStmt { options, pubobjects } { pubname, action, for_all_tables, for_all_sequences }
+    CreateSubscriptionStmt { publication, options } { subname, servername, conninfo, conninfo_location }
+    AlterSubscriptionStmt { publication, options } { kind, subname, servername, conninfo, conninfo_location }
+    DropSubscriptionStmt {  } { subname, missing_ok, behavior }
+    WaitStmt { options } { lsn_literal, lsn_location }
 }

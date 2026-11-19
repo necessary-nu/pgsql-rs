@@ -9,7 +9,7 @@ pub trait Edges {
 }
 
 macro_rules! record_edges {
-    ($($record:ident { $($field:ident),* })*) => {$(
+    ($($record:ident { $($field:ident),* } { $($plain:ident),* })*) => {$(
         impl NodeRecord for $record {}
         impl Edges for $record {
             fn detach(&mut self, #[allow(unused_variables)] pending: &mut Vec<Node>) {
