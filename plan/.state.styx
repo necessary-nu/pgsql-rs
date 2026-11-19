@@ -157,7 +157,11 @@ impl_evidence (
     ), rule_versions_seen (
         {id deparse.stream, version 0}
     )}
-    {id operations.fingerprint}
+    {id operations.fingerprint, covered_rules (
+        fingerprint.constants
+    ), covered_claims (
+        {impl_name rust, rule fingerprint.constants}
+    )}
     {id operations.fingerprint-tree, covered_rules (
         fingerprint.aliases
         fingerprint.digest
@@ -224,7 +228,13 @@ impl_evidence (
         {id summary.entities, version 0}
         {id summary.nested-filters, version 0}
     )}
-    {id operations.utility}
+    {id operations.utility, covered_rules (
+        utility.classify
+        utility.sequence
+    ), covered_claims (
+        {impl_name rust, rule utility.classify}
+        {impl_name rust, rule utility.sequence}
+    )}
     {id parser.diagnostics, covered_rules (
         grammar.diagnostics
         grammar.string-settings

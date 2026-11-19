@@ -45,8 +45,17 @@ fn split_parsed_sql_using_raw_statement_boundaries() {
         .all(|n| matches!(n, Node::SelectStmt(_))));
 }
 
+// [spec:pgq:req:utility.classify/test]
+// [spec:pgq:req:utility.sequence/test]
 #[test]
 fn classify_each_statement_by_its_outer_tag() {
+    assert!(utility_statements("").unwrap().is_empty());
+    assert_eq!(
+        utility_statements(
+            "WITH c AS (SELECT 1) SELECT * FROM c; WITH c AS (SELECT 1) UPDATE t SET x = 1; EXPLAIN SELECT 1; REPACK t"
+        ).unwrap(),
+        [false, false, true, true]
+    );
     assert_eq!(
         utility_statements("SELECT 1; SHOW fsync").unwrap(),
         [false, true]
@@ -74,6 +83,7 @@ fn classify_each_statement_by_its_outer_tag() {
     assert!(is_utility_statement(&RepackStmt::default().into()));
 }
 
+// [spec:pgq:req:fingerprint.constants/test]
 #[test]
 fn fingerprint_constants_and_parse_errors() {
     for sql in ["SELECT 1", "SELECT 2", "SELECT $1"] {
@@ -88,6 +98,14 @@ fn fingerprint_constants_and_parse_errors() {
             .to_string(),
             "50fde20626009aba"
         );
+    }
+    for (mode, expected) in [
+        (ParseMode::TypeName, "57b8c5aa0601e31e"),
+        (ParseMode::PlPgSqlExpr, "2ef767b7c9008694"),
+    ] {
+        let digest =
+            fingerprint_sql("x", mode, Options::default(), FingerprintOptions::default()).unwrap();
+        assert_eq!(digest.to_string(), expected);
     }
     let sql = "SELECT (";
     let err = parse_statements(sql, Options::default()).unwrap_err();

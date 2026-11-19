@@ -15,6 +15,7 @@ pub fn split_with_parser(sql: &str) -> Result<Vec<Range<usize>>, Error> {
         .collect()
 }
 
+// [spec:pgq:req:utility.classify]
 pub fn is_utility_statement(node: &Node) -> bool {
     !matches!(
         node,
@@ -26,6 +27,7 @@ pub fn is_utility_statement(node: &Node) -> bool {
     )
 }
 
+// [spec:pgq:req:utility.sequence]
 pub fn utility_statements(sql: &str) -> Result<Vec<bool>, Error> {
     parse_statements(sql, Options::default())?
         .iter()
