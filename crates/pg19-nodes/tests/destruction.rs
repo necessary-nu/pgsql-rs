@@ -247,3 +247,32 @@ fn type_equality_uses_postgres_fields_at_any_depth() {
         assert_eq!(original.pg_equal(&other), Ok(false));
     });
 }
+
+#[test]
+fn compares_independent_shared_assignment_sources() {
+    fn shared_type(leaf: i32) -> TypeName {
+        let mut nested = Node::Integer(leaf);
+        for _ in 0..2000 {
+            let source = std::sync::Arc::new(nested);
+            let refs = (1..=2)
+                .map(|colno| {
+                    Node::from(MultiAssignRef {
+                        source: Some(source.clone()),
+                        colno,
+                        ncolumns: 2,
+                    })
+                })
+                .collect::<Vec<_>>();
+            nested = refs.into();
+        }
+        TypeName {
+            typmods: vec![nested],
+            ..Default::default()
+        }
+    }
+    small_stack(|| {
+        let left = shared_type(1);
+        assert_eq!(left.pg_equal(&shared_type(1)), Ok(true));
+        assert_eq!(left.pg_equal(&shared_type(2)), Ok(false));
+    });
+}
