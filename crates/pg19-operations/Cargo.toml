@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+prost = "0.14"
 pg19-codec = { path = "../pg19-codec" }
 pg19-parser = { path = "../pg19-parser" }
 pg19-nodes = { path = "../pg19-nodes" }
