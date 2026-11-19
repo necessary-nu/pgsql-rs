@@ -20,7 +20,6 @@ pub(super) fn alias(a: &Alias) -> Result<String> {
     Ok(s)
 }
 pub(super) fn relation(r: &RangeVar, p: &mut Plan<'_>, insert: bool) -> Result<()> {
-    p.mark(r.location);
     if !r.inh {
         p.text("ONLY ");
     }
@@ -42,7 +41,7 @@ fn join<'a>(j: &'a JoinExpr, p: &mut Plan<'a>) -> Result<()> {
         p.text("(");
     }
     p.node(left, Role::From);
-    p.text(" ");
+    p.cut();
     if j.is_natural {
         p.text("NATURAL ");
     }
@@ -224,7 +223,7 @@ pub(super) fn item<'a>(n: &'a Node, role: Role, p: &mut Plan<'a>) -> Result<()> 
             if !t.indirection.is_empty() {
                 return Err(Error::InvalidField("target indirection"));
             }
-            p.mark(t.location);
+
             p.expr(required(&t.val, "ResTarget.val")?);
             if let Some(name) = &t.name {
                 p.text(" AS ");
@@ -251,7 +250,6 @@ pub(super) fn item<'a>(n: &'a Node, role: Role, p: &mut Plan<'a>) -> Result<()> 
     Ok(())
 }
 pub(super) fn with<'a>(w: &'a WithClause, p: &mut Plan<'a>) {
-    p.mark(w.location);
     p.clause(if w.recursive {
         "WITH RECURSIVE "
     } else {
@@ -267,7 +265,7 @@ fn simple<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
                 return Err(Error::InvalidField("SelectStmt.valuesLists"));
             };
             if i > 0 {
-                p.text(", ");
+                p.comma();
             }
             p.text("(");
             p.list(values, Role::Expr);
@@ -278,6 +276,7 @@ fn simple<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
     p.clause("SELECT");
     if !s.distinct_clause.is_empty() {
         p.text(" DISTINCT");
+        p.separate();
         if !matches!(s.distinct_clause.as_slice(), [Node::Null]) {
             p.text(" ON (");
             p.list(&s.distinct_clause, Role::Expr);
@@ -285,7 +284,11 @@ fn simple<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
         }
     }
     if !s.target_list.is_empty() {
-        p.text(" ");
+        if !s.distinct_clause.is_empty() {
+            p.cut();
+        } else {
+            p.text(" ");
+        }
         p.list(&s.target_list, Role::Target);
     }
     if s.into_clause.is_some() || !s.window_clause.is_empty() {
@@ -346,7 +349,12 @@ fn select_tail<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
         p.clause(super::dml::lock_strength(l.strength)?);
         if !l.locked_rels.is_empty() {
             p.text(" OF ");
-            p.list(&l.locked_rels, Role::From);
+            for (i, r) in l.locked_rels.iter().enumerate() {
+                if i > 0 {
+                    p.text(", ");
+                }
+                p.node(r, Role::From);
+            }
         }
         match l.wait_policy {
             LockWaitPolicy::LockWaitBlock => {}
@@ -367,6 +375,7 @@ pub(super) fn select<'a>(s: &'a SelectStmt, arm: bool, p: &mut Plan<'a>) -> Resu
             || !s.locking_clause.is_empty());
     if bracket {
         p.text("(");
+        p.enter();
     }
     if let Some(w) = &s.with_clause {
         with(w, p);
@@ -398,6 +407,7 @@ pub(super) fn select<'a>(s: &'a SelectStmt, arm: bool, p: &mut Plan<'a>) -> Resu
     }
     select_tail(s, p)?;
     if bracket {
+        p.leave();
         p.text(")");
     }
     Ok(())

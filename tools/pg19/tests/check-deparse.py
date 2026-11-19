@@ -29,12 +29,14 @@ def check(probe, write):
     original = parse("deparse.sql")
     if without_locations(original) != without_locations(parse("deparse.expected.sql")):
         raise ValueError("deparsed SQL reparses to a different PG19 raw tree")
-    for fixture in sorted(FIXTURES.glob("deparse-*.jsonl")):
-        for line in fixture.read_text().splitlines():
-            query, compact = json.loads(line)
-            trees = [json.loads(subprocess.check_output([probe, sql])) for sql in (query, compact)]
-            if without_locations(trees[0]) != without_locations(trees[1]):
-                raise ValueError(f"deparsing changes the PG19 tree for {query}")
+    pairs = [json.loads(line) for fixture in sorted(FIXTURES.glob("deparse-*.jsonl"))
+             for line in fixture.read_text().splitlines()]
+    pairs.extend((query, expected) for _, query, expected in
+                 json.loads((FIXTURES / "deparse-format.json").read_text()))
+    for query, expected in pairs:
+        trees = [json.loads(subprocess.check_output([probe, sql])) for sql in (query, expected)]
+        if without_locations(trees[0]) != without_locations(trees[1]):
+            raise ValueError(f"deparsing changes the PG19 tree for {query}")
     pool = descriptor_pool.DescriptorPool()
     for file in descriptor_pb2.FileDescriptorSet.FromString(
             (ROOT / "protobuf/pg19/pg_query.pb").read_bytes()).file:
