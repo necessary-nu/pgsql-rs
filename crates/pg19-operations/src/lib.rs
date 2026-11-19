@@ -4,6 +4,7 @@ mod normalize;
 pub use normalize::{normalize, normalize_utility};
 mod raw_walk;
 mod sql;
+pub mod summary;
 pub use sql::{is_utility_statement, split_with_parser, utility_statements};
 
 use pg19_lexer::{Error, Scanner};

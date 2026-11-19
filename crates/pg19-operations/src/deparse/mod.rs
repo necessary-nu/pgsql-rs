@@ -47,10 +47,14 @@ fn ident(name: &str) -> Result<String> {
     if name.is_empty() || name.len() > 63 || name.contains('\0') {
         return Err(Error::InvalidField("identifier"));
     }
+    Ok(quoted_identifier(name))
+}
+
+pub(crate) fn quoted_identifier(name: &str) -> String {
     if plain_name(name) && keyword(name).is_none_or(|(_, _, cat)| cat == KeywordKind::Unreserved) {
-        Ok(name.to_owned())
+        name.to_owned()
     } else {
-        Ok(format!("\"{}\"", name.replace('"', "\"\"")))
+        format!("\"{}\"", name.replace('"', "\"\""))
     }
 }
 

@@ -40,6 +40,15 @@ macro_rules! raw_records {
         }
 
         impl<'a> RawRef<'a> {
+            pub(crate) fn tag(self) -> Option<NodeTag> {
+                match self {
+                    Self::Constant(_) => Some(NodeTag::AConst),
+                    Self::List(_) => Some(NodeTag::List),
+                    Self::Leaf => None,
+                    $(Self::$record(_) => Some(NodeTag::$record),)*
+                }
+            }
+
             pub(crate) fn children(self, visit: &mut impl FnMut(Self)) {
                 match self {
                     Self::List(items) => items.iter().for_each(|n| visit(n.into())),
