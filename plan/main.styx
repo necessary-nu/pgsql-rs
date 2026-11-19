@@ -135,6 +135,14 @@ children (
                     rust ([spec:pgq:req:grammar.reductions])
                 }
                 deps (parser.tables parser.nodes parser.lexer)
+                log (
+                    {
+                        at 2026-11-19T17:56:23.357406575Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
 
             {

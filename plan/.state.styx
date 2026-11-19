@@ -159,6 +159,11 @@ impl_evidence (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
     )}
+    {id parser.engine, covered_rules (
+        grammar.reductions
+    ), covered_claims (
+        {impl_name rust, rule grammar.reductions}
+    )}
 )
 
 onboarding {kind @adopt, phase 11}
