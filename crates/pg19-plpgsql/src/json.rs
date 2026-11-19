@@ -49,7 +49,7 @@ pub fn datum(d: &Datum, id: usize) -> Value {
             v["PLpgSQL_var"]["promise"] = json!(promise);
             v
         }
-        Datum::Row { fields } => {
+        Datum::Row { lineno, fields } => {
             let values: Vec<_> = fields
                 .iter()
                 .map(|(name, id)| {
@@ -60,7 +60,7 @@ pub fn datum(d: &Datum, id: usize) -> Value {
                     v
                 })
                 .collect();
-            json!({"PLpgSQL_row":{"refname":"(unnamed row)", "lineno":-1, "fields":values}})
+            json!({"PLpgSQL_row":{"refname":"(unnamed row)", "lineno":lineno, "fields":values}})
         }
         Datum::RecordField { name, parent } => {
             v["fieldname"] = json!(name);
@@ -193,7 +193,40 @@ fn statement(s: &Statement) -> Value {
         Statement::ExecSql {
             lineno,
             expression: e,
-        } => json!({"PLpgSQL_stmt_execsql":{"lineno":lineno,"sqlstmt":expression(e)}}),
+            target,
+        } => {
+            let mut v = json!({"lineno":lineno,"sqlstmt":expression(e)});
+            if let Some(t) = target {
+                v["into"] = json!(true);
+                if t.strict {
+                    v["strict"] = json!(true);
+                }
+                v["target"] = datum(&t.variable, t.id);
+            }
+            json!({"PLpgSQL_stmt_execsql":v})
+        }
+        Statement::ReturnNext {
+            lineno,
+            expression: e,
+            ..
+        } => {
+            let mut v = json!({"lineno":lineno});
+            optional_expr(&mut v, "expr", e);
+            json!({"PLpgSQL_stmt_return_next":v})
+        }
+        Statement::ReturnQuery {
+            lineno,
+            query,
+            dynamic,
+            params,
+        } => {
+            let mut v = json!({"lineno":lineno});
+            v[if *dynamic { "dynquery" } else { "query" }] = expression(query);
+            if !params.is_empty() {
+                v["params"] = params.iter().map(expression).collect();
+            }
+            json!({"PLpgSQL_stmt_return_query":v})
+        }
         Statement::Return {
             lineno,
             expression: expr,

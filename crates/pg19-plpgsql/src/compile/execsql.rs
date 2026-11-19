@@ -20,24 +20,27 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         let saved = std::mem::replace(&mut s.lookup, Lookup::Expression);
         let result = self.execsql_text(&head, s);
         s.lookup = saved;
-        let query = result?;
+        let (query, target) = result?;
         self.sql
-            .validate(query, ParseMode::Sql)
+            .validate(&query, ParseMode::Sql)
             .map_err(|e| e.in_body(s.source(), head.span.start))?;
         Ok(Reduced::Statement(Statement::ExecSql {
+            target,
             lineno: s.line(head.span.start),
             expression: Expression {
-                query: query.to_owned(),
+                query,
                 mode: ParseMode::Sql,
             },
         }))
     }
 
-    fn execsql_text<'s>(
+    fn execsql_text(
         &mut self,
         head: &Token,
-        s: &mut BodyScanner<'s>,
-    ) -> Result<&'s str, CompileError> {
+        s: &mut BodyScanner,
+    ) -> Result<(String, Option<Box<crate::Target>>), CompileError> {
+        let mut target = None;
+        let mut redaction = None;
         let mut previous = head.id;
         let mut parens = 0usize;
         let mut blocks = 0usize;
@@ -68,17 +71,32 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
                 token::K_BEGIN | token::K_CASE if routine && parens == 0 => blocks += 1,
                 token::K_END if routine && parens == 0 => blocks = blocks.saturating_sub(1),
                 59 if parens == 0 && blocks == 0 => {
-                    return Ok(s.source()[head.span.start..t.span.start]
-                        .trim_end_matches([' ', '\t', '\x0b', '\x0c', '\r', '\n']))
+                    let mut query = s.source()[head.span.start..t.span.start].to_owned();
+                    if let Some((start, end)) = redaction {
+                        query.replace_range(
+                            start - head.span.start..end - head.span.start,
+                            &" ".repeat(end - start),
+                        );
+                    }
+                    query.truncate(
+                        query
+                            .trim_end_matches([' ', '\t', '\x0b', '\x0c', '\r', '\n'])
+                            .len(),
+                    );
+                    return Ok((query, target));
                 }
                 0 => return Err(s.error("unexpected end of function definition").into()),
                 token::K_INTO
                     if !matches!(previous, token::K_INSERT | token::K_MERGE)
                         && head.id != token::K_IMPORT =>
                 {
-                    return Err(CompileError::Unsupported {
-                        production: "PL/pgSQL INTO target",
-                    })
+                    if target.is_some() {
+                        return Err(s.error("INTO specified more than once").into());
+                    }
+                    s.lookup = Lookup::Normal;
+                    target = Some(Box::new(self.read_into_target(s)?));
+                    s.lookup = Lookup::Expression;
+                    redaction = Some((t.span.start, s.peek_raw(0)?.span.start));
                 }
                 _ => {}
             }

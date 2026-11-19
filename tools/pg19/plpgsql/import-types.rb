@@ -15,7 +15,7 @@ output = rows.map do |r|
   unless r[:typnamespace] == 11 && r[:typname].match?(/\A[a-z_0-9]+\z/) && r[:typtype].match?(/\A[a-z]\z/)
     abort "unsupported pg_type row #{r[:oid]}"
   end
-  %(    Builtin { oid: #{r[:oid]}, name: "#{r[:typname]}", kind: b'#{r[:typtype]}', array_oid: #{r[:typarray]} },)
+  %(    Builtin { oid: #{r[:oid]}, name: "#{r[:typname]}", kind: b'#{r[:typtype]}', array_oid: #{r[:typarray]}, collatable: #{r[:typcollation].to_i != 0} },)
 end
 content = "&[\n#{output.join("\n")}\n]\n"
 dest = File.expand_path('../../../crates/pg19-plpgsql/data/types.in', __dir__)

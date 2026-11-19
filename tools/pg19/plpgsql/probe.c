@@ -8,6 +8,7 @@
 #include "utils/json.h"
 #include "plpgsql.h"
 #include "pl_gram.h"
+#include "routine-inputs.h"
 
 static bool outer_error;
 static int last_sqlstate;
@@ -127,6 +128,17 @@ __wrap_main(int argc, char **argv)
 	MemoryContextInit();
 	set_stack_base();
 	SetDatabaseEncoding(PG_UTF8);
+	if (strcmp(argv[1], "--routine-inputs") == 0 || strcmp(argv[1], "--type-name") == 0)
+	{
+		bool typename_only = strcmp(argv[1], "--type-name") == 0;
+		for (int i = 2; i < argc; i++)
+		{
+			MemoryContext ctx = pg_query_enter_memory_context();
+			routine_inputs(argv[i], typename_only);
+			pg_query_exit_memory_context(ctx);
+		}
+		return argc > 2 ? 0 : 2;
+	}
 	if (strcmp(argv[1], "--scan") == 0)
 	{
 		for (int i = 2; i < argc; i++)

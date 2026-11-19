@@ -31,6 +31,25 @@ fn ty(s: &str) -> Box<TypeName> {
     })
 }
 
+fn projected_type(v: &Value) -> Box<TypeName> {
+    if let Some(s) = v.as_str() {
+        return ty(s);
+    }
+    Box::new(TypeName {
+        names: v["names"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|n| text(n.as_str().unwrap()))
+            .collect(),
+        type_oid: v["oid"].as_u64().unwrap() as u32,
+        setof: v["setof"] == true,
+        pct_type: v["pct"] == true,
+        array_bounds: vec![Node::Integer(-1); v["bounds"].as_u64().unwrap() as usize],
+        ..Default::default()
+    })
+}
+
 fn raw(r: &Value) -> Node {
     let mut args = Vec::new();
     let is_do = r["kind"] == "do";
@@ -57,12 +76,18 @@ fn raw(r: &Value) -> Node {
             .map(|p| {
                 let mode = match p["mode"].as_str() {
                     Some("out") => Mode::FUNC_PARAM_OUT,
+                    _ if p["mode"].is_number() => Mode(p["mode"].as_i64().unwrap() as i32),
                     Some("inout") => Mode::FUNC_PARAM_INOUT,
                     _ => Mode::FUNC_PARAM_IN,
                 };
                 FunctionParameter {
                     name: p["name"].as_str().map(str::to_owned),
-                    arg_type: Some(ty(p["type"].as_str().unwrap())),
+                    arg_type: Some(projected_type(&p["type"])),
+                    defexpr: match p["default"].as_str() {
+                        Some("constant") => Some(Box::new(pg19_nodes::AConst::default().into())),
+                        Some(_) => Some(Box::new(text("expression"))),
+                        None => None,
+                    },
                     mode,
                     ..Default::default()
                 }
@@ -73,7 +98,8 @@ fn raw(r: &Value) -> Node {
             funcname: vec![text(r["name"].as_str().unwrap())],
             parameters: params,
             options: args,
-            return_type: r["ret"].as_str().map(ty),
+            return_type: (!r["ret"].is_null()).then(|| projected_type(&r["ret"])),
+            sql_body: (r["sql_body"] == true).then(|| Box::new(text("sql_body"))),
             is_procedure: r["kind"] == "procedure",
             ..Default::default()
         }
@@ -146,3 +172,6 @@ fn verify_routine_reference_fixtures() {
         assert_eq!(serde_json::from_str::<Value>(line).unwrap(), r["expected"]);
     }
 }
+
+#[path = "support/samples.rs"]
+mod samples;

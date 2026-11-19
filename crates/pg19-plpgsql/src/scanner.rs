@@ -37,6 +37,16 @@ pub struct Token {
     pub datum: Option<usize>,
 }
 
+impl Token {
+    pub(crate) fn is_keyword(&self, id: u16, name: &str) -> bool {
+        self.id == id
+            || (self.id == token::T_DATUM
+                && !self.quoted
+                && self.names.len() == 1
+                && self.names[0] == name)
+    }
+}
+
 fn keyword(word: &str, list: &[(&'static str, u16)]) -> Option<(&'static str, u16)> {
     list.binary_search_by(|entry| entry.0.cmp(word))
         .ok()
