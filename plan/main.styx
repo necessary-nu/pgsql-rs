@@ -166,6 +166,20 @@ children (
                         kind @note
                         text "The out-of-tree grammar-action prototype matched the patched PostgreSQL 19.0 reference on all 54,471 checked cases across six raw parse modes. The comparison covered complete native tree text with byte locations, parse diagnostics, scanner tokens and scanner diagnostics. There were 54,280 successful parses and 191 errors. The prototype uses an Apache-2.0 translator. Shipping it requires the licensing decision and production integration, including iterative tree teardown."
                     }
+
+                    {
+                        at 2026-11-19T18:30:29.88371388Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+
+                    {
+                        at 2026-11-19T18:38:58.498137613Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "First-party partial port of SELECT expression reductions and set-operation binding, driven by PostgreSQL 19.0 gram.y. The parser explicitly reports unsupported productions. Further expression and statement families remain open."
+                    }
                 )
             }
 
