@@ -575,6 +575,13 @@ children (
                         kind @note
                         text "Final release verification matched every JSON byte on 54,266 successful upstream inputs. Over seven alternating rounds on CPU 15, median Rust/C was 1.166, 1.303 and 1.579 for raw SELECT 1, aggregate join and corpus, and 0.781, 0.717 and 1.116 for parse plus JSON. Corpus JSON varied from 0.933 on the earlier release run to 1.116 on this run. An experimental profile-guided build trained both compilers on the same 12,396 separate valid PostgreSQL extension queries. On the held-out workloads the ratios were 0.837, 1.234 and 1.591 for raw parsing and 0.536, 1.031 and 0.910 for parse plus JSON. Keep the six-median release gate open."
                     }
+
+                    {
+                        at 2026-11-19T23:57:44.950218285Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Profiled raw parsing and result destruction in both optimized implementations on SELECT 1, the aggregate join and all 54,266 successful regression inputs. The join spends 14,403 extra Rust instructions in parsing and tree construction and 11,676 in result cleanup. The corpus averages 3,602 extra during parsing and construction and 2,279 during cleanup. Column reference and dotted field reductions are the largest join actions. C reuses its memory context, while Rust allocates six blocks on SELECT 1, 90 on the join and 20.38 on the corpus. Cycle samples, instruction counts, allocation sites and reproduction commands are in tools/pg19/bench/raw-profile.md."
+                    }
                 )
             }
         )
