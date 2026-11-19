@@ -44,6 +44,7 @@ jobs:
       - run: python3 tools/pg19/tests/check-fixtures.py
       - run: /usr/bin/python3 tools/pg19/tests/check-schema.py
       - run: cargo test --locked --workspace
+      - run: cargo test --locked --release -p pg19-query
       - run: cargo test --locked -p pg19-reference --test reference -- --ignored
         env:
           PYTHONPATH: /usr/lib/python3/dist-packages
