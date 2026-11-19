@@ -1,6 +1,7 @@
 mod access;
 mod admin;
 mod alter;
+mod catalog;
 mod constraints;
 mod copy;
 mod definition;
@@ -266,7 +267,7 @@ fn general<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("RETURN ");
             p.expr(required(&s.returnval, "ReturnStmt.returnval")?)
         }
-        _ => return Ok(false),
+        _ => return catalog::statement(n, p),
     }
     Ok(true)
 }

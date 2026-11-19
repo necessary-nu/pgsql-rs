@@ -41,7 +41,7 @@ fn quant_prec(op: &[Node]) -> Prec {
         _ => token_prec(op),
     }
 }
-pub(super) fn operator(op: &[Node]) -> Result<String> {
+pub(super) fn any_operator(op: &[Node]) -> Result<String> {
     let Some((Node::String(name), schema)) = op.split_last() else {
         return Err(Error::InvalidField("operator name"));
     };
@@ -56,7 +56,15 @@ pub(super) fn operator(op: &[Node]) -> Result<String> {
     if schema.is_empty() {
         Ok(name.clone())
     } else {
-        Ok(format!("OPERATOR({}.{})", names(schema, ".")?, name))
+        Ok(format!("{}.{}", names(schema, ".")?, name))
+    }
+}
+pub(super) fn operator(op: &[Node]) -> Result<String> {
+    let name = any_operator(op)?;
+    if op.len() > 1 {
+        Ok(format!("OPERATOR({name})"))
+    } else {
+        Ok(name)
     }
 }
 fn quant_operator(op: &[Node]) -> Result<String> {

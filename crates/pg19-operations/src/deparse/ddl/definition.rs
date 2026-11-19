@@ -91,7 +91,8 @@ fn view<'a>(s: &'a ViewStmt, p: &mut Plan<'a>) -> Result<()> {
         p.text(")")
     }
     if !s.options.is_empty() {
-        return Err(Error::InvalidField("view storage options"));
+        p.text(" WITH ");
+        super::index::reloptions(&s.options, p)?;
     }
     p.text(" AS ");
     p.statement(required(&s.query, "ViewStmt.query")?);
@@ -128,7 +129,8 @@ fn create_as<'a>(s: &'a CreateTableAsStmt, p: &mut Plan<'a>) -> Result<()> {
         p.text(ident(am)?)
     }
     if !into.options.is_empty() {
-        return Err(Error::InvalidField("table storage options"));
+        p.text(" WITH ");
+        super::index::reloptions(&into.options, p)?;
     }
     match into.on_commit {
         OnCommitAction::ONCOMMIT_NOOP => {}

@@ -93,15 +93,7 @@ pub(super) fn signature<'a>(
 ) -> Result<()> {
     use ObjectType as O;
     if kind == O::OBJECT_OPERATOR {
-        let (op, schema) = s
-            .objname
-            .split_last()
-            .ok_or(Error::InvalidField("operator name"))?;
-        if !schema.is_empty() {
-            p.text(names(schema, ".")?);
-            p.text(".")
-        }
-        p.text(super::super::operator::operator(std::slice::from_ref(op))?);
+        p.text(super::super::operator::any_operator(&s.objname)?);
     } else {
         p.text(names(&s.objname, ".")?)
     }
