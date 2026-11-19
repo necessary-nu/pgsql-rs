@@ -15,9 +15,8 @@ fn constant(v: &Literal) -> Result<String> {
             let Some((kind, bits)) = s.split_at_checked(1) else {
                 return Err(Error::InvalidField("bit string"));
             };
-            if (kind == "b" && bits.bytes().all(|b| matches!(b, b'0' | b'1')))
-                || (kind == "x" && bits.bytes().all(|b| b.is_ascii_hexdigit()))
-            {
+            // The raw scanner accepts the contents before the bit type's input function runs.
+            if matches!(kind, "b" | "x") && !bits.contains(['\0', '\'']) {
                 Ok(format!("{kind}'{bits}'"))
             } else {
                 Err(Error::InvalidField("bit string"))
@@ -104,7 +103,12 @@ pub(super) fn typename<'a>(t: &'a TypeName, p: &mut Plan<'a>) -> Result<()> {
                 _ => "",
             };
             if spelling.is_empty() {
-                p.text(names(&t.names, ".")?);
+                p.text("pg_catalog.");
+                if super::plain_name(name) {
+                    p.text(name.as_str());
+                } else {
+                    p.text(ident(name)?);
+                }
             } else {
                 p.text(spelling);
             }
@@ -443,6 +447,8 @@ pub(super) fn expression<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
             p.text(format!("${}", v.number));
         }
         Node::AExpr(a) => return binary(a, p, false),
+        Node::XmlExpr(x) => return super::xml::expression(x, p),
+        Node::XmlSerialize(x) => return super::xml::serialize(x, p),
         Node::BoolExpr(b) => return boolean(b, p),
         Node::TypeCast(t) => return cast(t, p),
         Node::SubLink(s) => return sublink(s, p),
@@ -541,7 +547,7 @@ pub(super) fn expression<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
             p.wrapped(arg, Role::Expr, !direct);
             indirection(&i.indirection, p)?;
         }
-        _ => return Err(Error::UnsupportedStatement(n.tag())),
+        _ => return super::json::expression(n, p),
     }
     Ok(())
 }

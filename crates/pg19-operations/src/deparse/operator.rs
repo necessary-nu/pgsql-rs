@@ -100,6 +100,7 @@ pub(super) fn precedence(n: &Node) -> Prec {
         },
         Node::BooleanTest(_) | Node::JsonIsPredicate(_) | Node::NullTest(_) => Prec::Is,
         Node::CollateClause(_) => Prec::Collate,
+        Node::XmlExpr(x) if x.op == XmlExprOp::IS_DOCUMENT => Prec::Is,
         Node::SubLink(s)
             if s.sub_link_type == SubLinkType::ANY_SUBLINK && s.oper_name.is_empty() =>
         {
@@ -136,7 +137,15 @@ fn restricted(n: &Node) -> bool {
         {
             true
         }
+        Node::XmlExpr(x) if x.op == XmlExprOp::IS_DOCUMENT => false,
         _ => precedence(n) != Prec::Atom,
+    }
+}
+pub(super) fn b_expr<'a>(n: &'a Node, p: &mut Plan<'a>) {
+    if restricted(n) {
+        p.wrapped(n, Role::Expr, true);
+    } else {
+        p.node(n, Role::Restricted);
     }
 }
 pub(super) fn operand<'a>(p: &mut Plan<'a>, n: &'a Node, parent: Prec, right: bool) {

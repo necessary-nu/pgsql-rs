@@ -117,6 +117,8 @@ fn from<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
                 p.text(alias(a)?);
             }
         }
+        Node::JsonTable(t) => return super::json::table(t, p),
+        Node::RangeTableFunc(t) => return super::xml::table(t, p),
         Node::RangeTableSample(t) => {
             p.node(
                 required(&t.relation, "RangeTableSample.relation")?,
@@ -268,6 +270,7 @@ fn cte<'a>(c: &'a CommonTableExpr, p: &mut Plan<'a>) -> Result<()> {
 }
 pub(super) fn item<'a>(n: &'a Node, role: Role, p: &mut Plan<'a>) -> Result<()> {
     match (role, n) {
+        (Role::JsonColumn, Node::JsonTableColumn(c)) => return super::json::column(c, p),
         (Role::Target, Node::ResTarget(t)) => {
             if !t.indirection.is_empty() {
                 return Err(Error::InvalidField("target indirection"));

@@ -3,11 +3,13 @@ mod comments;
 mod dml;
 mod expr;
 mod format;
+mod json;
 pub use format::Options;
 mod operator;
 mod query;
 mod window;
 mod writer;
+mod xml;
 pub use comments::{comments, Comment};
 
 use pg19_codec::protobuf::{statements_from_protobuf, ProtobufError};
