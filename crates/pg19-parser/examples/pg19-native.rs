@@ -9,6 +9,7 @@ fn error(e: Error) -> Value {
     json!({"sqlstate":e.sqlstate, "message":e.message, "position":e.position})
 }
 
+// [spec:pgq:req:grammar.corpus-parity]
 fn probe(sql: &str, mode: &str, backslash_quote: &str) -> Result<Value> {
     let mode = match mode {
         "default" => ParseMode::Sql,

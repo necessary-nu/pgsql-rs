@@ -101,6 +101,7 @@ struct Parser<'a> {
     sql: &'a str,
 }
 
+// [spec:pgq:req:grammar.overlay-differences]
 impl Actions for Parser<'_> {
     type Value = Value;
     type Error = Error;
@@ -173,8 +174,11 @@ impl Actions for Parser<'_> {
     }
 }
 
-/// Parse a raw grammar start mode. Supported SQL returns PostgreSQL's list
-/// of RawStmt nodes. An unported production reports its upstream identity.
+/// Parse a PostgreSQL 19 raw grammar start mode. SQL mode returns ordered RawStmt nodes.
+// [spec:pgq:req:grammar.raw-sql]
+// [spec:pgq:req:grammar.sql-families]
+// [spec:pgq:req:grammar.parse-modes]
+// [spec:pgq:req:grammar.runtime]
 pub fn parse(sql: &str, mode: ParseMode, options: Options) -> Result<Vec<Node>, Error> {
     let sql = sql.split_once('\0').map_or(sql, |(prefix, _)| prefix);
     let mut parser = Parser { sql };
@@ -239,18 +243,17 @@ mod tests {
     }
 
     #[test]
-    fn each_unported_action_reports_its_pinned_identity() {
+    fn every_explicit_pg19_action_is_registered() {
         for rule in pg19_tables::productions() {
             let info = rule.info();
-            if info.action.is_none() || action(rule.number()).is_some() {
-                continue;
+            if info.action.is_some() {
+                assert!(
+                    Op::try_from(rule).is_ok(),
+                    "unmapped PostgreSQL action at gram.y:{} for {}",
+                    info.line,
+                    info.production
+                );
             }
-            let Err(error @ Error::Unmapped(_)) = Op::try_from(rule) else {
-                panic!("wrong error for {}", info.production)
-            };
-            assert_eq!(error, Error::Unmapped(info));
-            assert!(error.to_string().contains(info.production));
-            assert!(error.to_string().contains(&format!("gram.y:{}", info.line)));
         }
     }
 }
