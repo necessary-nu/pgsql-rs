@@ -68,3 +68,18 @@ through `read_sql`, which retains the original byte range and raw parse
 mode. Record-field lookup can create datums while the scanner reads
 embedded SQL. The compiler can pass each fragment to the SQL parser
 for validation with that mode.
+
+`compile_block` constructs a native block and ordered datum list for
+nested labeled blocks, scalar and record declarations, assignment,
+`PERFORM` and `NULL`. It accepts the routine's initial variables in
+datum order. The caller supplies type resolution and embedded SQL
+validation through `EmbeddedSql`; errors from those operations are
+transposed to character positions in the body. Unimplemented grammar
+actions yield `CompileError::Unsupported` with their production. The
+routine-level compiler still owns parameter and trigger initialization,
+routine extraction, implicit returns and the public JSON writer.
+
+The checked block fixtures exercise the native compiler against PG19
+for shadowing, block-qualified variables, constant and nullability
+errors, record fields and nested or quoted SQL. A trigger test checks
+the new datum numbers and assignment in the existing reference fixture.
