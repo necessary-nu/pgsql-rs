@@ -129,6 +129,8 @@ def lower(s, ty="Value"):
         s = s[1:]
     if s == "DEFAULT_INDEX_TYPE":
         return lower('"btree"', ty)
+    if m := re.fullmatch(r"!\((\$\d+\.\w+)\)", s):
+        s = "!" + m[1]
     if s.startswith("!") and ty == "bool":
         return f"{lower(s[1:], 'i32')} == 0"
     if s in ("true", "false") and ty == "bool":
@@ -161,6 +163,11 @@ def lower(s, ty="Value"):
         raise Unsupported(s)
     name, raw = m.groups()
     args = arguments(raw)
+    if name == "makeRangeVarFromAnyName" and len(args) == 3 and args[2] == "yyscanner":
+        value = f"any_relation({lower(args[0], 'Vec<Node>')}, {lower(args[1], 'Location')})?"
+        if ty == "Option<Box<RangeVar>>":
+            return f"Some(Box::new({value}))"
+        return convert(f"Value::Node({value}.into())", ty)
     if name == "with_persistence" and len(args) == 2:
         return convert(f"persistence({lower(args[0])}, {lower(args[1], 'i32')})?", ty)
     if name == "pstrdup" and len(args) == 1:
@@ -254,6 +261,83 @@ def constraint_properties(stmt, local):
             f"{lower(args[1], 'Location')}, {args[2]}, {mask})?;")
 
 
+def nested_record(statements):
+    """Translate a tree of fresh records, including writes after pointer assignment."""
+    allocate = re.compile(r"(\w+)\s*\*\s*(\w+) = makeNode\((\w+)\)")
+    setfield = re.compile(r"(\w+(?:->\w+)*)->(\w+) = (.+)")
+    if not statements or not (root := allocate.fullmatch(statements[0])):
+        raise Unsupported("not a record tree")
+    if not re.fullmatch(rf"result\.\w+ = (?:\(Node \*\) )?{root[2]}", statements[-1]):
+        raise Unsupported("not returning the outer record")
+    records = {}
+    parents = set()
+
+    def add(local, c_name):
+        if local in records or c_name not in RECORDS:
+            raise Unsupported(local)
+        records[local] = (c_name, {})
+
+    for statement in statements[:-1]:
+        if m := allocate.fullmatch(statement):
+            if m[1] != m[3]:
+                raise Unsupported(statement)
+            add(m[2], m[1])
+            continue
+        m = setfield.fullmatch(statement)
+        if not m or m[1] not in records:
+            raise Unsupported(statement)
+        owner, name, expr = m.groups()
+        c_name, fields = records[owner]
+        if name not in RECORDS[c_name][1] or name in fields:
+            raise Unsupported(statement)
+        if (created := re.fullmatch(r"makeNode\((\w+)\)", expr)):
+            child = f"{owner}->{name}"
+            add(child, created[1])
+        else:
+            child = re.sub(r"^\((?:Node|Expr) \*\) ", "", expr)
+        if child in records:
+            if child == owner or child in parents:
+                raise Unsupported("shared record")
+            parents.add(child)
+            fields[name] = (child, None)
+        else:
+            fields[name] = (None, expr)
+    if len(records) == 1 or set(records) - parents != {root[2]}:
+        raise Unsupported("not a single tree of fresh records")
+
+    visited = set()
+
+    def init(local):
+        visited.add(local)
+        c_name, fields = records[local]
+        native, domain = RECORDS[c_name]
+        items = []
+        for c_field, (child, expr) in fields.items():
+            name, ty = domain[c_field]
+            if child is None:
+                rust = lower(expr, ty)
+            else:
+                desc = init(child)
+                child_type = RECORDS[records[child][0]][0]
+                if ty == f"Option<Box<{child_type}>>":
+                    rust = f"Some(Box::new({desc}))"
+                elif ty == "Option<Box<Node>>":
+                    rust = f"Some(Box::new({desc}.into()))"
+                elif ty == child_type:
+                    rust = desc
+                else:
+                    raise Unsupported(ty)
+            items.append(f"{name}: {rust}")
+        if len(items) < len(domain):
+            items.append("..Default::default()")
+        return f"{native} {{ {', '.join(items)} }}"
+
+    result = init(root[2])
+    if visited != records.keys():
+        raise Unsupported("unreachable local record")
+    return f"Value::Node({result}.into())"
+
+
 def compile_action(raw, symbols):
     body = re.sub(r"/\*.*?\*/", " ", raw.strip(), flags=re.S)
     if not (body.startswith("{") and body.endswith("}")):
@@ -275,6 +359,9 @@ def compile_action(raw, symbols):
         body = body[:m.start()] + body[m.end():].replace(pointer, f"with_persistence({pointer}, {storage})")
     body = re.sub(r"(\w+)\s*\*\s*(\w+) = castNode\(\1, (\$\d+\.\w+)\);",
                   lambda m: f"{m[1]} *{m[2]} = {m[3]};", body)
+    # Ordinary views set a field on the relation after storing it on the view.
+    body = re.sub(r"(\w+->\w+) = (\$\d+\.range); \1->relpersistence = (\$\d+\.\w+);",
+                  lambda m: f"{m[1]} = with_persistence({m[2]}, {m[3]});", body)
     # Each stack value is owned. Multiple C reads require an explicit ownership translation.
     uses = re.findall(r"\$(\d+)\.", body)
     if len(uses) != len(set(uses)) or any(int(slot) < 1 for slot in uses):
@@ -284,6 +371,11 @@ def compile_action(raw, symbols):
         raise Unsupported("empty body")
     # An assignment through a C pointer can modify an existing child record.
     # Its Rust owner must survive until the result has received those fields.
+    if body.count("makeNode(") >= 2:
+        try:
+            return nested_record(statements)
+        except Unsupported:
+            pass
     existing = re.fullmatch(r"(\w+)\s*\*\s*(\w+) = (?:\(\w+ \*\) )?(\$\d+\.\w+)", statements[0])
     if existing:
         record, local, slot = existing.groups()
@@ -328,7 +420,7 @@ def compile_action(raw, symbols):
                     updates.append(f"node.{key} = {expr};")
                 continue
             split = re.fullmatch(rf"SplitColQualList\((\$\d+\.list), &{local}->constraints, &{local}->collClause, yyscanner\)", stmt)
-            if c_name == "ColumnDef" and split:
+            if c_name in ("ColumnDef", "CreateDomainStmt") and split:
                 setup.append(f"let (constraints, coll_clause) = column_qualifiers({lower(split[1], 'Vec<Node>')})?;")
                 assignments.extend([("constraints", "constraints"), ("coll_clause", "coll_clause")])
             else:

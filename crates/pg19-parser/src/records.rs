@@ -27,6 +27,17 @@ pub(crate) fn optional_text(value: Value) -> Result<Option<String>, Failure> {
     })
 }
 
+fn any_relation(nodes: Vec<Node>, location: Location) -> Result<RangeVar, Failure> {
+    let mut names = Vec::with_capacity(nodes.len());
+    for item in nodes {
+        let Node::String(name) = item else {
+            return Err("expected an identifier".into());
+        };
+        names.push(name);
+    }
+    crate::utility::range_name(names, location, false)
+}
+
 fn persistence(value: Value, storage: i32) -> Result<Value, Failure> {
     let Node::RangeVar(mut range) = value.node()? else {
         return Err("expected RangeVar".into());

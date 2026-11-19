@@ -1,7 +1,7 @@
 //! PostgreSQL's ConstraintAttributeSpec and processCASbits.
 use crate::{value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::{Constraint, Location};
+use pg19_nodes::{ConstrType, Constraint, Location};
 
 pub(crate) const CAS_NOT_DEFERRABLE: i32 = 0x01;
 pub(crate) const CAS_DEFERRABLE: i32 = 0x02;
@@ -76,4 +76,26 @@ pub(crate) fn process(
         node.is_no_inherit = true;
     }
     Ok(())
+}
+
+pub(super) fn generated_column(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    let when = rhs.take(2).integer()? as u8;
+    if when != b'a' {
+        return Err(Failure::At(
+            "for a generated column, GENERATED ALWAYS must be specified".to_owned(),
+            "42601",
+            rhs.location(2),
+        ));
+    }
+    Ok(Value::Node(
+        Constraint {
+            contype: ConstrType::CONSTR_GENERATED,
+            generated_when: when,
+            raw_expr: rhs.take(5).optional()?,
+            generated_kind: rhs.take(7).integer()? as u8,
+            location: rhs.location(1),
+            ..Default::default()
+        }
+        .into(),
+    ))
 }

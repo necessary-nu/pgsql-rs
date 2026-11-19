@@ -1,4 +1,4 @@
-use crate::{records::record, value::Value, Failure};
+use crate::{value::Value, Failure};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
@@ -76,30 +76,6 @@ pub(super) fn hash_bound(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failur
             modulus: required(modulus, "modulus")?,
             remainder: required(remainder, "remainder")?,
             location,
-            ..Default::default()
-        }
-        .into(),
-    ))
-}
-
-pub(super) fn alter(
-    rhs: &mut Reduction<'_, Value>,
-    subtype: AlterTableType,
-    bound: bool,
-) -> Result<Value, Failure> {
-    let command = PartitionCmd {
-        name: record!(rhs.take(3), RangeVar),
-        bound: if bound {
-            record!(rhs.take(4), PartitionBoundSpec)
-        } else {
-            None
-        },
-        concurrent: subtype == AlterTableType::AT_DetachPartition && rhs.take(4).integer()? != 0,
-    };
-    Ok(Value::Node(
-        AlterTableCmd {
-            subtype,
-            def: Some(Box::new(command.into())),
             ..Default::default()
         }
         .into(),
