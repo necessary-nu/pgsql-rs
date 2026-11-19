@@ -72,3 +72,28 @@ fn comments_keep_delimiters_and_assign_intervening_lines_once() {
     assert!(comments("SELECT 1; -- first\n/* unclosed").is_err());
     assert!(comments("NOTIFY x, '--data';").unwrap().is_empty());
 }
+
+#[test]
+fn compact_queries_match_the_c_deparser() {
+    for line in include_str!("deparse-query.jsonl").lines() {
+        let [original, expected]: [String; 2] = serde_json::from_str(line).unwrap();
+        let tree = pg19_parser::parse_statements(&original, Default::default()).unwrap();
+        assert_eq!(statements(&tree).unwrap(), expected, "{original}");
+        let wire = pg19_codec::protobuf::statements_protobuf(&tree).unwrap();
+        assert_eq!(protobuf(&wire).unwrap(), expected, "{original}");
+    }
+}
+
+#[test]
+fn deep_left_associative_arithmetic_uses_a_worklist() {
+    std::thread::Builder::new()
+        .stack_size(128 * 1024)
+        .spawn(|| {
+            let sql = format!("SELECT 1{}", " + 1".repeat(10000));
+            let tree = pg19_parser::parse_statements(&sql, Default::default()).unwrap();
+            assert_eq!(statements(&tree).unwrap(), sql);
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}

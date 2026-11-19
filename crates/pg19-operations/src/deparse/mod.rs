@@ -1,5 +1,9 @@
 //! SQL rendering for PostgreSQL 19 raw statement trees.
 mod comments;
+mod expr;
+mod operator;
+mod query;
+mod writer;
 pub use comments::{comments, Comment};
 
 use pg19_codec::protobuf::{statements_from_protobuf, ProtobufError};
@@ -61,6 +65,20 @@ fn literal(text: &str) -> Result<String> {
     }
 }
 
+fn numeric(n: &str) -> Result<String> {
+    let magnitude = n.strip_prefix('-').unwrap_or(n);
+    let token = Scanner::new(magnitude)
+        .next()
+        .and_then(std::result::Result::ok);
+    if token.is_some_and(|t| {
+        matches!(t.kind, Kind::FCONST | Kind::ICONST) && t.start == 0 && t.end == magnitude.len()
+    }) {
+        Ok(n.to_owned())
+    } else {
+        Err(Error::InvalidField("numeric literal"))
+    }
+}
+
 fn option_value(arg: &Node) -> Result<String> {
     match arg {
         Node::String(s) => match s.as_str() {
@@ -69,21 +87,7 @@ fn option_value(arg: &Node) -> Result<String> {
             _ => ident(s),
         },
         Node::Integer(n) => Ok(n.to_string()),
-        Node::Float(n) => {
-            let magnitude = n.strip_prefix('-').unwrap_or(n);
-            let token = Scanner::new(magnitude)
-                .next()
-                .and_then(std::result::Result::ok);
-            if token.is_some_and(|t| {
-                matches!(t.kind, Kind::FCONST | Kind::ICONST)
-                    && t.start == 0
-                    && t.end == magnitude.len()
-            }) {
-                Ok(n.clone())
-            } else {
-                Err(Error::InvalidField("numeric literal"))
-            }
-        }
+        Node::Float(n) => numeric(n),
         _ => Err(Error::InvalidField("DefElem.arg")),
     }
 }
@@ -269,19 +273,7 @@ fn render(out: &mut String, node: &Node) -> Result<()> {
 /// Render raw statements in compact form. An unsupported node identifies its tag.
 // [spec:pgq:req:deparse.stream]
 pub fn statements(stmts: &[RawStmt]) -> Result<String> {
-    let mut out = String::new();
-    for (i, stmt) in stmts.iter().enumerate() {
-        if i > 0 {
-            out.push_str("; ");
-        }
-        render(
-            &mut out,
-            stmt.stmt
-                .as_deref()
-                .ok_or(Error::InvalidField("RawStmt.stmt"))?,
-        )?;
-    }
-    Ok(out)
+    writer::statements(stmts)
 }
 
 /// Decode a versioned PG19 ParseResult and render it with the compact writer.
