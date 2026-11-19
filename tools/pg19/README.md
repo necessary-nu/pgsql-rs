@@ -150,6 +150,22 @@ For full upstream SQL statement coverage, the [PG19 regression corpus](regress/R
 extracts source spans with the pinned psql lexer, captures trees and errors
 from both references, and compares a candidate parser against either build.
 
+The first-party SQL action generator reads Bison's expansion of the patched
+`gram.y`. It recognizes complete single assignments such as copying a
+semantic value, creating a scalar node or appending to an ordered list.
+Each generated mapping carries the production and upstream action digest.
+Reviewed actions in `crates/pg19-parser/actions/` take precedence. The
+native probe reports the first missing production reached by each case.
+
+```sh
+python3 tools/pg19/generate-simple-actions.py "$run/patched-source" --write
+cargo test --locked -p pg19-parser
+```
+
+Omit `--write` to check the generated file. On a version update, review
+the table inventory and action-manifest differences together, then rerun
+the corpus comparison against the freshly built patched reference.
+
 The [PL/pgSQL reference](plpgsql/README.md) compiles function, procedure
 and DO bodies with the patched PG19 compiler and the library's offline
 catalog adapters. It emits routine JSON and SQL or body diagnostics.

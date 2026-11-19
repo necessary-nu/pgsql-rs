@@ -39,21 +39,22 @@ def c_array(c, name):
     return [int(n) for n in values[1].split(",")]
 
 
-def explicit_actions(c):
+def action_bodies(c):
     switch = c.split("switch (yyn)\n", 1)[1].split("      default: break;", 1)[0]
     cases = re.findall(r"^  case (\d+): /\* ", switch, re.M)
     pattern = (r"^  case (\d+): /\* [^\n]+ \*/\n#line (\d+) \"[^\n]*gram.y\"\n"
                r"(.*?)\n#line \d+ \"gram.c\"\n    break;")
     result = {}
     for case, line, body in re.findall(pattern, switch, re.M | re.S):
-        result[int(case)] = (int(line), hashlib.sha256(body.strip().encode()).hexdigest())
+        result[int(case)] = (int(line), body.strip())
     if len(result) != len(cases) or not result:
         raise ValueError("unrecognized Bison rule-action dispatch")
     return result
 
 
 def inventory(grammar, c, arrays):
-    actions = explicit_actions(c)
+    actions = {number: (line, hashlib.sha256(body.encode()).hexdigest())
+               for number, (line, body) in action_bodies(c).items()}
     lines = c_array(c, "yyrline")
     symbols = {s.attrib["name"]: int(s.attrib["symbol-number"])
                for section in ("terminals/terminal", "nonterminals/nonterminal")

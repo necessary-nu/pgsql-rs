@@ -23,6 +23,15 @@ pub(crate) enum Quantifier {
 pub(crate) type Checked<T> = Result<T, &'static str>;
 
 impl Value {
+    pub(crate) fn cell(self) -> Checked<Node> {
+        match self {
+            Self::Empty => Ok(Node::Null),
+            Self::Node(node) => Ok(node),
+            Self::List(list) if list.is_empty() => Ok(Node::Null),
+            Self::List(list) => Ok(Node::from(list)),
+            _ => Err("expected a nullable list element"),
+        }
+    }
     pub(crate) fn integer(self) -> Checked<i32> {
         match self {
             Self::Integer(value) => Ok(value),

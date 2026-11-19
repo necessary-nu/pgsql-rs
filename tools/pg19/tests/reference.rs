@@ -100,10 +100,13 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
             "{krate} {test}"
         );
     }
-    let generator = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("generate-tables.py");
-    for args in [&[][..], &["--plpgsql"]] {
+    for (script, args) in [
+        ("generate-tables.py", &[][..]),
+        ("generate-tables.py", &["--plpgsql"]),
+        ("generate-simple-actions.py", &[]),
+    ] {
         let generation = Command::new("python3")
-            .arg(&generator)
+            .arg(tools.join(script))
             .arg(run.join("patched-source"))
             .args(args)
             .status()?;

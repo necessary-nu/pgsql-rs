@@ -50,6 +50,7 @@ impl From<&'static str> for Failure {
 }
 
 enum Op {
+    Generated(fn(&mut Reduction<'_, Value>) -> Result<Value, Failure>),
     Take(isize),
     Empty,
     Nil,
@@ -82,6 +83,7 @@ impl Actions for Parser<'_> {
         let op = action(rule.number()).ok_or_else(|| Error::Unmapped(rule.info()))?;
         let result = (|| {
             Ok(match op {
+                Op::Generated(handler) => handler(rhs)?,
                 Op::Take(i) => rhs.take(i),
                 Op::Empty => Value::Empty,
                 Op::Nil => Value::List(Vec::new()),
