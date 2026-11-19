@@ -1,5 +1,18 @@
 //! Owned raw SQL nodes from the patched PostgreSQL 19.0 grammar.
+//!
+//! Destruction drains descendants on a heap worklist, including when parser
+//! error cleanup discards an unfinished expression. Build a tagged record with
+//! `Node::from(record)` or `Node::from(boxed_record)`. A record variant holds
+//! a [NodeBox]; use `owner.into_inner()` to move its fields out. The recursive
+//! `SelectStmt.larg` and `rarg` fields also take `Some(record.into())`.
+//! Build a nested list with `Node::from(vec![child])` or
+//! `Node::List(vec![child].into())`. A [NodeList] supports Vec access,
+//! iteration, and `into_vec()`. Generated record structs remain freely movable.
+//! Derived cloning, comparison and debug formatting can recurse.
 #![forbid(unsafe_code)]
+
+mod owned;
+pub use owned::{NodeBox, NodeList, NodeRecord};
 
 mod location;
 pub use location::Location;
@@ -81,7 +94,7 @@ macro_rules! node_types {
             /// NULL list cell, e.g. the first DISTINCT marker in SelectStmt.
             Null,
             $( $value($payload), )*
-            $( $record(Box<$record>), )*
+            $( $record(NodeBox<$record>), )*
         }
         impl Node {
             pub fn tag(&self) -> Option<NodeTag> {
@@ -92,13 +105,32 @@ macro_rules! node_types {
                 }
             }
         }
+        impl Node {
+            fn detach(self, pending: &mut Vec<Node>) {
+                match self {
+                    Self::List(mut items) => pending.append(&mut items),
+                    $( Self::$record(owner) => owned::Edges::detach(&mut *owner.into_box(), pending), )*
+                    _ => {}
+                }
+            }
+        }
         $(
             #[derive(Debug, Clone, PartialEq, Default)]
             pub struct $record { $( pub $field: $ty, )* }
 
+            impl From<Box<$record>> for Node {
+                fn from(value: Box<$record>) -> Self {
+                    Self::$record(NodeBox::from(value))
+                }
+            }
+
+            impl From<NodeBox<$record>> for Node {
+                fn from(value: NodeBox<$record>) -> Self { Self::$record(value) }
+            }
+
             impl From<$record> for Node {
                 fn from(value: $record) -> Self {
-                    Self::$record(Box::new(value))
+                    Self::$record(NodeBox::from(value))
                 }
             }
         )*

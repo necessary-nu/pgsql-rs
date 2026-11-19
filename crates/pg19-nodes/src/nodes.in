@@ -7,7 +7,7 @@ node_types! {
         String (476, "String", String)
         Boolean (475, "Boolean", bool)
         BitString (477, "BitString", String)
-        List (1, "List", Vec<Node>)
+        List (1, "List", NodeList)
         IntList (479, "IntList", Vec<i32>)
         OidList (480, "OidList", Vec<u32>)
         XidList (481, "XidList", Vec<u32>)
@@ -840,8 +840,8 @@ node_types! {
             with_clause ["withClause"]: Option<Box<WithClause>>,
             op ["op"]: SetOperation,
             all ["all"]: bool,
-            larg ["larg"]: Option<Box<SelectStmt>>,
-            rarg ["rarg"]: Option<Box<SelectStmt>>,
+            larg ["larg"]: Option<NodeBox<SelectStmt>>,
+            rarg ["rarg"]: Option<NodeBox<SelectStmt>>,
         }
         SetOperationStmt (142, "SetOperationStmt") {
             op ["op"]: SetOperation,

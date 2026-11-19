@@ -18,7 +18,7 @@ SCALARS = {
 VALUES = {
     "A_Const": "AConst", "Integer": "i32", "Float": "String",
     "String": "String", "Boolean": "bool", "BitString": "String",
-    "List": "Vec<Node>", "IntList": "Vec<i32>", "OidList": "Vec<u32>",
+    "List": "NodeList", "IntList": "Vec<i32>", "OidList": "Vec<u32>",
     "XidList": "Vec<u32>",
 }
 RAW_KEYWORDS = {"as", "in", "match", "move", "ref", "override", "type", "where"}
@@ -66,6 +66,26 @@ def raw_records(source, records, tags):
             if target in tags and target not in VALUES and target != "Bitmapset":
                 pending.append(target)
     return sorted(selected, key=tags.get)
+
+def cyclic_edges(records, selected):
+    # Box and embedded records can recurse without touching a tagged Node.
+    # Mark each typed pointer on a cycle so a bare record is safe to drop, too.
+    graph = {name: {base_type(f) for f in fields(records[name])} & set(selected)
+             for name in selected}
+    cyclic = set()
+    for parent, children in graph.items():
+        for child in children:
+            pending, seen = [child], set()
+            while pending:
+                name = pending.pop()
+                if name == parent:
+                    cyclic.add((parent, child))
+                    break
+                if name not in seen:
+                    seen.add(name)
+                    pending.extend(graph[name] - seen)
+    return cyclic
+
 
 def rust_type(field, enums, selected):
     ctype = field["type"]["qualType"]
@@ -116,13 +136,21 @@ def generate(run, check):
         nodes.append(f'        {name.replace("_", "")} ({tags[name]}, "{name}", {payload})')
     nodes.extend(["    }", "    records {"])
     used_enums = set()
+    cyclic = cyclic_edges(records, selected)
+    edges = [header + "record_edges! {"]
     for name in selected:
         nodes.append(f'        {name.replace("_", "")} ({tags[name]}, "{name}") {{')
+        children = []
         for field in fields(records[name]):
             t = rust_type(field, enums, selected)
             if t is None:
                 continue
             cname = field["name"]
+            target = base_type(field)
+            if (name, target) in cyclic and t.startswith("Option<Box<"):
+                t = t.replace("Option<Box<", "Option<NodeBox<", 1)
+            if t == "Vec<Node>" or target in selected or t == "Option<Box<Node>>":
+                children.append(field_name(cname))
             if name == "RawStmt" and cname == "stmt_len":
                 t = "i32"  # ParseLoc in C, but this field stores a length.
             if t in enums:
@@ -130,12 +158,14 @@ def generate(run, check):
                 t = t.replace("_", "")
             nodes.append(f'            {field_name(cname)} ["{cname}"]: {t},')
         nodes.append("        }")
+        edges.append(f'    {name.replace("_", "")} {{ {", ".join(children)} }}')
+    edges.append("}")
     nodes.extend(["    }", "}"])
     enum_lines = [header + "pg_enums! {"]
     for name in sorted(used_enums):
         enum_lines.extend(emit_enum(name, enums[name]))
     enum_lines.append("}")
-    for path, lines in [("nodes.in", nodes), ("enums.in", enum_lines)]:
+    for path, lines in [("nodes.in", nodes), ("enums.in", enum_lines), ("edges.in", edges)]:
         dest = ROOT / "src" / path
         contents = "\n".join(lines) + "\n"
         if check:
