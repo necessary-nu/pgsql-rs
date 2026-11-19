@@ -81,7 +81,7 @@ def build(run, work):
     api = re.sub(r"^#define (?:PG_MAJORVERSION|PG_VERSION|PG_VERSION_NUM) .+$", "", api, flags=re.M)
     (work / "pg_query.h").write_text(api)
     units = [adapt(source, relative, work) for relative in ADAPTERS]
-    units += [HERE / "probe.c", REPO / "src/pg_query_parse_plpgsql.c", REPO / "src/pg_query_json_plpgsql.c"]
+    units += [HERE / "probe.c", HERE / "routine-inputs.c", REPO / "src/pg_query_parse_plpgsql.c", REPO / "src/pg_query_json_plpgsql.c"]
     flags = [work, REPO, REPO / "src", REPO / "src/include", source / PL, build / PL]
     # Preserve quoted includes of sibling/generator headers in copied source files.
     flags += sorted({root / f.parent for root in [source, build] for f in ADAPTERS})
