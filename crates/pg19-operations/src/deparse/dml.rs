@@ -47,7 +47,6 @@ fn returning<'a>(r: Option<&'a ReturningClause>, p: &mut Plan<'a>) -> Result<()>
     Ok(())
 }
 fn column<'a>(target: &'a ResTarget, p: &mut Plan<'a>) -> Result<()> {
-    p.mark(target.location);
     p.text(named(&target.name, "ResTarget.name")?);
     indirection(&target.indirection, p)
 }
@@ -92,7 +91,7 @@ fn assignments<'a>(nodes: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
     let mut i = 0;
     while i < nodes.len() {
         if i != 0 {
-            p.text(", ");
+            p.comma();
         }
         let t = target(&nodes[i])?;
         let val = required(&t.val, "ResTarget.val")?;
@@ -280,7 +279,8 @@ pub(super) fn delete<'a>(s: &'a DeleteStmt, p: &mut Plan<'a>) -> Result<()> {
     returning(s.returning_clause.as_deref(), p)
 }
 fn when<'a>(w: &'a MergeWhenClause, p: &mut Plan<'a>) -> Result<()> {
-    p.clause(match w.match_kind {
+    p.text(" ");
+    p.text(match w.match_kind {
         MergeMatchKind::MERGE_WHEN_MATCHED => "WHEN MATCHED",
         MergeMatchKind::MERGE_WHEN_NOT_MATCHED_BY_SOURCE => "WHEN NOT MATCHED BY SOURCE",
         MergeMatchKind::MERGE_WHEN_NOT_MATCHED_BY_TARGET => "WHEN NOT MATCHED",

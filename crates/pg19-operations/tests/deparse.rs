@@ -100,3 +100,46 @@ fn deep_left_associative_arithmetic_uses_a_worklist() {
         .join()
         .unwrap();
 }
+
+// [spec:pgq:req:deparse.pretty/test]
+// [spec:pgq:req:deparse.comments/test]
+// [spec:pgq:req:deparse.protobuf/test]
+#[test]
+fn native_and_wire_formats_preserve_comments() {
+    use pg19_operations::deparse::{protobuf_with_options, statements_with_options, Options};
+    let fixtures: Vec<([usize; 5], String, String)> =
+        serde_json::from_str(include_str!("deparse-format.json")).unwrap();
+    for ([pretty, indent, width, first, newline], sql, expected) in fixtures {
+        let options = Options {
+            pretty_print: pretty != 0,
+            indent_size: indent,
+            max_line_length: width,
+            commas_start_of_line: first != 0,
+            trailing_newline: newline != 0,
+        };
+        let comments = comments(&sql).unwrap();
+        let raw = pg19_parser::parse_statements(&sql, Default::default()).unwrap();
+        assert_eq!(
+            statements_with_options(&raw, options, &comments).unwrap(),
+            expected,
+            "{sql}"
+        );
+        let wire = pg19_codec::protobuf::statements_protobuf(&raw).unwrap();
+        assert_eq!(
+            protobuf_with_options(&wire, options, &comments).unwrap(),
+            expected,
+            "{sql}"
+        );
+        assert_eq!(
+            pg19_parser::parse_statements(&expected, Default::default())
+                .unwrap()
+                .len(),
+            raw.len(),
+            "{sql}"
+        );
+    }
+    assert!(matches!(
+        protobuf_with_options(&[0x80], Options::default(), &[]),
+        Err(Error::Protobuf(_))
+    ));
+}

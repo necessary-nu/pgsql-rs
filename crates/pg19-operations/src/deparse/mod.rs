@@ -2,6 +2,8 @@
 mod comments;
 mod dml;
 mod expr;
+mod format;
+pub use format::Options;
 mod operator;
 mod query;
 mod writer;
@@ -274,10 +276,32 @@ fn render(out: &mut String, node: &Node) -> Result<()> {
 /// Render raw statements in compact form. An unsupported node identifies its tag.
 // [spec:pgq:req:deparse.stream]
 pub fn statements(stmts: &[RawStmt]) -> Result<String> {
-    writer::statements(stmts)
+    writer::statements(stmts, Options::default(), &[])
 }
 
 /// Decode a versioned PG19 ParseResult and render it with the compact writer.
 pub fn protobuf(bytes: &[u8]) -> Result<String> {
     statements(&statements_from_protobuf(bytes).map_err(Error::Protobuf)?)
+}
+
+// [spec:pgq:req:deparse.pretty]
+// [spec:pgq:req:deparse.comments]
+/// Render each statement with optional formatting and scanner-extracted comments.
+pub fn statements_with_options(
+    stmts: &[RawStmt],
+    options: Options,
+    comments: &[Comment<'_>],
+) -> Result<String> {
+    writer::statements(stmts, options, comments)
+}
+
+// [spec:pgq:req:deparse.protobuf]
+/// Decode PG19 wire data and apply the same format and comment options as native trees.
+pub fn protobuf_with_options(
+    bytes: &[u8],
+    options: Options,
+    comments: &[Comment<'_>],
+) -> Result<String> {
+    let tree = statements_from_protobuf(bytes).map_err(Error::Protobuf)?;
+    writer::statements(&tree, options, comments)
 }

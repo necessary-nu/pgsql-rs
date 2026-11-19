@@ -163,7 +163,6 @@ fn bound<'a>(p: &mut Plan<'a>, n: &'a Node, parent: Prec, right: bool, b_expr: b
 pub(super) fn binary<'a>(a: &'a AExpr, p: &mut Plan<'a>, b_expr: bool) -> Result<()> {
     let r = required(&a.rexpr, "A_Expr.rexpr")?;
     let prec = aexpr_prec(a);
-    p.mark(a.location);
     if a.kind == AExprKind::AEXPR_OP {
         if let Some(l) = a.lexpr.as_deref() {
             bound(p, l, prec, false, b_expr);
@@ -301,7 +300,9 @@ pub(super) fn sublink<'a>(s: &'a SubLink, p: &mut Plan<'a>) -> Result<()> {
     let Node::SelectStmt(q) = required(&s.subselect, "SubLink.subselect")? else {
         return Err(Error::InvalidField("SubLink.subselect"));
     };
+    p.enter();
     p.select(q, false);
+    p.leave();
     p.text(")");
     Ok(())
 }

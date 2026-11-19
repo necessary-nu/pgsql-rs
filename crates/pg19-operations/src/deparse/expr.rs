@@ -128,7 +128,12 @@ fn boolean<'a>(b: &'a BoolExpr, p: &mut Plan<'a>) -> Result<()> {
     };
     for (i, n) in b.args.iter().enumerate() {
         if i > 0 {
-            p.text(word);
+            if b.boolop == BoolExprType::AND_EXPR {
+                p.cut();
+                p.text("AND ");
+            } else {
+                p.text(word);
+            }
         }
         p.wrapped(n,Role::Expr,matches!(n,Node::BoolExpr(n) if matches!(n.boolop,BoolExprType::AND_EXPR|BoolExprType::OR_EXPR)));
     }
@@ -160,7 +165,7 @@ fn function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
     if f.over.is_some() || f.ignore_nulls != 0 {
         return Err(Error::UnsupportedStatement(Some(NodeTag::FuncCall)));
     }
-    p.mark(f.location);
+
     p.text(names(&f.funcname, ".")?);
     p.text("(");
     if f.agg_distinct {
@@ -278,7 +283,6 @@ pub(super) fn expression<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
             }
         }
         Node::ParamRef(v) => {
-            p.mark(v.location);
             p.text(format!("${}", v.number));
         }
         Node::AExpr(a) => return binary(a, p, false),
@@ -345,19 +349,21 @@ pub(super) fn expression<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
                 p.text(" ");
                 p.expr(arg);
             }
+            p.enter();
             for when in &c.args {
                 let Node::CaseWhen(w) = when else {
                     return Err(Error::InvalidField("CaseExpr.args"));
                 };
-                p.text(" WHEN ");
+                p.clause("WHEN ");
                 p.expr(required(&w.expr, "CaseWhen.expr")?);
                 p.text(" THEN ");
                 p.expr(required(&w.result, "CaseWhen.result")?);
             }
             if let Some(other) = &c.defresult {
-                p.text(" ELSE ");
+                p.clause("ELSE ");
                 p.expr(other);
             }
+            p.leave();
             p.text(" END");
         }
         Node::NamedArgExpr(a) => {
