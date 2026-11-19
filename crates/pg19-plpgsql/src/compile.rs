@@ -1,4 +1,5 @@
 mod control;
+mod cursor;
 mod exception;
 mod execsql;
 mod loops;
@@ -62,6 +63,8 @@ enum Reduced {
     Statement(Statement),
     List(Vec<Statement>),
     Datum(usize),
+    Number(i32),
+    Arguments(Vec<usize>),
     LoopVariable(Token, Option<Box<crate::Target>>),
     For(Box<crate::Target>, Box<crate::ForSource>),
     Handlers(Vec<crate::ExceptionHandler>),
@@ -75,6 +78,12 @@ enum Reduced {
 }
 
 impl Reduced {
+    fn datum(self) -> usize {
+        let Self::Datum(id) = self else {
+            unreachable!()
+        };
+        id
+    }
     fn token(self) -> Token {
         let Self::Token(t) = self else {
             unreachable!("grammar requires a token")
@@ -476,6 +485,18 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 if production != "%empty" || lhs == "@2" =>
             {
                 self.exceptions(lhs, production, rhs, s)
+            }
+            "opt_scrollable"
+            | "$@1"
+            | "decl_cursor_query"
+            | "decl_cursor_args"
+            | "decl_cursor_arg"
+            | "decl_cursor_arglist"
+            | "cursor_variable"
+            | "stmt_open"
+            | "stmt_close" => self.cursor(lhs, production, rhs, s),
+            "decl_statement" if production.contains("K_CURSOR") => {
+                self.cursor(lhs, production, rhs, s)
             }
             "stmt_return" => self.return_stmt(rhs.location(1), s),
             "stmt_assign" => self.assignment(rhs.take(1).token(), s),

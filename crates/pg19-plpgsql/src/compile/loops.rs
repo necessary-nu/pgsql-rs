@@ -105,12 +105,17 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
                 }),
             ));
         }
-        if first.datum.is_some_and(|id| {
-            self.env.variable(id).datatype == DataType::Scalar("refcursor".into())
-        }) {
-            return Err(CompileError::Unsupported {
-                production: "cursor FOR loop",
-            });
+        if let Some(cursor) = first.datum.filter(|&id| matches!(&self.env.variable(id).datatype, DataType::Scalar(name) if name == "refcursor")) {
+            if prior.is_some() { return Err(Error::at(s.source(),var.span.start,"cursor FOR loop must have only one target variable","42601").into()); }
+            if !matches!(self.env.datums[cursor], Datum::Cursor{..}) {
+                return Err(Error::at(s.source(),at,"cursor FOR loop must use a bound cursor variable","42601").into());
+            }
+            let argquery=self.cursor_args(cursor,token::K_LOOP,s)?;
+            let mut row=Variable::implicit(var.names.join("."),DataType::Record);
+            row.lineno=s.line(var.span.start);
+            let id=self.env.datums.len();
+            self.env.declare(row);
+            return Ok(Reduced::For(self.make_target(id),Box::new(ForSource::Cursor{cursor,argquery})));
         }
         let reverse = first.is_keyword(token::K_REVERSE, "reverse");
         if !reverse {

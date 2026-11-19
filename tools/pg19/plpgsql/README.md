@@ -123,9 +123,8 @@ The live `compare_project_sample_routines` test isolates the native
 PL/pgSQL compiler from incomplete SQL actions. The PG19 probes supply
 the outer routine inputs, parsed type names and validation of embedded
 SQL. Rust builds each routine's datums, statements, expressions and
-JSON. The test compares each completed tree against the corresponding
-element of `test/plpgsql_samples.expected.json` and reports any
-unsupported productions by sample number.
+JSON. The test checks all 30 resulting trees against the corresponding
+elements of `test/plpgsql_samples.expected.json`.
 
 ```sh
 PG19_REFERENCE_DIR="$run" cargo test -p pg19-plpgsql --test routines compare_project_sample_routines -- --ignored --nocapture

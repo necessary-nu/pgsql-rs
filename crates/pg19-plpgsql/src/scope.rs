@@ -61,7 +61,9 @@ impl Environment {
 
     pub fn variable(&self, id: usize) -> &Variable {
         match &self.datums[id] {
-            Datum::Variable(v) | Datum::Promise { variable: v, .. } => v,
+            Datum::Variable(v)
+            | Datum::Promise { variable: v, .. }
+            | Datum::Cursor { variable: v, .. } => v,
             Datum::Row { .. } => unreachable!("an output row is anonymous"),
             Datum::RecordField { parent, .. } => self.variable(*parent),
         }
