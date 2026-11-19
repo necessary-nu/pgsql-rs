@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T19:37:12.361873316Z
+last_sync_at 2026-11-19T19:55:41.054682044Z
 
 rule_versions (
     {id api.native, version 0}
@@ -140,7 +140,16 @@ impl_evidence (
     ), rule_versions_seen (
         {id codec.schema-import, version 0}
     )}
-    {id operations.deparse}
+    {id operations.deparse, covered_rules (
+        deparse.comments
+        deparse.pretty
+    ), covered_claims (
+        {impl_name rust, rule deparse.comments}
+        {impl_name rust, rule deparse.pretty}
+    ), rule_versions_seen (
+        {id deparse.comments, version 0}
+        {id deparse.pretty, version 0}
+    )}
     {id operations.deparse-stream, covered_rules (
         deparse.stream
     ), covered_claims (
@@ -175,6 +184,11 @@ impl_evidence (
         {impl_name rust, rule normalize.literal-spans}
         {impl_name rust, rule normalize.substitutions}
         {impl_name rust, rule normalize.utility}
+    ), rule_versions_seen (
+        {id normalize.grouping, version 0}
+        {id normalize.literal-spans, version 0}
+        {id normalize.substitutions, version 0}
+        {id normalize.utility, version 0}
     )}
     {id operations.split-parity, covered_rules (
         split.boundaries
@@ -197,6 +211,19 @@ impl_evidence (
     ), rule_versions_seen (
         {id split.scanner, version 0}
     )}
+    {id operations.summary, covered_rules (
+        summary.cte-scope
+        summary.entities
+        summary.nested-filters
+    ), covered_claims (
+        {impl_name rust, rule summary.cte-scope}
+        {impl_name rust, rule summary.entities}
+        {impl_name rust, rule summary.nested-filters}
+    ), rule_versions_seen (
+        {id summary.cte-scope, version 0}
+        {id summary.entities, version 0}
+        {id summary.nested-filters, version 0}
+    )}
     {id operations.utility}
     {id parser.diagnostics, covered_rules (
         grammar.diagnostics
@@ -212,6 +239,8 @@ impl_evidence (
         grammar.dml-actions
     ), covered_claims (
         {impl_name rust, rule grammar.dml-actions}
+    ), rule_versions_seen (
+        {id grammar.dml-actions, version 0}
     )}
     {id parser.engine, covered_rules (
         grammar.reductions
@@ -270,6 +299,8 @@ impl_evidence (
         grammar.query-actions
     ), covered_claims (
         {impl_name rust, rule grammar.query-actions}
+    ), rule_versions_seen (
+        {id grammar.query-actions, version 0}
     )}
     {id parser.reduce}
     {id parser.tables, covered_rules (
@@ -286,6 +317,8 @@ impl_evidence (
         grammar.utility-actions
     ), covered_claims (
         {impl_name rust, rule grammar.utility-actions}
+    ), rule_versions_seen (
+        {id grammar.utility-actions, version 0}
     )}
     {id plpgsql.functions, covered_rules (
         plpgsql.body
@@ -297,6 +330,11 @@ impl_evidence (
         {impl_name rust, rule plpgsql.datums}
         {impl_name rust, rule plpgsql.errors}
         {impl_name rust, rule plpgsql.routines}
+    ), rule_versions_seen (
+        {id plpgsql.body, version 0}
+        {id plpgsql.datums, version 0}
+        {id plpgsql.errors, version 0}
+        {id plpgsql.routines, version 0}
     )}
     {id reference.corpus, covered_rules (
         corpus.compare
