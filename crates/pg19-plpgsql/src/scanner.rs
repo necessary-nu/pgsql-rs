@@ -47,6 +47,7 @@ pub struct BodyScanner<'a> {
     source: &'a str,
     core: Scanner<'a>,
     line_breaks: Vec<usize>,
+    latest_line: std::cell::Cell<usize>,
     queue: VecDeque<Token>,
     previous_id: u16,
     last: Range<usize>,
@@ -59,6 +60,7 @@ impl<'a> BodyScanner<'a> {
         Self {
             source,
             core: Scanner::with_options(source, options),
+            latest_line: std::cell::Cell::new(1),
             line_breaks: source.match_indices('\n').map(|(i, _)| i).collect(),
             queue: VecDeque::new(),
             previous_id: 0,
@@ -76,9 +78,13 @@ impl<'a> BodyScanner<'a> {
     }
 
     pub fn line(&self, offset: usize) -> usize {
-        1 + self
-            .line_breaks
-            .partition_point(|line_end| *line_end < offset)
+        let number = 1 + self.line_breaks.partition_point(|end| *end < offset);
+        self.latest_line.set(number);
+        number
+    }
+
+    pub(crate) fn latest_line(&self) -> usize {
+        self.latest_line.get()
     }
 
     fn read_core(&mut self) -> Result<Token, Error> {

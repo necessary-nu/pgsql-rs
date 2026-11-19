@@ -3,7 +3,7 @@ use crate::{DataType, Datum, Namespace, Resolved, Variable};
 #[derive(Default)]
 struct Scope {
     label: Option<String>,
-    variables: Vec<usize>,
+    variables: Vec<(String, usize)>,
 }
 
 #[derive(Default)]
@@ -25,12 +25,12 @@ impl Environment {
     }
 
     pub fn declare(&mut self, variable: Variable) {
-        self.scopes
-            .last_mut()
-            .unwrap()
-            .variables
-            .push(self.datums.len());
+        self.alias(variable.name.clone(), self.datums.len());
         self.datums.push(Datum::Variable(variable));
+    }
+
+    pub fn alias(&mut self, name: String, id: usize) {
+        self.scopes.last_mut().unwrap().variables.push((name, id));
     }
 
     pub fn local(&self, name: &str) -> bool {
@@ -39,12 +39,13 @@ impl Environment {
             .unwrap()
             .variables
             .iter()
-            .any(|&i| self.variable(i).name == name)
+            .any(|(label, _)| label == name)
     }
 
     pub fn variable(&self, id: usize) -> &Variable {
         match &self.datums[id] {
-            Datum::Variable(v) => v,
+            Datum::Variable(v) | Datum::Promise { variable: v, .. } => v,
+            Datum::Row { .. } => unreachable!("an output row is anonymous"),
             Datum::RecordField { parent, .. } => self.variable(*parent),
         }
     }
@@ -67,9 +68,10 @@ impl Environment {
                 if used > names.len() || (used == 2 && scope.label.as_ref() != names.first()) {
                     continue;
                 }
-                for &id in scope.variables.iter().rev() {
+                for (name, id) in scope.variables.iter().rev() {
+                    let id = *id;
                     let v = self.variable(id);
-                    if v.name == names[used - 1]
+                    if *name == names[used - 1]
                         && (used == names.len() || v.datatype == DataType::Record)
                     {
                         return Some((id, used));
