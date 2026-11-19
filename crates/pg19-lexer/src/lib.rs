@@ -77,8 +77,27 @@ impl std::fmt::Display for Error {
 }
 impl std::error::Error for Error {}
 
+// [spec:pgq:req:grammar.diagnostics]
 impl Error {
-    fn at(sql: &str, offset: usize, message: impl Into<String>, sqlstate: &'static str) -> Self {
+    pub fn cursor_position(&self) -> Option<std::num::NonZeroUsize> {
+        std::num::NonZeroUsize::new(self.position)
+    }
+
+    pub fn without_position(message: impl Into<String>, sqlstate: &'static str) -> Self {
+        Self {
+            message: message.into(),
+            sqlstate,
+            position: 0,
+        }
+    }
+
+    /// PostgreSQL stores byte offsets in nodes but reports one-based character positions.
+    pub fn at(
+        sql: &str,
+        offset: usize,
+        message: impl Into<String>,
+        sqlstate: &'static str,
+    ) -> Self {
         let position = 1 + sql.as_bytes()[..offset.min(sql.len())]
             .iter()
             .filter(|byte| **byte & 0xc0 != 0x80)
@@ -90,7 +109,8 @@ impl Error {
         }
     }
 
-    fn near(sql: &str, start: usize, end: usize, message: &str) -> Self {
+    /// The byte range is the parser's current lexeme, or an empty range at EOF.
+    pub fn near(sql: &str, start: usize, end: usize, message: &str) -> Self {
         let message = if start == sql.len() {
             format!("{message} at end of input")
         } else {
@@ -101,10 +121,28 @@ impl Error {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum BackslashQuote {
+    Off,
+    On,
+    #[default]
+    SafeEncoding,
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Options {
     /// PostgreSQL's backslash_quote = off. The UTF-8 default is safe_encoding.
     pub disable_backslash_quote: bool,
+}
+
+// [spec:pgq:req:grammar.string-settings]
+impl Options {
+    /// Both on and safe_encoding allow escaped quotes for the scanner's UTF-8 input.
+    pub fn with_backslash_quote(setting: BackslashQuote) -> Self {
+        Self {
+            disable_backslash_quote: setting == BackslashQuote::Off,
+        }
+    }
 }
 
 fn truncate_identifier(mut ident: String) -> String {

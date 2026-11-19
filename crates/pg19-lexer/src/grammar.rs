@@ -93,6 +93,8 @@ impl<'a> GrammarScanner<'a> {
                             "invalid Unicode escape character",
                         ));
                     }
+                    // The grammar consumes the entire UESCAPE phrase as one lexeme for yyerror.
+                    token.end = third.end;
                     bytes[0]
                 } else {
                     b'\\'

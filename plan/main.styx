@@ -188,6 +188,14 @@ children (
                     rust ([spec:pgq:req:grammar.diagnostics] [spec:pgq:req:grammar.string-settings])
                 }
                 deps (parser.engine)
+                log (
+                    {
+                        at 2026-11-19T18:01:09.444473443Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
         )
     }

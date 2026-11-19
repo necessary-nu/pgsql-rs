@@ -145,19 +145,6 @@ fn reduce<A: Actions>(
     Ok(())
 }
 
-fn diagnostic(sql: &str, (start, end): (usize, usize), reason: &str) -> Error {
-    let message = if start == sql.len() {
-        format!("{reason} at end of input")
-    } else {
-        format!("{reason} at or near \"{}\"", &sql[start..end])
-    };
-    Error {
-        message,
-        position: sql[..start].chars().count() + 1,
-        sqlstate: "42601",
-    }
-}
-
 enum Input {
     Token(Token),
     Eof,
@@ -181,11 +168,10 @@ pub fn parse<A: Actions>(
 ) -> Result<A::Value, ParseError<A::Error>> {
     let sql = sql.split_once('\0').map_or(sql, |(prefix, _)| prefix);
     if Location::from_byte_offset(sql.len()).is_none() {
-        return Err(ParseError::Diagnostic(Error {
-            message: "SQL input exceeds PostgreSQL's location range".into(),
-            position: 0,
-            sqlstate: "54000",
-        }));
+        return Err(ParseError::Diagnostic(Error::without_position(
+            "SQL input exceeds PostgreSQL's location range",
+            "54000",
+        )));
     }
     let mut scanner = mode
         .prefix()
@@ -202,9 +188,10 @@ pub fn parse<A: Actions>(
     loop {
         // Bison's generated skeleton checks YYMAXDEPTH on entry to each state.
         if stack.len() >= 10_000 {
-            return Err(ParseError::Diagnostic(diagnostic(
+            return Err(ParseError::Diagnostic(Error::near(
                 sql,
-                span,
+                span.0,
+                span.1,
                 "memory exhausted",
             )));
         }
@@ -236,9 +223,10 @@ pub fn parse<A: Actions>(
                 return Ok(stack.pop().unwrap().value);
             }
             Action::Error => {
-                return Err(ParseError::Diagnostic(diagnostic(
+                return Err(ParseError::Diagnostic(Error::near(
                     sql,
-                    span,
+                    span.0,
+                    span.1,
                     "syntax error",
                 )))
             }

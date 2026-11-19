@@ -186,11 +186,10 @@ fn text(bytes: Vec<u8>) -> Result<String, Error> {
             .map(|b| format!("0x{b:02x}"))
             .collect::<Vec<_>>()
             .join(" ");
-        return Err(Error {
-            sqlstate: "22021",
-            position: 0,
-            message: format!("invalid byte sequence for encoding \"UTF8\": {hex}"),
-        });
+        return Err(Error::without_position(
+            format!("invalid byte sequence for encoding \"UTF8\": {hex}"),
+            "22021",
+        ));
     }
     Ok(String::from_utf8(bytes).expect("validated literal"))
 }
