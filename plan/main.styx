@@ -152,6 +152,14 @@ children (
                     rust ([spec:pgq:req:grammar.expression-binding])
                 }
                 deps (parser.engine)
+                log (
+                    {
+                        at 2026-11-19T18:14:23.429189185Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Evaluated tamnd/rupg at f82a2478e8e98881df79153feba7423d848133cc (Apache-2.0). Its generator read patched PG19.0 gram.y and produced dispatch for all 3,490 SQL alternatives. A temporary prototype with our lexer and tables matched 8,393 trees and 192 errors across 16 PG19 regression files, plus 36 parse mode and option comparisons. That sample exercised at least 1,217 reductions. Integrating this approach requires a license choice and stack-bounded action dispatch and node conversion."
+                    }
+                )
             }
 
             {
