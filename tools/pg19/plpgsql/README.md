@@ -129,3 +129,23 @@ elements of `test/plpgsql_samples.expected.json`.
 ```sh
 PG19_REFERENCE_DIR="$run" cargo test -p pg19-plpgsql --test routines compare_project_sample_routines -- --ignored --nocapture
 ```
+
+The upstream PL regression comparison runs each SQL region from all 13
+files in PG19.0's `src/pl/plpgsql/src/sql` through the Rust and C public
+entry points. It compares the entire JSON result, including diagnostics
+and character positions. It records psql input regions separately.
+The output directory contains classified counts, a digest of the C results,
+and source byte ranges with both outputs for every difference.
+
+```sh
+cargo build --locked -p pg19-plpgsql --example routines
+python3 -B tools/pg19/plpgsql/regress.py "$run" target/debug/examples/routines /tmp/pg19-pl-regress
+```
+
+Pass `--require-parity` to return a failure status for any mismatch,
+unsupported production, or process failure. The `--boundaries` option
+reuses the psql boundary helper from the core regression corpus.
+
+Pass `--core-corpus "$corpus"` with the outputs from `regress/extract.py`
+and `regress/probes.py` to include PG19 core regression inputs whose
+patched C raw tree contains a function, procedure or DO statement.
