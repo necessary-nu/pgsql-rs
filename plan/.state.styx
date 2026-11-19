@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T18:54:39.784894611Z
+last_sync_at 2026-11-19T18:55:27.317334222Z
 
 rule_versions (
     {id api.native, version 0}
@@ -151,6 +151,7 @@ impl_evidence (
     ), rule_versions_seen (
         {id deparse.stream, version 0}
     )}
+    {id operations.fingerprint}
     {id operations.fingerprint-tree, covered_rules (
         fingerprint.aliases
         fingerprint.digest
@@ -167,6 +168,7 @@ impl_evidence (
         {id fingerprint.lists, version 0}
         {id fingerprint.relation-digits, version 0}
     )}
+    {id operations.split-parser}
     {id operations.split-scanner, covered_rules (
         split.scanner
     ), covered_claims (
@@ -174,6 +176,7 @@ impl_evidence (
     ), rule_versions_seen (
         {id split.scanner, version 0}
     )}
+    {id operations.utility}
     {id parser.diagnostics, covered_rules (
         grammar.diagnostics
         grammar.string-settings

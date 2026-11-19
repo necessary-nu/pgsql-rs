@@ -80,6 +80,7 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         ("pg19-lexer", "scan"),
         ("pg19-engine", "diagnostics"),
         ("pg19-parser", "expressions"),
+        ("pg19-parser", "utility"),
         ("pg19-reference", "native_tree"),
     ] {
         assert!(
@@ -112,6 +113,12 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
             .status()?;
         assert!(generation.success(), "inspect {}", run.display());
     }
+    assert!(Command::new("python3")
+        .arg(tools.join("generate-record-actions.py"))
+        .arg(run.join("patched"))
+        .arg("--check")
+        .status()?
+        .success());
     let schema = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
         .arg("check-schema")
         .arg(&run)

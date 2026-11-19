@@ -4,6 +4,7 @@ mod call;
 mod expr;
 mod from;
 mod query;
+mod records;
 mod utility;
 mod value;
 

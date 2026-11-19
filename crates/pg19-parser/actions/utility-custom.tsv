@@ -1,0 +1,9 @@
+# Reviewed utility actions with stateful option and role processing.
+NumericOnly: '-' FCONST	d5fb0c61efe041b97da684e065d7c15ab020b11dd8c277776c073deae77f9211	Utility(crate::utility::Utility::NegativeFloat)
+RepackStmt: CLUSTER '(' utility_option_list ')' qualified_name cluster_index_specification	20317587166105288ce869a487ebf91ee8183e6c466c5542643d370277369daa	Utility(crate::utility::Utility::Cluster(5, 6, Some(3)))
+RepackStmt: CLUSTER opt_verbose qualified_name cluster_index_specification	64b2db4290da45c1961f860b5caf8fa1596d57e00fe4cad41ed3eb076f8b9483	Utility(crate::utility::Utility::Cluster(3, 4, None))
+RepackStmt: CLUSTER opt_verbose name ON qualified_name	1d0ef5fb8576d7ef764887d45accdaf73d4bb8002b125162fe9c201b23aa1f61	Utility(crate::utility::Utility::Cluster(5, 3, None))
+VacuumStmt: VACUUM opt_full opt_freeze opt_verbose opt_analyze opt_vacuum_relation_list	beceec1bd62e2e747306acc55720ae862aa6bc90b45c7eca80e3ab42a77ca569	Utility(crate::utility::Utility::VacuumLegacy)
+ExplainStmt: EXPLAIN analyze_keyword opt_verbose ExplainableStmt	23a6dd6dda7dd9dfe4d7c5db79441c82cfb84bc9d1a5cf402f95ad5344133814	Utility(crate::utility::Utility::ExplainAnalyze)
+RoleId: RoleSpec	7307e52af8ac583940beac3f1bf8e6abd92173bda1ef9401bee1e0babb529ac9	Utility(crate::utility::Utility::RoleId)
+RoleSpec: NonReservedWord	0facc0b0fba67392354c3ca85cca70fc160cbca5ac5e1fa2357ef5a560765e62	Utility(crate::utility::Utility::NamedRole)
