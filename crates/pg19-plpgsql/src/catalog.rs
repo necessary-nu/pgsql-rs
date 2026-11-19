@@ -7,6 +7,7 @@ pub struct Builtin {
     pub name: &'static str,
     pub kind: u8,
     pub array_oid: u32,
+    pub collatable: bool,
 }
 
 pub const BUILTINS: &[Builtin] = include!("../data/types.in");
@@ -20,6 +21,24 @@ impl Builtin {
     }
     pub fn by_oid(oid: u32) -> Option<Self> {
         BUILTINS.iter().find(|t| t.oid == oid).copied()
+    }
+
+    pub fn sql_name(self) -> &'static str {
+        match self.name {
+            "int4" => "integer",
+            "int2" => "smallint",
+            "int8" => "bigint",
+            "float4" => "real",
+            "float8" => "double precision",
+            "bool" => "boolean",
+            "varchar" => "character varying",
+            "bpchar" => "character",
+            "timestamptz" => "timestamp with time zone",
+            "timestamp" => "timestamp without time zone",
+            "time" => "time without time zone",
+            "timetz" => "time with time zone",
+            other => other,
+        }
     }
 
     pub fn resolve(t: &TypeName) -> Result<Self, CompileError> {

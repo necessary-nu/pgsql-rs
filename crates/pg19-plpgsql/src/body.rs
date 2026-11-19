@@ -26,9 +26,18 @@ pub struct Variable {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Datum {
     Variable(Variable),
-    Promise { variable: Variable, promise: u8 },
-    Row { fields: Vec<(String, usize)> },
-    RecordField { name: String, parent: usize },
+    Promise {
+        variable: Variable,
+        promise: u8,
+    },
+    Row {
+        lineno: i32,
+        fields: Vec<(String, usize)>,
+    },
+    RecordField {
+        name: String,
+        parent: usize,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -43,6 +52,13 @@ pub struct Elsif {
     pub lineno: usize,
     pub condition: Expression,
     pub body: Vec<Statement>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Target {
+    pub id: usize,
+    pub variable: Datum,
+    pub strict: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -74,6 +90,7 @@ pub enum Statement {
     },
     ExecSql {
         lineno: usize,
+        target: Option<Box<Target>>,
         expression: Expression,
     },
     Call {
@@ -85,6 +102,17 @@ pub enum Statement {
         lineno: usize,
         commit: bool,
         chain: bool,
+    },
+    ReturnNext {
+        lineno: usize,
+        datum: Option<usize>,
+        expression: Option<Expression>,
+    },
+    ReturnQuery {
+        lineno: usize,
+        query: Expression,
+        dynamic: bool,
+        params: Vec<Expression>,
     },
     Return {
         lineno: usize,

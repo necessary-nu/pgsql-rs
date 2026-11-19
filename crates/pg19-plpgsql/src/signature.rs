@@ -40,24 +40,6 @@ pub(crate) struct Signature<'a> {
     set: bool,
 }
 
-fn pretty(t: Builtin) -> &'static str {
-    match t.name {
-        "int4" => "integer",
-        "int2" => "smallint",
-        "int8" => "bigint",
-        "float4" => "real",
-        "float8" => "double precision",
-        "bool" => "boolean",
-        "varchar" => "character varying",
-        "bpchar" => "character",
-        "timestamptz" => "timestamp with time zone",
-        "timestamp" => "timestamp without time zone",
-        "time" => "time without time zone",
-        "timetz" => "time with time zone",
-        other => other,
-    }
-}
-
 impl<'a> Signature<'a> {
     pub fn read(stmt: &'a CreateFunctionStmt) -> Result<Self, CompileError> {
         let mut params: Vec<Parameter> = Vec::new();
@@ -167,7 +149,7 @@ impl<'a> Signature<'a> {
                     return Err(CompileError::from(Error::without_position(
                         format!(
                             "function result type must be {} because of OUT parameters",
-                            pretty(needed)
+                            needed.sql_name()
                         ),
                         "42P13",
                     )));
@@ -236,7 +218,10 @@ impl<'a> Signature<'a> {
             [(_, id)] if !self.procedure => Some(*id),
             _ => {
                 let index = setup.env.datums.len();
-                setup.env.datums.push(Datum::Row { fields: outs });
+                setup.env.datums.push(Datum::Row {
+                    lineno: -1,
+                    fields: outs,
+                });
                 Some(index)
             }
         };

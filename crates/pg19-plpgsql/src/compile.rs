@@ -1,7 +1,9 @@
 mod control;
 mod execsql;
+mod target;
 use crate::body::Returns;
 use crate::scope::Environment;
+use crate::Builtin;
 use crate::{
     token, Actions, Block, BodyScanner, CompileError, CompiledBody, DataType, EmbeddedSql, Error,
     Expression, Input, Lookup, Namespace, Options, ParseMode, Production, Reduction, Resolved,
@@ -57,6 +59,7 @@ enum Reduced {
     Expression(Expression),
     Statement(Statement),
     List(Vec<Statement>),
+    Datum(usize),
     Elsifs(Vec<crate::Elsif>),
     LoopBody {
         body: Vec<Statement>,
@@ -175,6 +178,22 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
             )
             .into());
         }
+        if matches!(rhs.value(4), Reduced::Token(_)) {
+            let ty = match &datatype {
+                DataType::Scalar(name) => Builtin::named(name),
+                _ => None,
+            };
+            if !ty.is_some_and(|t| t.collatable) {
+                let name = ty.map_or("record", Builtin::sql_name);
+                return Err(Error::at(
+                    s.source(),
+                    rhs.location(4),
+                    format!("collations are not supported by type {name}"),
+                    "42804",
+                )
+                .into());
+            }
+        }
         let not_null = matches!(rhs.value(5), Reduced::Token(_));
         let default = match rhs.take(6) {
             Reduced::Expression(e) => Some(e),
@@ -230,14 +249,8 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         if first.id == 0 {
             return Err(s.error("unexpected end of function definition").into());
         }
-        if matches!(first.id, token::K_NEXT | token::K_QUERY) {
-            return Err(CompileError::Unsupported {
-                production: if first.id == token::K_NEXT {
-                    "RETURN NEXT"
-                } else {
-                    "RETURN QUERY"
-                },
-            });
+        if first.is_keyword(token::K_NEXT, "next") || first.is_keyword(token::K_QUERY, "query") {
+            return self.return_set(location, s, first.is_keyword(token::K_NEXT, "next"));
         }
         let lineno = s.line(location);
         let mut datum = None;
@@ -398,6 +411,32 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 }
                 Ok(Reduced::Token(t))
             }
+            "decl_aliasitem" => {
+                let t = rhs.take(1).token();
+                let name = t.names.join(".");
+                let id = self
+                    .env
+                    .lookup(&t.names)
+                    .ok_or_else(|| {
+                        Error::at(
+                            s.source(),
+                            t.span.start,
+                            format!("variable \"{name}\" does not exist"),
+                            "42704",
+                        )
+                    })?
+                    .datum;
+                Ok(Reduced::Datum(id))
+            }
+            "decl_statement" if production.contains("K_ALIAS") => {
+                let name = rhs.take(1).name().unwrap();
+                let Reduced::Datum(id) = rhs.take(4) else {
+                    unreachable!()
+                };
+                self.env.alias(name, id);
+                Ok(Reduced::None)
+            }
+            "decl_collate" if production != "%empty" => Ok(rhs.take(1)),
             "decl_datatype" => self.datatype(input),
             "decl_defval" if production == "decl_defkey" => Ok(Reduced::Expression(
                 self.expression(s, ParseMode::PlPgSqlExpr, false)?,
