@@ -55,6 +55,12 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
     for flavor in ["stock", "patched"] {
         check_probe_options(&run.join(flavor).join("probe"))?;
     }
+    let corpus_test = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("regress/test_corpus.py");
+    assert!(Command::new("python3")
+        .arg(corpus_test)
+        .arg(&run)
+        .status()?
+        .success());
     let importer = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("import-lexer.py");
     assert!(Command::new("python3")
         .arg(importer)

@@ -91,3 +91,7 @@ the mapping after reviewing an upstream change, run
 The JSON fixtures in `crates/pg19-codec/tests` capture the C serializer linked
 to the patched PG19 backend for `SELECT DISTINCT 0, NULL, false, '', '<é>',
 B'10', 0.50, 7;` and `REPACK t USING INDEX i; WAIT FOR LSN '0/16B6C50'`.
+
+For full upstream SQL statement coverage, the [PG19 regression corpus](regress/README.md)
+extracts source spans with the pinned psql lexer, captures trees and errors
+from both references, and compares a candidate parser against either build.
