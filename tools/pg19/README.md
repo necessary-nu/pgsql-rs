@@ -245,4 +245,6 @@ aggregate join, and every successful default-mode regression input. The
 command exits unsuccessfully if the Rust median exceeds the C median on any
 workload for either parse or parse plus JSON. The output directory holds the
 per-round measurements in `samples.csv`, the six ratios in `results.json`,
-and the verification digests in `machine-and-verification.json`.
+and the input, binary and output digests in `machine-and-verification.json`.
+`toolchain.txt` records the Rust and C compiler versions, PostgreSQL build
+flags and CPU model.

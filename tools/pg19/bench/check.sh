@@ -21,5 +21,12 @@ cargo build --release --locked -p pg19-query --example parse-bench --target-dir 
 cp -- "$repo/target/release/examples/parse-bench" "$work/bench-rust"
 make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk" \
     "repo=$repo" "schema=$pgimport/pg19-2-1" "work=$work" "$work/bench-c"
+{
+    "${RUSTC:-rustc}" -vV
+    cargo -V
+    awk '/^#define PG_VERSION_STR / || /^#define CONFIGURE_ARGS /' "$build/src/include/pg_config.h"
+    awk '/^CFLAGS = /' "$build/src/Makefile.global"
+    awk '/^model name[[:space:]]*:/ {print; exit}' /proc/cpuinfo
+} > "$work/toolchain.txt"
 python3 tools/pg19/bench/prepare.py "$corpus" "$work"
 exec python3 tools/pg19/bench/compare.py "$work" "$work/bench-rust"

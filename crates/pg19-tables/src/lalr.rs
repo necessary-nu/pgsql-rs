@@ -6,10 +6,16 @@ pub const PRODUCTION_COUNT: usize = RULE_COUNT;
 pub struct State(u16);
 
 impl State {
-    pub fn number(self) -> u16 { self.0 }
+    pub fn number(self) -> u16 {
+        self.0
+    }
 
     pub const fn from_number(number: u16) -> Option<Self> {
-        if (number as usize) < STATE_COUNT { Some(Self(number)) } else { None }
+        if (number as usize) < STATE_COUNT {
+            Some(Self(number))
+        } else {
+            None
+        }
     }
 }
 
@@ -83,7 +89,11 @@ impl Lookahead {
     pub fn new(external: u16) -> Self {
         // Token 256 is Bison's lexer-error signal, even in a state with a
         // default reduction after a failed lookup.
-        if external == 256 { Self(u16::MAX) } else { Self(terminal(external)) }
+        if external == 256 {
+            Self(u16::MAX)
+        } else {
+            Self(terminal(external))
+        }
     }
 }
 
@@ -136,7 +146,11 @@ pub fn goto(previous: State, reduced: Production) -> State {
 
 impl Production {
     pub const fn from_number(number: u16) -> Option<Self> {
-        if number != 0 && number as usize <= PRODUCTION_COUNT { Some(Self(number)) } else { None }
+        if number != 0 && number as usize <= PRODUCTION_COUNT {
+            Some(Self(number))
+        } else {
+            None
+        }
     }
 
     #[inline]

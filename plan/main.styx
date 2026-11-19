@@ -568,6 +568,13 @@ children (
                         kind @note
                         text "All 54,471 reference cases matched. With a 1 KiB initial buffer for nonempty statement JSON, seven paired median Rust/C ratios were 1.216, 1.431 and 1.536 for raw SELECT 1, aggregate join and corpus. Parse plus JSON passed on all three at 0.713, 0.907 and 0.933. The 54,266 successful corpus outputs matched byte for byte. Per-type record pools and compact semantic handles both slowed raw parsing in paired trials. The raw-parse requirement remains open."
                     }
+
+                    {
+                        at 2026-11-19T23:39:06.080435306Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Final release verification matched every JSON byte on 54,266 successful upstream inputs. Over seven alternating rounds on CPU 15, median Rust/C was 1.166, 1.303 and 1.579 for raw SELECT 1, aggregate join and corpus, and 0.781, 0.717 and 1.116 for parse plus JSON. Corpus JSON varied from 0.933 on the earlier release run to 1.116 on this run. An experimental profile-guided build trained both compilers on the same 12,396 separate valid PostgreSQL extension queries. On the held-out workloads the ratios were 0.837, 1.234 and 1.591 for raw parsing and 0.536, 1.031 and 0.910 for parse plus JSON. Keep the six-median release gate open."
+                    }
                 )
             }
         )
