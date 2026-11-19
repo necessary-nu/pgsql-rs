@@ -12,6 +12,7 @@
 #![forbid(unsafe_code)]
 
 mod copy;
+mod equal;
 mod owned;
 pub use owned::{NodeBox, NodeList, NodeRecord};
 
