@@ -49,6 +49,7 @@ fn columns(node: Node) -> Result<Vec<Node>, Failure> {
     }
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(Value::Node(match op {
         From::Alias { name, columns } => Alias {

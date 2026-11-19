@@ -18,11 +18,11 @@ mod window;
 mod xmltable;
 
 pub use pg19_engine::ParseMode;
-use pg19_engine::{Actions, ParseError, Reduction};
+use pg19_engine::{ParseError, ParseStack, Reduction, StackActions};
 pub use pg19_lexer::Options;
 use pg19_lexer::Token;
 use pg19_nodes::{Node, RawStmt};
-use pg19_tables::{Production, RuleInfo};
+use pg19_tables::{Production, RuleInfo, State};
 use value::Value;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -89,12 +89,47 @@ enum Op {
 }
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
-impl TryFrom<Production> for Op {
-    type Error = Error;
+type Handler =
+    fn(&mut ParseStack<Value>, State, (usize, usize)) -> Result<State, Box<(Production, Failure)>>;
 
-    fn try_from(rule: Production) -> Result<Self, Self::Error> {
-        action(rule.number()).ok_or_else(|| Error::Unmapped(rule.info()))
-    }
+#[cfg_attr(not(debug_assertions), inline(always))]
+fn apply(op: Op, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    Ok(match op {
+        Op::Generated(handler) => handler(rhs)?,
+        Op::Take(i) => rhs.take(i),
+        Op::Integer(v) => Value::Integer(v),
+        Op::Types(op) => types::reduce(op, rhs)?,
+        Op::Limit(op) => limits::reduce(op, rhs)?,
+        Op::Call(op) => call::reduce(op, rhs)?,
+        Op::Dml(op) => dml::reduce(op, rhs)?,
+        Op::Predicate(op) => predicate::reduce(op, rhs)?,
+        Op::Window(op) => window::reduce(op, rhs)?,
+        Op::Builtin(op) => builtin::reduce(op, rhs)?,
+        Op::Json(op) => json::reduce(op, rhs)?,
+        Op::From(op) => from::reduce(op, rhs)?,
+        Op::Empty => Value::Empty,
+        Op::Nil => Value::List(Vec::new()),
+        Op::Single => Value::List(vec![rhs.take(1).node()?]),
+        Op::RuleActions { first } => {
+            let (mut list, next) = if first {
+                (Vec::new(), rhs.take(1))
+            } else {
+                (rhs.take(1).list()?, rhs.take(3))
+            };
+            if let Some(stmt) = next.optional()? {
+                list.push(*stmt);
+            }
+            Value::List(list)
+        }
+        Op::Append(i) => {
+            let mut items = rhs.take(1).list()?;
+            items.push(rhs.take(i).node()?);
+            Value::List(items)
+        }
+        Op::Utility(op) => utility::reduce(op, rhs)?,
+        Op::Expr(e) => expr::reduce(e, rhs)?,
+        Op::Query(q) => query::reduce(q, rhs)?,
+    })
 }
 
 struct Parser<'a> {
@@ -102,60 +137,41 @@ struct Parser<'a> {
 }
 
 // [spec:pgq:req:grammar.overlay-differences]
-impl Actions for Parser<'_> {
+impl StackActions for Parser<'_> {
     type Value = Value;
-    type Error = Error;
+    type Error = Box<Error>;
 
-    fn shift(&mut self, token: Token) -> Value {
-        match token.value {
+    #[inline]
+    fn shift(&mut self, token: &mut Token) -> Value {
+        match std::mem::replace(&mut token.value, pg19_lexer::Value::None) {
             pg19_lexer::Value::None => Value::Empty,
             pg19_lexer::Value::Integer(n) => Value::Integer(n),
             pg19_lexer::Value::Text(s) => Value::Text(s),
-            pg19_lexer::Value::Keyword(s) => Value::Text(s.to_owned()),
+            pg19_lexer::Value::Keyword(s) => Value::Keyword(s),
         }
     }
 
-    fn reduce(&mut self, rule: Production, rhs: &mut Reduction<'_, Value>) -> Result<Value, Error> {
-        let op = Op::try_from(rule)?;
-        let result = (|| {
-            Ok(match op {
-                Op::Generated(handler) => handler(rhs)?,
-                Op::Take(i) => rhs.take(i),
-                Op::Integer(v) => Value::Integer(v),
-                Op::Types(op) => types::reduce(op, rhs)?,
-                Op::Limit(op) => limits::reduce(op, rhs)?,
-                Op::Call(op) => call::reduce(op, rhs)?,
-                Op::Dml(op) => dml::reduce(op, rhs)?,
-                Op::Predicate(op) => predicate::reduce(op, rhs)?,
-                Op::Window(op) => window::reduce(op, rhs)?,
-                Op::Builtin(op) => builtin::reduce(op, rhs)?,
-                Op::Json(op) => json::reduce(op, rhs)?,
-                Op::From(op) => from::reduce(op, rhs)?,
-                Op::Empty => Value::Empty,
-                Op::Nil => Value::List(Vec::new()),
-                Op::Single => Value::List(vec![rhs.take(1).node()?]),
-                Op::RuleActions { first } => {
-                    let (mut list, next) = if first {
-                        (Vec::new(), rhs.take(1))
-                    } else {
-                        (rhs.take(1).list()?, rhs.take(3))
-                    };
-                    if let Some(stmt) = next.optional()? {
-                        list.push(*stmt);
-                    }
-                    Value::List(list)
-                }
-                Op::Append(i) => {
-                    let mut items = rhs.take(1).list()?;
-                    items.push(rhs.take(i).node()?);
-                    Value::List(items)
-                }
-                Op::Utility(op) => utility::reduce(op, rhs)?,
-                Op::Expr(e) => expr::reduce(e, rhs)?,
-                Op::Query(q) => query::reduce(q, rhs)?,
-            })
-        })();
-        result.map_err(|failure| match failure {
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    fn reduce_stack(
+        &mut self,
+        rule: Production,
+        stack: &mut ParseStack<Value>,
+        current: State,
+        span: (usize, usize),
+    ) -> Result<State, Box<Error>> {
+        let handler =
+            HANDLERS[usize::from(rule.number())].ok_or_else(|| Error::Unmapped(rule.info()))?;
+        handler(stack, current, span).map_err(|failed| {
+            let (rule, failure) = *failed;
+            Box::new(self.error(rule, span, failure))
+        })
+    }
+}
+
+impl Parser<'_> {
+    #[cold]
+    fn error(&self, rule: Production, span: (usize, usize), failure: Failure) -> Error {
+        match failure {
             Failure::Value(expected) => Error::InvalidValue {
                 rule: rule.info(),
                 expected,
@@ -167,10 +183,11 @@ impl Actions for Parser<'_> {
                 })
             }
             Failure::Syntax(message) => {
-                let (a, b) = rhs.scanner_span();
-                Error::Diagnostic(pg19_lexer::Error::near(self.sql, a, b, message))
+                let (a, b) = span;
+                let sql = self.sql.split('\0').next().unwrap();
+                Error::Diagnostic(pg19_lexer::Error::near(sql, a, b, message))
             }
-        })
+        }
     }
 }
 
@@ -180,26 +197,38 @@ impl Actions for Parser<'_> {
 // [spec:pgq:req:grammar.parse-modes]
 // [spec:pgq:req:grammar.runtime]
 pub fn parse(sql: &str, mode: ParseMode, options: Options) -> Result<Vec<Node>, Error> {
-    let sql = sql.split_once('\0').map_or(sql, |(prefix, _)| prefix);
-    let mut parser = Parser { sql };
-    match pg19_engine::parse(sql, mode, options, &mut parser) {
-        Ok(Value::List(nodes)) => Ok(nodes),
-        Ok(_) => Err(Error::InvalidOutput("start action did not return a list")),
-        Err(ParseError::Diagnostic(e)) => Err(Error::Diagnostic(e)),
-        Err(ParseError::Action(e)) => Err(e),
+    match parse_value(sql, mode, options)? {
+        Value::List(nodes) => Ok(nodes),
+        Value::Statements(list) => Ok(list.into_statements().into_iter().map(Node::from).collect()),
+        _ => Err(Error::InvalidOutput("start action did not return a list")),
     }
 }
 
-pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Error> {
-    parse(sql, ParseMode::Sql, options)?
-        .into_iter()
-        .map(|node| match node {
-            Node::RawStmt(stmt) => Ok(stmt.into_inner()),
-            _ => Err(Error::InvalidOutput(
-                "default parse mode returned a non-statement",
-            )),
+fn parse_value(sql: &str, mode: ParseMode, options: Options) -> Result<Value, Error> {
+    thread_local! {
+        static SCRATCH: std::cell::Cell<ParseStack<Value>> = const { std::cell::Cell::new(ParseStack::new()) };
+    }
+    SCRATCH
+        .with(|cache| {
+            let mut stack = cache.take();
+            let result =
+                pg19_engine::parse_with(sql, mode, options, &mut Parser { sql }, &mut stack);
+            cache.set(stack);
+            result
         })
-        .collect()
+        .map_err(|err| match err {
+            ParseError::Diagnostic(e) => Error::Diagnostic(e),
+            ParseError::Action(e) => *e,
+        })
+}
+
+pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Error> {
+    match parse_value(sql, ParseMode::Sql, options)? {
+        Value::Statements(list) => Ok(list.into_statements()),
+        _ => Err(Error::InvalidOutput(
+            "default parse mode returned a non-statement",
+        )),
+    }
 }
 
 #[cfg(test)]
@@ -221,7 +250,7 @@ mod tests {
             inside |= lhs == first;
             if inside && info.action.is_some() {
                 assert!(
-                    action(rule.number()).is_some(),
+                    HANDLERS[usize::from(rule.number())].is_some(),
                     "missing {}",
                     info.production
                 );
@@ -248,7 +277,7 @@ mod tests {
             let info = rule.info();
             if info.action.is_some() {
                 assert!(
-                    Op::try_from(rule).is_ok(),
+                    HANDLERS[usize::from(rule.number())].is_some(),
                     "unmapped PostgreSQL action at gram.y:{} for {}",
                     info.line,
                     info.production

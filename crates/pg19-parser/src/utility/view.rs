@@ -91,7 +91,7 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
         location,
         ..Default::default()
     };
-    let from = super::range_name(vec![relname], location, true)?;
+    let from = super::range_name([relname], location, true)?;
     let query = SelectStmt {
         with_clause: Some(Box::new(WithClause {
             recursive: true,

@@ -89,6 +89,10 @@ mod tests {
             "10355c52b9c8a6ec77b684b9a9b7680377cb6ac22cca515e47fddf736bb93ca4"
         );
 
+        assert!(all
+            .iter()
+            .all(|r| r.has_action() == r.info().action.is_some()));
+        assert!(plpgsql::productions().all(|r| r.has_action() == r.info().action.is_some()));
         let explicit = all.iter().filter(|r| r.info().action.is_some()).count();
         assert!(explicit > 1000 && explicit < all.len());
         assert_eq!(unmapped_actions(|_| false).count(), explicit);

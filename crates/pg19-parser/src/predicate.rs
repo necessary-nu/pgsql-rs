@@ -26,6 +26,7 @@ pub(super) enum Predicate {
     When,
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: Predicate, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let node = match op {
         Predicate::Qualified(prefix) => {

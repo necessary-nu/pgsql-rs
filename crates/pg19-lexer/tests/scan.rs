@@ -143,6 +143,22 @@ fn lookahead_preserves_positions_and_skips_comments() {
     assert_eq!(Scanner::new(sql).next().unwrap().unwrap().kind, Kind::NOT);
 }
 
+#[test]
+fn reusable_token_handles_buffered_input_errors_and_eof() {
+    let mut slot = pg19_lexer::Token::default();
+    let mut scanner = Scanner::new("NOT /* comment */ IN AbC -- tail").grammar();
+    for kind in [Kind::NOT_LA, Kind::IN_P, Kind::IDENT] {
+        assert!(scanner.next_into(&mut slot).unwrap());
+        assert_eq!(slot.kind, kind);
+    }
+    assert_eq!(slot.value, Value::Text("abc".into()));
+    assert!(!scanner.next_into(&mut slot).unwrap());
+    assert!(!scanner.next_into(&mut slot).unwrap());
+    let mut scanner = Scanner::new("NOT 'unterminated").grammar();
+    assert_eq!(scanner.next_into(&mut slot).unwrap_err().position, 5);
+    assert!(!scanner.next_into(&mut slot).unwrap());
+}
+
 // [spec:pgq:req:lex.unicode-escape/test]
 #[test]
 fn unicode_escape_clause_consumes_three_tokens() {

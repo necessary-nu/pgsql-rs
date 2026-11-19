@@ -13,6 +13,7 @@ pub(super) enum Dml {
 }
 
 // [spec:pgq:sem:grammar.dml-actions]
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(match op {
         Dml::MergeWhen => {

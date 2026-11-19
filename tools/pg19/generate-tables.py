@@ -102,6 +102,24 @@ def plpgsql_tokens(grammar, source):
     return "".join(lines).encode()
 
 
+def goto_edges(report, symbols, arrays, pact_default):
+    # Stream the viable goto arcs. The native parser can fold a chain of
+    # unit productions because each reduces above the same preceding state.
+    state = 0
+    units = [r if base == pact_default and arrays["yyr2"][r] == 1 else 0
+             for base, r in zip(arrays["yypact"], arrays["yydefact"], strict=True)]
+    packed = bytearray(struct.pack(f"<H{len(units)}H", len(units), *units))
+    for event, element in ET.iterparse(report, events=("start", "end")):
+        if event == "start" and element.tag == "state":
+            state = int(element.attrib["number"])
+        if event == "end":
+            if element.tag == "transition" and element.get("type") == "goto":
+                dest = int(element.attrib["state"])
+                packed.extend(struct.pack("<3H", symbols[element.attrib["symbol"]], state, dest))
+            element.clear()
+    return packed
+
+
 def generate(source, work, plpgsql=False):
     gram_path = source / ("src/pl/plpgsql/src/pl_gram.y" if plpgsql else "src/backend/parser/gram.y")
     gram, grammar, c = gram_report(gram_path, work)
@@ -117,6 +135,7 @@ def generate(source, work, plpgsql=False):
         blob.extend(struct.pack(f"<{len(values)}{fmt}", *values))
     for name, fmt in ARRAYS.items():
         write_array(name, fmt, arrays[name])
+    write_array("has_action", "B", [0] + [not row.endswith("\tdefault\n") for row in rows])
     def write_offsets(name, lines):
         offsets = [0]
         for line in lines:
@@ -142,6 +161,8 @@ def generate(source, work, plpgsql=False):
         "data/productions.tsv": "".join(rows).encode(),
         "data/symbols.txt": "".join(symbol_lines).encode(),
     }
+    if not plpgsql:
+        files["data/gotos.bin"] = goto_edges(work / "gram.xml", symbols, arrays, int(constants["YYPACT_NINF"]))
     if plpgsql:
         files = {name.replace("src/", "src/plpgsql/").replace("data/", "data/plpgsql/"): data
                  for name, data in files.items()}

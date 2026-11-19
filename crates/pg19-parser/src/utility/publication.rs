@@ -49,7 +49,7 @@ fn normalize(objects: &mut [Node]) -> Result<(), Failure> {
             Kind::PUBLICATIONOBJ_TABLE => {
                 if let Some(name) = spec.name.take() {
                     spec.pubtable = Some(Box::new(PublicationTable {
-                        relation: Some(Box::new(range_name(vec![name], spec.location, true)?)),
+                        relation: Some(Box::new(range_name([name], spec.location, true)?)),
                         ..Default::default()
                     }));
                 }

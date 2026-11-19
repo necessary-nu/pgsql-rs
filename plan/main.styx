@@ -539,6 +539,30 @@ children (
                     plpgsql.functions
                 )
             }
+
+            {
+                id delivery.parser-performance
+                title "Meet PostgreSQL 19 C parse and JSON latency on all three comparison workloads"
+                kind @perf
+                implements {
+                    rust ([spec:pgq:req:grammar.parse-speed])
+                }
+                log (
+                    {
+                        at 2026-11-19T22:03:14.5926943Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+
+                    {
+                        at 2026-11-19T22:41:28.873496105Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The byte-for-byte gate verified all 54,266 successful corpus inputs. Seven paired rounds after specializing native reductions and reusing parser scratch measured Rust/C of 1.77/0.97 (SELECT 1), 2.19/1.15 (aggregate join), and 1.92/1.18 (corpus), parse/parse plus JSON. Leave the latency requirement open until all six pass on the same run."
+                    }
+                )
+            }
         )
     }
 )

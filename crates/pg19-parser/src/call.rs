@@ -23,14 +23,17 @@ pub(super) fn function_name(
     qualified: bool,
     rhs: &mut Reduction<'_, Value>,
 ) -> Result<Value, Failure> {
-    let mut names = vec![Node::String(rhs.take(1).text()?)];
-    if qualified {
-        let tail = rhs.take(2).list()?;
+    let name = Node::String(rhs.take(1).text()?);
+    let names = if qualified {
+        let mut tail = rhs.take(2).list()?;
         if tail.iter().any(|n| !matches!(n, Node::String(_))) {
             return Err(Failure::Syntax("syntax error"));
         }
-        names.extend(tail);
-    }
+        tail.insert(0, name);
+        tail
+    } else {
+        vec![name]
+    };
     Ok(Value::List(names))
 }
 
@@ -65,6 +68,7 @@ fn aggregate(rhs: &mut Reduction<'_, Value>) -> Result<Node, Failure> {
     Ok(call.into())
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: Call, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let node = match op {
         Call::Name(qualified) => return function_name(qualified, rhs),

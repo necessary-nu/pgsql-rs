@@ -105,7 +105,7 @@ pub(crate) fn drive<A: Actions>(input: &mut Input, actions: &mut A) -> Result<A:
                     start,
                     location,
                 };
-                let value = if rule.info().action.is_some() {
+                let value = if rule.has_action() {
                     actions.reduce(rule, &mut rhs, input)?
                 } else {
                     rhs.default_value()

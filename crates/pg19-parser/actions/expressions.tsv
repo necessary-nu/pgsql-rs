@@ -1,5 +1,5 @@
 # PostgreSQL gram.y production, Bison action SHA-256, native operation.
-parse_toplevel: stmtmulti	10355c52b9c8a6ec77b684b9a9b7680377cb6ac22cca515e47fddf736bb93ca4	Query(Q::Statements)
+parse_toplevel: stmtmulti	10355c52b9c8a6ec77b684b9a9b7680377cb6ac22cca515e47fddf736bb93ca4	Take(1)
 stmtmulti: stmtmulti ';' toplevel_stmt	290560de7141585cc91887bb9563e0466525a793a47f6df06ec2dcb998a117a3	Query(Q::Next)
 stmtmulti: toplevel_stmt	c14881b47840ec2094f8c16656e7dbb5893effc0545f7602f7e638d93705c513	Query(Q::First)
 stmt: %empty	39d1828f732d45a5a1fcf85f9dc97d68b4e4064108d2a44c3fca644eea01dfd6	Empty

@@ -7,6 +7,7 @@ pub(crate) enum Value {
     Limit(Box<crate::limits::SelectLimit>),
     Integer(i32),
     Text(String),
+    Keyword(&'static str),
     Node(Node),
     List(Vec<Node>),
     Statements(StatementList),
@@ -46,6 +47,7 @@ impl Value {
     pub(crate) fn text(self) -> Checked<String> {
         match self {
             Self::Text(value) => Ok(value),
+            Self::Keyword(word) => Ok(word.to_owned()),
             _ => Err("expected text"),
         }
     }

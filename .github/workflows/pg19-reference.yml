@@ -57,5 +57,7 @@ jobs:
       - run: cargo test --locked -p pg19-reference --test reference -- --ignored
         env:
           PYTHONPATH: /usr/lib/python3/dist-packages
+          CFLAGS: -O3
+          PG19_BENCHMARK: 1
           PG19_NATIVE_PROBE: ${{ github.workspace }}/target/release/examples/pg19-native
           PG19_DEPARSE_PROBE: ${{ github.workspace }}/target/release/examples/deparse-corpus

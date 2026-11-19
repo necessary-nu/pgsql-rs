@@ -119,23 +119,21 @@ fn indirect(base: Node, fields: Vec<Node>) -> Node {
     }
 }
 
-fn column(name: String, fields: Vec<Node>, location: Location) -> Result<Node, Failure> {
+fn column(name: String, mut fields: Vec<Node>, location: Location) -> Result<Node, Failure> {
     checked_fields(&fields)?;
-    let mut names = vec![Node::String(name)];
-    let mut tail = fields.into_iter().peekable();
-    while tail.peek().is_some_and(|n| !matches!(n, Node::AIndices(_))) {
-        names.push(tail.next().unwrap());
+    let tail = fields
+        .iter()
+        .position(|n| matches!(n, Node::AIndices(_)))
+        .map_or_else(Vec::new, |i| fields.split_off(i));
+    if fields.is_empty() {
+        fields = vec![Node::String(name)];
+    } else {
+        fields.insert(0, Node::String(name));
     }
-    Ok(indirect(
-        ColumnRef {
-            fields: names,
-            location,
-        }
-        .into(),
-        tail.collect(),
-    ))
+    Ok(indirect(ColumnRef { fields, location }.into(), tail))
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let location = rhs.location(1);
     let constant = |val| Node::AConst(AConst { val, location });

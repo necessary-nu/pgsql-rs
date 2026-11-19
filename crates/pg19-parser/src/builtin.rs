@@ -88,6 +88,7 @@ fn function(
     .into()
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: Builtin, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let node = match op {
         Builtin::SqlValue(op, typmod) => SQLValueFunction {

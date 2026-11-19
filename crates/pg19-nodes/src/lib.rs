@@ -1,7 +1,7 @@
 //! Owned raw SQL nodes from the patched PostgreSQL 19.0 grammar.
 //!
-//! Destruction drains descendants on a heap worklist, including when parser
-//! error cleanup discards an unfinished expression. Build a tagged record with
+//! Destruction switches to a heap worklist at a bounded nesting depth, including
+//! when parser error cleanup discards an unfinished expression. Build a tagged record with
 //! `Node::from(record)` or `Node::from(boxed_record)`. A record variant holds
 //! a [NodeBox]; use `owner.into_inner()` to move its fields out. The recursive
 //! `SelectStmt.larg` and `rarg` fields also take `Some(record.into())`.

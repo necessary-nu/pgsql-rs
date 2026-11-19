@@ -1,4 +1,7 @@
 // Generated from PostgreSQL 19.0 by tools/pg19/import-lexer.py.
+pub(super) const MAX_KEYWORD_LEN: usize = 17;
+pub(super) const KEYWORD_ROWS: usize = 576;
+pub(super) const KEYWORD_CANDIDATES: usize = 6304;
 pub(super) const COLUMNS: usize = 38;
 impl Kind {
     pub const YYERROR: Self = Self(256);

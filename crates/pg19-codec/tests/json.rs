@@ -114,3 +114,17 @@ fn lists_and_unknown_locations_preserve_json_representation() {
         })
     );
 }
+
+#[test]
+fn string_escaping_matches_reference_for_every_control_byte() {
+    let text: String = (0..32)
+        .map(char::from)
+        .chain("β<>\\\"/😀".chars())
+        .collect();
+    let json = node_json(&Node::String(text.clone())).unwrap();
+    let escaped = serde_json::to_string(&text)
+        .unwrap()
+        .replace('<', "\\u003c")
+        .replace('>', "\\u003e");
+    assert_eq!(json, format!(r#"{{"String":{{"sval":{escaped}}}}}"#));
+}

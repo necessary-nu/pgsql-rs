@@ -139,6 +139,7 @@ fn cast(arg: Node, target: Box<TypeName>, location: Location) -> Value {
     )
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     // The empty opt_float production has no $1. Every type constructor
     // that records a position starts with its first located token.

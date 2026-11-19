@@ -19,21 +19,45 @@ impl<'a> GrammarScanner<'a> {
     }
 
     fn read(&mut self) -> Result<Option<Token>, Error> {
-        self.core
-            .by_ref()
-            .find(|item| item.as_ref().map_or(true, |tok| !tok.kind.is_comment()))
-            .transpose()
+        loop {
+            let token = self.core.one()?;
+            if !token.as_ref().is_some_and(|t| t.kind.is_comment()) {
+                return Ok(token);
+            }
+        }
+    }
+
+    /// Fetch the next grammar token, including lookahead rewrites and EOF.
+    #[inline]
+    pub fn next_token(&mut self) -> Result<Option<Token>, Error> {
+        let mut token = Token::default();
+        Ok(self.next_into(&mut token)?.then_some(token))
+    }
+
+    /// Write the next grammar token to reusable storage and return false at EOF.
+    #[inline]
+    pub fn next_into(&mut self, token: &mut Token) -> Result<bool, Error> {
+        if self.failed {
+            return Ok(false);
+        }
+        self.read_into(token).inspect_err(|_| self.failed = true)
     }
 
     // [spec:pgq:req:lex.parser-lookahead]
-    fn one(&mut self) -> Result<Option<Token>, Error> {
-        let current = match self.buffered.take() {
-            Some(token) => Some(token),
-            None => self.read()?,
-        };
-        let Some(mut token) = current else {
-            return Ok(None);
-        };
+    #[inline]
+    fn read_into(&mut self, token: &mut Token) -> Result<bool, Error> {
+        if let Some(buffered) = self.buffered.take() {
+            *token = buffered;
+        } else {
+            loop {
+                if !self.core.read_into(token)? {
+                    return Ok(false);
+                }
+                if !token.kind.is_comment() {
+                    break;
+                }
+            }
+        }
         if !matches!(
             token.kind,
             Kind::FORMAT
@@ -44,8 +68,13 @@ impl<'a> GrammarScanner<'a> {
                 | Kind::UIDENT
                 | Kind::USCONST
         ) {
-            return Ok(Some(token));
+            return Ok(true);
         }
+        *token = self.rewrite(std::mem::take(token))?;
+        Ok(true)
+    }
+
+    fn rewrite(&mut self, mut token: Token) -> Result<Token, Error> {
         self.buffered = self.read()?;
         let next = self.buffered.as_ref().map(|token| token.kind);
         token.kind = match (token.kind, next) {
@@ -113,23 +142,14 @@ impl<'a> GrammarScanner<'a> {
             }
             (kind, _) => kind,
         };
-        Ok(Some(token))
+        Ok(token)
     }
 }
 
 impl Iterator for GrammarScanner<'_> {
     type Item = Result<Token, Error>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.failed {
-            return None;
-        }
-        match self.one() {
-            Ok(t) => t.map(Ok),
-            Err(e) => {
-                self.failed = true;
-                Some(Err(e))
-            }
-        }
+        self.next_token().transpose()
     }
 }
 

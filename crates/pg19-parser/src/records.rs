@@ -23,6 +23,7 @@ pub(crate) fn optional_text(value: Value) -> Result<Option<String>, Failure> {
     Ok(match value {
         Value::Empty => None,
         Value::Text(text) => Some(text),
+        Value::Keyword(word) => Some(word.to_owned()),
         _ => return Err("expected nullable text".into()),
     })
 }

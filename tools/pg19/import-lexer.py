@@ -44,6 +44,30 @@ def export_dfa(scanner, output):
     (output / "edges.bin").write_bytes(b"".join(struct.pack(f"<{len(row)}H", *row) for row in rows))
     return len(unique)
 
+def export_keyword_buckets(keywords, output):
+    # Length and the low five bits of each endpoint are invariant under ASCII
+    # case folding. Always check the complete spelling after selecting a bucket.
+    longest = max(len(word) for word, _, _ in keywords)
+    buckets = [[] for _ in range((longest + 1) * 1024)]
+    for index, (word, _, _) in enumerate(keywords):
+        key = len(word) * 1024 + (ord(word[0]) & 31) * 32 + (ord(word[-1]) & 31)
+        buckets[key].append(index)
+    candidates, descriptors = [], []
+    for bucket in buckets:
+        if not bucket:
+            descriptors.append(0)
+        else:
+            if len(bucket) >= 8:
+                raise ValueError("keyword bucket exceeds its three-bit length")
+            descriptors.append((len(candidates) << 3) | len(bucket))
+            candidates.extend(bucket)
+    rows = {}
+    selectors = [rows.setdefault(tuple(descriptors[i:i + 32]), len(rows))
+                 for i in range(0, len(descriptors), 32)]
+    data = [*selectors, *(v for row in rows for v in row), *candidates]
+    (output / "keyword-buckets.bin").write_bytes(struct.pack(f"<{len(data)}H", *data))
+    return longest, len(selectors), len(data) - len(candidates)
+
 def export(run, output):
     src = run / "patched-source/src"
     build = run / "patched/src/backend/parser"
@@ -58,8 +82,12 @@ def export(run, output):
     tokens = [(name, int(value)) for name, value in re.findall(r"^    (\w+) = (\d+),?", (build / "gram.h").read_text(), re.M) if int(value) >= 256]
     assert [v for _, v in tokens] == list(range(256, tokens[-1][1] + 1))
     keywords = re.findall(r'^PG_KEYWORD\("(\w+)",\s*(\w+),\s*(\w+),', (src / "include/parser/kwlist.h").read_text(), re.M)
+    max_word, rows, candidates = export_keyword_buckets(keywords, output)
     categories = {"UNRESERVED_KEYWORD": "Unreserved", "COL_NAME_KEYWORD": "ColumnName", "TYPE_FUNC_NAME_KEYWORD": "TypeFunctionName", "RESERVED_KEYWORD": "Reserved"}
     lines = ["// Generated from PostgreSQL 19.0 by tools/pg19/import-lexer.py.",
+             f"pub(super) const MAX_KEYWORD_LEN: usize = {max_word};",
+             f"pub(super) const KEYWORD_ROWS: usize = {rows};",
+             f"pub(super) const KEYWORD_CANDIDATES: usize = {candidates};",
              f"pub(super) const COLUMNS: usize = {cols};", "impl Kind {"]
     lines.extend(f"    pub const {name.upper()}: Self = Self({value});" for name, value in tokens)
     lines += ["}", "pub(super) static NAMES: &[&str] = &["]

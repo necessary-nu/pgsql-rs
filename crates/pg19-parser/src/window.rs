@@ -64,6 +64,7 @@ fn extent(between: bool, rhs: &mut Reduction<'_, Value>) -> Result<NodeBox<Windo
     Ok(bounds)
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: Window, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let window: NodeBox<WindowDef> = match op {
         Window::Bound(bits, offset) => WindowDef {
@@ -89,11 +90,7 @@ pub(super) fn reduce(op: Window, rhs: &mut Reduction<'_, Value>) -> Result<Value
         }
         Window::Specification => {
             let mut frame = window(rhs.take(5))?;
-            frame.refname = match rhs.take(2) {
-                Value::Empty => None,
-                Value::Text(s) => Some(s),
-                _ => return Err("expected window name".into()),
-            };
+            frame.refname = crate::records::optional_text(rhs.take(2))?;
             frame.partition_clause = rhs.take(3).list()?;
             frame.order_clause = rhs.take(4).list()?;
             frame.location = rhs.location(1);

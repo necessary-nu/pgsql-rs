@@ -7,7 +7,6 @@ use pg19_engine::Reduction;
 use pg19_nodes::*;
 
 pub(super) enum Query {
-    Statements,
     TypeStart,
     Cursor,
     CursorOption(i32),
@@ -42,7 +41,12 @@ fn push_statement(
     value: Value,
     location: Location,
 ) -> Result<(), Failure> {
-    list.push(value.optional()?.map(|n| *n), location);
+    let node = match value {
+        Value::Empty => None,
+        Value::Node(node) => Some(node),
+        _ => return Err("expected nullable node".into()),
+    };
+    list.push(node, location);
     Ok(())
 }
 
@@ -73,6 +77,7 @@ fn select(distinct: bool, rhs: &mut Reduction<'_, Value>) -> Result<SelectStmt, 
     })
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(match action {
         Query::PlStart(nnames) => {
@@ -239,10 +244,6 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             Value::Node(relation.into())
         }
         Query::TypeStart => Value::List(vec![rhs.take(2).node()?]),
-        Query::Statements => {
-            let list = rhs.take(1).statements()?;
-            Value::List(list.into_statements().into_iter().map(Node::from).collect())
-        }
         Query::First => {
             let mut list = StatementList::default();
             push_statement(&mut list, rhs.take(1), rhs.location(1))?;

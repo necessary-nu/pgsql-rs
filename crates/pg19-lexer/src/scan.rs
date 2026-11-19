@@ -29,11 +29,21 @@ impl<'a> Scanner<'a> {
         self.cursor
     }
 
+    /// SQL visible to the scanner, ending at PostgreSQL's NUL terminator.
+    pub fn source(&self) -> &'a str {
+        self.sql
+    }
+
     pub fn grammar(self) -> crate::GrammarScanner<'a> {
         crate::GrammarScanner::new(self)
     }
 
-    fn one(&mut self) -> Result<Option<Token>, Error> {
+    pub(crate) fn one(&mut self) -> Result<Option<Token>, Error> {
+        let mut token = Token::default();
+        Ok(self.read_into(&mut token)?.then_some(token))
+    }
+
+    pub(crate) fn read_into(&mut self, token: &mut Token) -> Result<bool, Error> {
         while self.cursor < self.sql.len() {
             let start = self.cursor;
             let (action, mut end) = longest(State::Initial, self.sql.as_bytes(), start);
@@ -57,12 +67,12 @@ impl<'a> Scanner<'a> {
                 13 | 45 | 71 => {
                     let word = if action == 13 {
                         end = start + 1;
-                        "nchar".to_owned()
+                        "nchar"
                     } else if action == 45 {
                         end = start + 1;
-                        "u".to_owned()
+                        "u"
                     } else {
-                        text.to_ascii_lowercase()
+                        text
                     };
                     let (k, v, category) = identifier(word);
                     keyword = category;
@@ -125,15 +135,16 @@ impl<'a> Scanner<'a> {
                 _ => unreachable!("unmapped initial scanner action {action}"),
             };
             self.cursor = end;
-            return Ok(Some(Token {
+            *token = Token {
                 kind,
                 start,
                 end,
                 value,
                 keyword,
-            }));
+            };
+            return Ok(true);
         }
-        Ok(None)
+        Ok(false)
     }
 }
 
@@ -178,10 +189,14 @@ fn block_comment(sql: &str, start: usize) -> Result<usize, Error> {
 }
 
 // [spec:pgq:req:lex.keywords]
-fn identifier(word: String) -> (Kind, Value, Option<crate::KeywordKind>) {
-    match crate::keyword(&word) {
+fn identifier(word: &str) -> (Kind, Value, Option<crate::KeywordKind>) {
+    match crate::keyword_case_insensitive(word) {
         Some((word, kind, category)) => (kind, Value::Keyword(word), Some(category)),
-        None => (Kind::IDENT, Value::Text(truncate_identifier(word)), None),
+        None => (
+            Kind::IDENT,
+            Value::Text(truncate_identifier(word.to_ascii_lowercase())),
+            None,
+        ),
     }
 }
 
@@ -193,13 +208,23 @@ fn integer(text: &str, action: u8) -> (Kind, Value) {
         60 => (2, &text[2..]),
         _ => (10, text),
     };
-    match i32::from_str_radix(&digits.replace('_', ""), radix) {
+    let cleaned;
+    let digits = if digits.as_bytes().contains(&b'_') {
+        cleaned = digits.replace('_', "");
+        &cleaned
+    } else {
+        digits
+    };
+    match i32::from_str_radix(digits, radix) {
         Ok(value) => (Kind::ICONST, Value::Integer(value)),
         Err(_) => (Kind::FCONST, Value::Text(text.to_owned())),
     }
 }
 
 fn trim_operator(text: &str) -> &str {
+    if text.len() == 1 {
+        return text;
+    }
     let end = [text.find("/*"), text.find("--")]
         .into_iter()
         .flatten()

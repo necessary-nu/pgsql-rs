@@ -77,37 +77,44 @@ fn flag_options(
 fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Failure> {
     let first = rhs.take(1).text()?;
     let location = rhs.location(1);
-    let mut parts = vec![first];
-    if dotted {
-        for value in rhs.take(2).list()? {
-            let Node::String(name) = value else {
-                return Err(Failure::Syntax("syntax error"));
-            };
-            parts.push(name);
-        }
+    if !dotted {
+        return Ok(Value::Node(range_name([first], location, true)?.into()));
+    }
+    let tail = rhs.take(2).list()?;
+    let mut parts = Vec::with_capacity(1 + tail.len());
+    parts.push(first);
+    for value in tail {
+        let Node::String(name) = value else {
+            return Err(Failure::Syntax("syntax error"));
+        };
+        parts.push(name);
     }
     Ok(Value::Node(range_name(parts, location, true)?.into()))
 }
 
-pub(super) fn range_name(
-    mut parts: Vec<String>,
+pub(super) fn range_name<I: IntoIterator<Item = String>>(
+    parts: I,
     location: Location,
     inherit: bool,
-) -> Result<RangeVar, Failure> {
+) -> Result<RangeVar, Failure>
+where
+    I::IntoIter: DoubleEndedIterator + ExactSizeIterator,
+{
+    let mut parts = parts.into_iter();
     if !(1..=3).contains(&parts.len()) {
         return Err(Failure::At(
             format!(
                 "improper qualified name (too many dotted names): {}",
-                parts.join(".")
+                parts.collect::<Vec<_>>().join(".")
             ),
             "42601",
             location,
         ));
     }
     Ok(RangeVar {
-        relname: parts.pop(),
-        schemaname: parts.pop(),
-        catalogname: parts.pop(),
+        relname: parts.next_back(),
+        schemaname: parts.next_back(),
+        catalogname: parts.next_back(),
         location,
         inh: inherit,
         relpersistence: b'p',

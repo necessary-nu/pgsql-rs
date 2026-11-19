@@ -5,6 +5,14 @@ pub const PRODUCTION_COUNT: usize = RULE_COUNT;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct State(u16);
 
+impl State {
+    pub fn number(self) -> u16 { self.0 }
+
+    pub const fn from_number(number: u16) -> Option<Self> {
+        if (number as usize) < STATE_COUNT { Some(Self(number)) } else { None }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Production(u16);
 
@@ -42,6 +50,7 @@ fn row(text: &'static str, offsets: usize, index: usize) -> &'static str {
     &text[start..end - 1] // exclude the inventory record's final newline
 }
 
+#[inline]
 fn checked_entry(index: i32, check: u16) -> Option<i16> {
     if !(0..=YYLAST).contains(&index) {
         return None;
@@ -56,6 +65,7 @@ pub fn symbol_name(symbol: u16) -> Option<&'static str> {
 }
 
 /// Translate the scanner's numeric token ID to the parser's internal symbol number.
+#[inline]
 pub fn terminal(external: u16) -> u16 {
     if usize::from(external) < TOKEN_COUNT {
         u16::from_le_bytes(bytes(YYTRANSLATE, usize::from(external)))
@@ -64,21 +74,34 @@ pub fn terminal(external: u16) -> u16 {
     }
 }
 
+/// Translated lookahead, retained across reductions until the token shifts.
+#[derive(Clone, Copy, Debug)]
+pub struct Lookahead(u16);
+
+impl Lookahead {
+    #[inline]
+    pub fn new(external: u16) -> Self {
+        // Token 256 is Bison's lexer-error signal, even in a state with a
+        // default reduction after a failed lookup.
+        if external == 256 { Self(u16::MAX) } else { Self(terminal(external)) }
+    }
+}
+
 // [spec:pgq:req:grammar.tables]
-pub fn action(state: State, lookahead: Option<u16>) -> Action {
+#[inline]
+pub fn step(state: State, lookahead: Option<Lookahead>) -> Action {
     if state.0 == YYFINAL as u16 {
         return Action::Accept;
     }
     let index = usize::from(state.0);
     let base = i32::from_le_bytes(bytes(YYPACT, index));
     if base != YYPACT_NINF {
-        let Some(external) = lookahead else {
+        let Some(Lookahead(token)) = lookahead else {
             return Action::NeedToken;
         };
-        if external == 256 {
+        if token == u16::MAX {
             return Action::Error; // YYerror means the lexer has already reported an error.
         }
-        let token = terminal(external);
         if let Some(entry) = checked_entry(base + i32::from(token), token) {
             return match entry {
                 n if n > 0 => Action::Shift(State(n as u16)),
@@ -95,7 +118,13 @@ pub fn action(state: State, lookahead: Option<u16>) -> Action {
     }
 }
 
+#[inline]
+pub fn action(state: State, lookahead: Option<u16>) -> Action {
+    step(state, lookahead.map(Lookahead::new))
+}
+
 /// State reached after popping the RHS and pushing the reduction's LHS.
+#[inline]
 pub fn goto(previous: State, reduced: Production) -> State {
     let nonterminal = usize::from(reduced.lhs()) - YYNTOKENS as usize;
     let index = i32::from_le_bytes(bytes(YYPGOTO, nonterminal)) + i32::from(previous.0);
@@ -106,16 +135,28 @@ pub fn goto(previous: State, reduced: Production) -> State {
 }
 
 impl Production {
+    pub const fn from_number(number: u16) -> Option<Self> {
+        if number != 0 && number as usize <= PRODUCTION_COUNT { Some(Self(number)) } else { None }
+    }
+
+    #[inline]
     pub fn number(self) -> u16 {
         self.0
     }
 
+    #[inline]
     pub fn lhs(self) -> u16 {
         u16::from_le_bytes(bytes(YYR1, usize::from(self.0)))
     }
 
+    #[inline]
     pub fn rhs_len(self) -> usize {
         usize::from(TABLES[YYR2 + usize::from(self.0)])
+    }
+
+    #[inline]
+    pub fn has_action(self) -> bool {
+        TABLES[HAS_ACTION + usize::from(self.0)] != 0
     }
 
     // [spec:pgq:req:grammar.action-inventory]

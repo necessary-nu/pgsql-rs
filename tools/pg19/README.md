@@ -222,3 +222,27 @@ To repeat the full entity and diagnostic comparison, point the ignored integrati
 PG19_CORPUS="$corpus/cases.jsonl" PG19_SUMMARY_PROBE="$run/summary/summary-probe" \
   cargo test --locked -p pg19-operations --test summary compare_extracted_corpus -- --ignored --nocapture
 ```
+
+## Compare native parser performance with C
+
+After a PG19 reference import, schema generation, and regression capture, run
+
+```sh
+sh tools/pg19/bench/check.sh "$run" "$corpus" /tmp/pg19-benchmark
+```
+
+The command builds the Rust release example and links the matching PG19 JSON
+writer into the patched C backend. An import built with `CFLAGS=-O3` can be
+reused. For a debug import the script builds an optimized C reference in the
+output directory. Both programs parse in process, destroy each result before
+the next iteration, and exclude process startup, input loading and warmup
+from their timers.
+
+The benchmark checks byte-identical JSON for every input, then runs seven
+paired rounds pinned to one allowed logical CPU. It alternates which
+implementation runs first. Each mode measures `SELECT 1`, a parameterized
+aggregate join, and every successful default-mode regression input. The
+command exits unsuccessfully if the Rust median exceeds the C median on any
+workload for either parse or parse plus JSON. The output directory holds the
+per-round measurements in `samples.csv`, the six ratios in `results.json`,
+and the verification digests in `machine-and-verification.json`.

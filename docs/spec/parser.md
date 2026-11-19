@@ -116,3 +116,8 @@ PostgreSQL 19 fixes standard-conforming strings on and removes the escape-string
 
 > [spec:pgq:req:codec.errors-and-depth]
 > Serialization MUST return the parse diagnostic for rejected SQL. Encoding and decoding deeply nested valid trees MUST either complete or return a structured depth error. A conversion failure MUST yield an error result and leave subsequent conversions usable.
+
+## Parser performance
+
+> [spec:pgq:req:grammar.parse-speed]
+> The native SQL parser MUST take at most the optimized patched C reference's median elapsed time on each of SELECT 1, the parameterized aggregate join in the benchmark, and the successful default-mode PG19 regression corpus. This applies separately to parsing and parsing with JSON encoding. Both timings include result destruction. Both implementations MUST emit identical JSON bytes for every benchmark input before timing.

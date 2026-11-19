@@ -6,6 +6,7 @@ use std::process::Command;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+// [spec:pgq:req:grammar.parse-speed/test]
 fn compare_native_corpus(tools: &Path, run: &Path, native: &Path) -> Result<()> {
     let corpus = run.join("regression");
     let regress = tools.join("regress");
@@ -35,6 +36,19 @@ fn compare_native_corpus(tools: &Path, run: &Path, native: &Path) -> Result<()> 
         .env("PG19_REGRESSION_DIR", &corpus)
         .status()?;
     assert!(comparison.success(), "inspect {}", corpus.display());
+    if env::var_os("PG19_BENCHMARK").is_some() {
+        let status = Command::new("sh")
+            .arg(tools.join("bench/check.sh"))
+            .arg(run)
+            .arg(&corpus)
+            .arg(run.join("benchmark"))
+            .status()?;
+        assert!(
+            status.success(),
+            "inspect {}",
+            run.join("benchmark").display()
+        );
+    }
     Ok(())
 }
 

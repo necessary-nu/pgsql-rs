@@ -20,6 +20,104 @@ fn entries(source: &str) -> BTreeMap<&str, (&str, &str)> {
     entries
 }
 
+/// Follow Bison's unconditional one-symbol reductions from each viable goto.
+/// Pass-through rules keep the value in place. Other actions run in order
+/// against the same stack cell, before the driver requests another token.
+fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> (String, Vec<usize>) {
+    let symbols = "../pg19-tables/data/symbols.txt";
+    let edges = "../pg19-tables/data/gotos.bin";
+    println!("cargo:rerun-if-changed={symbols}");
+    println!("cargo:rerun-if-changed={edges}");
+    let symbols = fs::read_to_string(symbols).unwrap();
+    let indexes: BTreeMap<_, _> = symbols.lines().enumerate().map(|(i, s)| (s, i)).collect();
+    let mut lhs = vec![0];
+    for row in rules.lines() {
+        lhs.push(indexes[row.split_once(':').unwrap().0]);
+    }
+    let mut arcs = vec![BTreeMap::new(); indexes.len()];
+    let data = fs::read(edges).unwrap();
+    let number = |bytes: &[u8]| u16::from_le_bytes([bytes[0], bytes[1]]);
+    let count = usize::from(number(&data));
+    let (units, data) = data[2..].split_at(2 * count);
+    let units: Vec<_> = units
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|b| usize::from(number(b)))
+        .collect();
+    assert!(data.len().is_multiple_of(6));
+    for arc in data.as_chunks::<6>().0 {
+        let dest = number(&arc[4..]);
+        arcs[usize::from(number(arc))].insert(number(&arc[2..]), (dest, units[usize::from(dest)]));
+    }
+    let mut code = String::new();
+    let mut used = std::collections::BTreeSet::new();
+    for (id, row) in arcs.iter().enumerate().filter(|(_, r)| !r.is_empty()) {
+        let mut targets = BTreeMap::<(u16, Vec<usize>), Vec<u16>>::new();
+        for (&previous, &edge) in row {
+            let (mut state, mut unit) = edge;
+            let mut sequence = Vec::new();
+            let mut visits = 0;
+            while unit != 0 && handlers[unit].is_some() {
+                visits += 1;
+                assert!(visits <= handlers.len(), "cycle in Bison unit reductions");
+                if handlers[unit] != Some("Take(1)") {
+                    sequence.push(unit);
+                    used.insert(unit);
+                }
+                (state, unit) = arcs[lhs[unit]][&previous];
+            }
+            targets.entry((state, sequence)).or_default().push(previous);
+        }
+        let default = targets
+            .iter()
+            .max_by_key(|(_, from)| from.len())
+            .unwrap()
+            .0
+            .clone();
+        targets.remove(&default);
+        code.push_str(&format!("#[inline] fn goto_{id}(_previous: State, _stack: &mut ParseStack<Value>, _span: (usize,usize)) -> Result<State, Box<(Production,Failure)>> {{\n"));
+        let finish = |(state, seq): &(u16, Vec<usize>)| {
+            let mut body = String::new();
+            for rule in seq {
+                body.push_str(&format!("unit_{rule}(_stack, _span)?; "));
+            }
+            body.push_str(&format!("Ok(State::from_number({state}).unwrap())"));
+            body
+        };
+        if targets.is_empty() {
+            code.push_str(&finish(&default));
+        } else {
+            code.push_str("match _previous.number() {\n");
+            for (target, from) in targets {
+                let pattern = from
+                    .chunk_by(|a, b| *a + 1 == *b)
+                    .map(|run| {
+                        if run.len() == 1 {
+                            run[0].to_string()
+                        } else {
+                            format!("{}..={}", run[0], run[run.len() - 1])
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join("|");
+                code.push_str(&format!("{pattern} => {{ {} }},\n", finish(&target)));
+            }
+            code.push_str(&format!("_ => {{ {} }} }}\n", finish(&default)));
+        }
+        code.push_str("}\n");
+    }
+    for id in used {
+        let op = handlers[id].unwrap();
+        code.push_str(&format!("#[inline] fn unit_{id}(stack:&mut ParseStack<Value>,span:(usize,usize)) -> Result<(),Box<(Production,Failure)>> {{\n"));
+        code.push_str(ACTION_IMPORTS);
+        code.push_str(&format!("stack.map_top(span, |rhs| apply({op}, rhs)).map_err(|f| Box::new((Production::from_number({id}).unwrap(), f))) }}\n"));
+    }
+    (code, lhs)
+}
+
+const ACTION_IMPORTS: &str = "#[allow(unused_imports)] use Op::*;\n#[allow(unused_imports)] use crate::{expr::Expr as E,query::Query as Q,value::Quantifier as Qu};\n#[allow(unused_imports)] use pg19_nodes::{AExprKind,BoolExprType,BoolTestType,NullTestType,SetOperation};\n";
+
 fn main() {
     let inventory = "../pg19-tables/data/productions.tsv";
     let manifests = "actions";
@@ -47,7 +145,8 @@ fn main() {
         })
         .collect();
     let mut actions = entries(&source);
-    let mut arms = BTreeMap::<&str, Vec<usize>>::new();
+    let mut handlers = vec![None; table.lines().count() + 1];
+
     for (i, row) in table.lines().enumerate() {
         let mut fields = row.split('\t');
         let rule = fields.next().unwrap();
@@ -59,10 +158,13 @@ fn main() {
                 "generated PostgreSQL action changed for {rule}"
             );
         }
+        if hash == "default" {
+            handlers[i + 1] = Some("Take(1)");
+        }
         if let Some((pinned, action)) = actions.remove(rule).or(fallback) {
             assert_eq!(pinned, hash, "PostgreSQL action changed for {rule}");
             assert_ne!(hash, "default", "engine owns Bison default for {rule}");
-            arms.entry(action).or_default().push(i + 1);
+            handlers[i + 1] = Some(action);
         }
     }
     assert!(
@@ -75,21 +177,32 @@ fn main() {
         "PostgreSQL removed generated productions: {:?}",
         generated.keys()
     );
-    let mut code = String::from("fn action(id: u16) -> Option<Op> {\n    use Op::*;\n    use crate::{expr::Expr as E, query::Query as Q, value::Quantifier as Qu};\n    use pg19_nodes::{AExprKind, BoolExprType, BoolTestType, NullTestType, SetOperation};\n    Some(match id {\n");
-    for (op, numbers) in arms {
-        let patterns: Vec<_> = numbers
-            .chunk_by(|a, b| *a + 1 == *b)
-            .map(|run| {
-                if run.len() == 1 {
-                    run[0].to_string()
-                } else {
-                    format!("{}..={}", run[0], run[run.len() - 1])
-                }
-            })
-            .collect();
-        code.push_str(&format!("        {} => {op},\n", patterns.join(" | ")));
+    // The native operations are compile-time constants. Resolve their dispatch
+    // here, so a reduction loads one handler directly by Bison production id.
+    let mut code = String::from("static HANDLERS: &[Option<Handler>] = {\n");
+    code.push_str(ACTION_IMPORTS);
+    code.push_str("&[\n");
+    let (gotos, lhs) = folded_gotos(&handlers, &table);
+    for (id, handler) in handlers.into_iter().enumerate() {
+        let goto = format!("goto_{}", lhs[id]);
+        // The accepting state ends parsing before Bison reduces this rule.
+        if id == 1 {
+            code.push_str("None,\n");
+            continue;
+        }
+        let rule = format!("Production::from_number({id}).unwrap()");
+        match handler {
+            Some("Take(1)") => code.push_str(&format!(
+                "        Some(|stack, current, span| {{ let previous = stack.reduce_default({rule}, current, |p| p); {goto}(previous, stack, span) }}),\n"
+            )),
+            Some(op) => code.push_str(&format!(
+                "        Some(|stack, current, span| {{ let previous = stack.reduce({rule}, current, span, |p| p, |rhs| apply({op}, rhs)).map_err(|f| Box::new(({rule}, f)))?; {goto}(previous, stack, span) }}),\n"
+            )),
+            None => code.push_str("        None,\n"),
+        }
     }
-    code.push_str("        _ => return None,\n    })\n}\n");
+    code.push_str("    ]\n};\n");
+    code.push_str(&gotos);
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("actions.rs");
     fs::write(out, code).unwrap();
 }

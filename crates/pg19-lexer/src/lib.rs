@@ -26,10 +26,45 @@ mod catalog {
 
 /// Look up an already lowercased word in the pinned PostgreSQL keyword catalog.
 pub fn keyword(word: &str) -> Option<(&'static str, Kind, KeywordKind)> {
-    let index = catalog::KEYWORDS
-        .binary_search_by_key(&word, |row| row.0)
-        .ok()?;
-    Some(catalog::KEYWORDS[index])
+    keyword_case_insensitive(word).filter(|row| row.0 == word)
+}
+
+fn keyword_case_insensitive(word: &str) -> Option<(&'static str, Kind, KeywordKind)> {
+    const TABLE: &[u8] = include_bytes!("../data/keyword-buckets.bin");
+    #[inline]
+    fn entry(index: usize) -> usize {
+        usize::from(u16::from_le_bytes([TABLE[2 * index], TABLE[2 * index + 1]]))
+    }
+    let bytes = word.as_bytes();
+    if bytes.is_empty() || bytes.len() > catalog::MAX_KEYWORD_LEN {
+        return None;
+    }
+    let row = entry(bytes.len() * 32 + usize::from(bytes[0] & 31));
+    let bucket = entry(catalog::KEYWORD_ROWS + row * 32 + usize::from(bytes[bytes.len() - 1] & 31));
+    let start = catalog::KEYWORD_CANDIDATES + (bucket >> 3);
+    (start..start + (bucket & 7))
+        .map(|i| catalog::KEYWORDS[entry(i)])
+        .find(|row| row.0.eq_ignore_ascii_case(word))
+}
+
+#[cfg(test)]
+mod keyword_tests {
+    use super::*;
+
+    #[test]
+    fn buckets_verify_every_keyword_and_reject_collisions() {
+        for &row in catalog::KEYWORDS {
+            assert_eq!(keyword(row.0), Some(row));
+            let upper = row.0.to_ascii_uppercase();
+            assert_eq!(keyword_case_insensitive(&upper), Some(row));
+            assert_eq!(keyword(&upper), None);
+            if row.0.len() > 2 {
+                let mut collision = upper;
+                collision.replace_range(1..2, "!");
+                assert_eq!(keyword_case_insensitive(&collision), None);
+            }
+        }
+    }
 }
 
 impl Kind {
@@ -73,6 +108,18 @@ pub struct Token {
     pub end: usize,
     pub keyword: Option<KeywordKind>,
     pub value: Value,
+}
+
+impl Default for Token {
+    fn default() -> Self {
+        Self {
+            kind: Kind(0),
+            start: 0,
+            end: 0,
+            keyword: None,
+            value: Value::None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

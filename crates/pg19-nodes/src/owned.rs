@@ -59,7 +59,11 @@ impl Edges for Option<Arc<Node>> {
 
 impl Edges for Vec<Node> {
     fn detach(&mut self, pending: &mut Vec<Node>) {
-        pending.append(self);
+        if pending.is_empty() && self.capacity() > pending.capacity() {
+            std::mem::swap(self, pending);
+        } else {
+            pending.append(self);
+        }
     }
 }
 
@@ -69,7 +73,33 @@ fn drain(pending: &mut Vec<Node>) {
     }
 }
 
-/// Owns a record and frees its descendants iteratively. Use `into_inner` to
+// Native drop glue can free shallow children without first moving each
+// node into the iterative worklist. Switch to that worklist at a fixed
+// nesting depth, including for lists of lists.
+thread_local! {
+    static DROP_DEPTH: std::cell::Cell<u8> = const { std::cell::Cell::new(0) };
+}
+
+fn drop_children<T>(children: T, deep: impl FnOnce(T)) {
+    struct Reset<'a>(&'a std::cell::Cell<u8>, u8);
+    impl Drop for Reset<'_> {
+        fn drop(&mut self) {
+            self.0.set(self.1);
+        }
+    }
+    DROP_DEPTH.with(|depth| {
+        let n = depth.get();
+        if n < 8 {
+            let _reset = Reset(depth, n);
+            depth.set(n + 1);
+            drop(children);
+        } else {
+            deep(children);
+        }
+    });
+}
+
+/// Owns a record and bounds recursion when freeing its descendants. Use `into_inner` to
 /// move fields out of a matched record, or `into_box` to reuse the allocation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct NodeBox<T: NodeRecord>(Option<Box<T>>);
@@ -86,10 +116,12 @@ impl<T: NodeRecord> NodeBox<T> {
 
 impl<T: NodeRecord> Drop for NodeBox<T> {
     fn drop(&mut self) {
-        if let Some(record) = self.0.as_deref_mut() {
-            let mut pending = Vec::new();
-            record.detach(&mut pending);
-            drain(&mut pending);
+        if let Some(record) = self.0.take() {
+            drop_children(record, |mut record| {
+                let mut pending = Vec::new();
+                record.detach(&mut pending);
+                drain(&mut pending);
+            });
         }
     }
 }
@@ -151,7 +183,9 @@ impl NodeList {
 
 impl Drop for NodeList {
     fn drop(&mut self) {
-        drain(&mut self.0);
+        if !self.0.is_empty() {
+            drop_children(std::mem::take(&mut self.0), |mut nodes| drain(&mut nodes));
+        }
     }
 }
 

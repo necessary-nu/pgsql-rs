@@ -37,6 +37,7 @@ pub(super) enum Limit {
     Comma,
 }
 
+#[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: Limit, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let limit = match op {
         Limit::Count { count, ties } => SelectLimit {
