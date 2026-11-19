@@ -126,7 +126,11 @@ pub(super) fn statements(raw: &[RawStmt]) -> Result<String> {
             Step::Statement(Node::UpdateStmt(s)) => super::dml::update(s, &mut plan)?,
             Step::Statement(Node::DeleteStmt(s)) => super::dml::delete(s, &mut plan)?,
             Step::Statement(Node::MergeStmt(s)) => super::dml::merge(s, &mut plan)?,
-            Step::Statement(n) => super::render(&mut out, n)?,
+            Step::Statement(n) => {
+                if !super::ddl::statement(n, &mut plan)? {
+                    super::render(&mut out, n)?
+                }
+            }
         }
         pending.extend(plan.0.drain(..).rev());
     }
