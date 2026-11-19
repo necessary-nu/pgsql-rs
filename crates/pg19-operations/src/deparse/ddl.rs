@@ -2,6 +2,7 @@ mod alter;
 mod constraints;
 mod definition;
 mod object;
+mod ownership;
 mod sequence;
 mod session;
 mod table;
