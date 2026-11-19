@@ -1,0 +1,9 @@
+[package]
+name = "pg19-codec"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+pg19-nodes = { path = "../pg19-nodes" }
+serde_json = "1"

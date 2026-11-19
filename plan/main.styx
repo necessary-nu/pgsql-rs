@@ -195,7 +195,15 @@ children (
                 implements {
                     rust ([spec:pgq:req:codec.json-envelope] [spec:pgq:req:codec.json-fields])
                 }
-                deps (parser.reduce)
+                deps (parser.nodes codec.schema)
+                log (
+                    {
+                        at 2026-11-19T17:57:34.567435733Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
 
             {

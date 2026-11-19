@@ -71,3 +71,12 @@ The full reference test also regenerates the PG19 protobuf descriptor and
 checks all release pins. It requires Ruby with Bundler and JSON, protoc,
 and Python 3 with google.protobuf. To regenerate or verify the descriptor
 from an existing import, see the [PG19 schema and wire compatibility review](../../protobuf/pg19/README.md).
+
+The same build emits the C field writers used by the JSON serializer.
+`check-schema` checks the Rust field mapping against those writers. To update
+the mapping after reviewing an upstream change, run
+`python3 crates/pg19-codec/generate-json.py "$schema_dir/.."`, where
+`schema_dir` is the protobuf output directory printed by the schema command.
+The JSON fixtures in `crates/pg19-codec/tests` capture the C serializer linked
+to the patched PG19 backend for `SELECT DISTINCT 0, NULL, false, '', '<é>',
+B'10', 0.50, 7;` and `REPACK t USING INDEX i; WAIT FOR LSN '0/16B6C50'`.

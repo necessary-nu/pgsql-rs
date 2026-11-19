@@ -36,6 +36,10 @@ macro_rules! pg_enums {
         #[allow(non_upper_case_globals)] // Preserve upstream spellings used by grammar actions.
         impl $name {
             $( pub const $constant: Self = Self($value); )*
+            pub fn pg_name(self) -> Option<&'static str> {
+                $( if self == Self::$constant { return Some(stringify!($constant)); } )*
+                None
+            }
         }
     )*};
 }

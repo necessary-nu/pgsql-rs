@@ -1,0 +1,1 @@
+{"version":190000,"stmts":[{"stmt":{"RepackStmt":{"command":"REPACK_COMMAND_REPACK","relation":{"relation":{"relname":"t","inh":true,"relpersistence":"p","location":7}},"indexname":"i","usingindex":true}},"stmt_len":22},{"stmt":{"WaitStmt":{"lsn_literal":"0/16B6C50","lsn_location":37}},"stmt_location":24}]}
