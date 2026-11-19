@@ -1,0 +1,12 @@
+# PostgreSQL production, Bison action SHA-256, native operation.
+from_list: table_ref	c53ec0c9cb6cfe342393a61735876a71f85d334b266c51c99a3322acac0cf54f	Single
+from_list: from_list ',' table_ref	6a07ae51b2f5063a8913679118bfd6fd4e217de9344e292967607798a813ada4	Append(3)
+table_ref: relation_expr opt_alias_clause	172fd8a76bf9bf3caa08a20d27d9c76c47011316fecf44f5e9eaca5f6dcf69ca	From(crate::from::From::Table)
+table_ref: select_with_parens opt_alias_clause	2085d7986712fcca91031108a0e38b5d1b6403db145cf43af1b09328758d089b	From(crate::from::From::Subquery {lateral:false})
+table_ref: LATERAL_P select_with_parens opt_alias_clause	4796c704a3376b1548a50029bc3dd51bfbdc4d6d189b2273027c6c4b4f29b0c1	From(crate::from::From::Subquery {lateral:true})
+alias_clause: AS ColId '(' name_list ')'	0431defe6f50e16593e5d1049d902363983b279f5e7beadf362d720f06b57a79	From(crate::from::From::Alias {name:2,columns:Some(4)})
+alias_clause: AS ColId	087b22382d1bf2b17d66dda2f9be83a0a9b476957d14f06cc2294f7e62d13e05	From(crate::from::From::Alias {name:2,columns:None})
+alias_clause: ColId '(' name_list ')'	0431defe6f50e16593e5d1049d902363983b279f5e7beadf362d720f06b57a79	From(crate::from::From::Alias {name:1,columns:Some(3)})
+alias_clause: ColId	087b22382d1bf2b17d66dda2f9be83a0a9b476957d14f06cc2294f7e62d13e05	From(crate::from::From::Alias {name:1,columns:None})
+opt_alias_clause: alias_clause	4a9139abed0db16be1cb0cb68d7315c03b279634d0a5b8801ac2d466a5e44a7a	Take(1)
+opt_alias_clause: %empty	82d6fd0c95fd9531fbc4016da8c03faea2bbf99ca26970b1372da14c07e4e81f	Empty
