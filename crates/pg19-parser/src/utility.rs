@@ -31,6 +31,8 @@ pub(super) enum Utility {
     PercentType(bool),
     RoutineBody,
     Transform,
+    CreateSchema(bool),
+    OfType,
     PartitionSpec,
     Publication(Option<AlterPublicationAction>, bool),
     PublicationTail(bool),
@@ -113,7 +115,41 @@ pub(super) fn range_name(
 
 pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     match op {
+        Utility::OfType => Ok(Value::Node(
+            AlterTableCmd {
+                subtype: AlterTableType::AT_AddOf,
+                def: Some(Box::new(
+                    crate::types::named(rhs.take(2).list()?, Vec::new(), rhs.location(2)).into(),
+                )),
+                ..Default::default()
+            }
+            .into(),
+        )),
         Utility::Transform => routine::transform(rhs),
+        Utility::CreateSchema(authorized) => {
+            let elements = if authorized { 9 } else { 7 };
+            if !rhs.take(elements).list()?.is_empty() {
+                return Err(Failure::At(
+                    "CREATE SCHEMA IF NOT EXISTS cannot include schema elements".into(),
+                    "0A000",
+                    rhs.location(elements),
+                ));
+            }
+            let authrole = if authorized {
+                record!(rhs.take(8), RoleSpec)
+            } else {
+                None
+            };
+            Ok(Value::Node(
+                CreateSchemaStmt {
+                    schemaname: optional_text(rhs.take(6))?,
+                    authrole,
+                    if_not_exists: true,
+                    ..Default::default()
+                }
+                .into(),
+            ))
+        }
         Utility::Cluster(rel, idx) => {
             let relation = record!(rhs.take(rel), RangeVar);
             let params = flag_options(rhs, &[(2, "verbose")])?;

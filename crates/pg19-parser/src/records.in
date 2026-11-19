@@ -2359,6 +2359,54 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // CreateStmt: CREATE OptTemp TABLE qualified_name OF any_name OptTypedTableElementList OptPartitionSpec table_access_method_clause OptWith OnCommitOption OptTableSpace
+    |rhs| {
+        Ok(Value::Node(
+            CreateStmt {
+                relation: record!(persistence(rhs.take(4), rhs.take(2).integer()?)?, RangeVar),
+                table_elts: rhs.take(7).list()?,
+                inh_relations: Vec::new(),
+                partspec: record!(rhs.take(8), PartitionSpec),
+                of_typename: Some(Box::new(crate::types::named(
+                    rhs.take(6).list()?,
+                    Vec::new(),
+                    rhs.location(6),
+                ))),
+                constraints: Vec::new(),
+                access_method: optional_text(rhs.take(9))?,
+                options: rhs.take(10).list()?,
+                oncommit: OnCommitAction(rhs.take(11).integer()?),
+                tablespacename: optional_text(rhs.take(12))?,
+                if_not_exists: false,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // CreateStmt: CREATE OptTemp TABLE IF_P NOT EXISTS qualified_name OF any_name OptTypedTableElementList OptPartitionSpec table_access_method_clause OptWith OnCommitOption OptTableSpace
+    |rhs| {
+        Ok(Value::Node(
+            CreateStmt {
+                relation: record!(persistence(rhs.take(7), rhs.take(2).integer()?)?, RangeVar),
+                table_elts: rhs.take(10).list()?,
+                inh_relations: Vec::new(),
+                partspec: record!(rhs.take(11), PartitionSpec),
+                of_typename: Some(Box::new(crate::types::named(
+                    rhs.take(9).list()?,
+                    Vec::new(),
+                    rhs.location(9),
+                ))),
+                constraints: Vec::new(),
+                access_method: optional_text(rhs.take(12))?,
+                options: rhs.take(13).list()?,
+                oncommit: OnCommitAction(rhs.take(14).integer()?),
+                tablespacename: optional_text(rhs.take(15))?,
+                if_not_exists: true,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // CreateStmt: CREATE OptTemp TABLE qualified_name PARTITION OF qualified_name OptTypedTableElementList PartitionBoundSpec OptPartitionSpec table_access_method_clause OptWith OnCommitOption OptTableSpace
     |rhs| {
         Ok(Value::Node(
@@ -4793,6 +4841,24 @@ pub(super) const ACTIONS: &[Action] = &[
                     Node::String(rhs.take(4).text()?),
                 )))?,
                 comment: optional_text(rhs.take(8))?,
+            }
+            .into(),
+        ))
+    },
+    // CommentStmt: COMMENT ON CONSTRAINT name ON DOMAIN_P any_name IS comment_text
+    |rhs| {
+        Ok(Value::Node(
+            CommentStmt {
+                objtype: ObjectType::OBJECT_DOMCONSTRAINT,
+                object: optional_node(Value::List(vec![
+                    Node::from(crate::types::named(
+                        rhs.take(7).list()?,
+                        Vec::new(),
+                        Location::UNKNOWN,
+                    )),
+                    Node::String(rhs.take(4).text()?),
+                ]))?,
+                comment: optional_text(rhs.take(9))?,
             }
             .into(),
         ))
