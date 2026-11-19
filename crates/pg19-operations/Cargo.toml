@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 pg19-codec = { path = "../pg19-codec" }
+pg19-parser = { path = "../pg19-parser" }
 pg19-nodes = { path = "../pg19-nodes" }
 xxhash-rust = { version = "0.8", features = ["xxh3"] }
 pg19-lexer = { path = "../pg19-lexer" }

@@ -7,15 +7,18 @@ mod query;
 mod utility;
 mod value;
 
-use pg19_engine::{Actions, ParseError, ParseMode, Reduction};
-use pg19_lexer::{Options, Token};
-use pg19_nodes::Node;
+pub use pg19_engine::ParseMode;
+use pg19_engine::{Actions, ParseError, Reduction};
+pub use pg19_lexer::Options;
+use pg19_lexer::Token;
+use pg19_nodes::{Node, RawStmt};
 use pg19_tables::{Production, RuleInfo};
 use value::Value;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     Diagnostic(pg19_lexer::Error),
+    InvalidOutput(&'static str),
     Unmapped(RuleInfo),
     InvalidValue {
         rule: RuleInfo,
@@ -27,6 +30,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Diagnostic(e) => e.fmt(f),
+            Self::InvalidOutput(message) => f.write_str(message),
             Self::Unmapped(rule) => write!(
                 f,
                 "unmapped PostgreSQL action at gram.y:{} for {}",
@@ -132,8 +136,20 @@ pub fn parse(sql: &str, mode: ParseMode, options: Options) -> Result<Vec<Node>, 
     let mut parser = Parser { sql };
     match pg19_engine::parse(sql, mode, options, &mut parser) {
         Ok(Value::List(nodes)) => Ok(nodes),
-        Ok(_) => unreachable!("every start-rule action returns its raw parse tree list"),
+        Ok(_) => Err(Error::InvalidOutput("start action did not return a list")),
         Err(ParseError::Diagnostic(e)) => Err(Error::Diagnostic(e)),
         Err(ParseError::Action(e)) => Err(e),
     }
+}
+
+pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Error> {
+    parse(sql, ParseMode::Sql, options)?
+        .into_iter()
+        .map(|node| match node {
+            Node::RawStmt(stmt) => Ok(stmt.into_inner()),
+            _ => Err(Error::InvalidOutput(
+                "default parse mode returned a non-statement",
+            )),
+        })
+        .collect()
 }

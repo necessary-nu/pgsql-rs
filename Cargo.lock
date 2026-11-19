@@ -81,6 +81,7 @@ dependencies = [
  "pg19-codec",
  "pg19-lexer",
  "pg19-nodes",
+ "pg19-parser",
  "serde_json",
  "xxhash-rust",
 ]

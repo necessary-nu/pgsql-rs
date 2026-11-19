@@ -309,6 +309,16 @@ pub fn fingerprint_nodes(nodes: &[Node], options: FingerprintOptions) -> Fingerp
     Fingerprint(xxh3_64_with_seed(&w.stream, FINGERPRINT_VERSION))
 }
 
+pub fn fingerprint_sql(
+    sql: &str,
+    mode: pg19_parser::ParseMode,
+    parse_options: pg19_parser::Options,
+    options: FingerprintOptions,
+) -> Result<Fingerprint, pg19_parser::Error> {
+    let nodes = pg19_parser::parse(sql, mode, parse_options)?;
+    Ok(fingerprint_nodes(&nodes, options))
+}
+
 pub fn fingerprint_statements(stmts: &[RawStmt], options: FingerprintOptions) -> Fingerprint {
     let mut w = Writer::new(options);
     for stmt in stmts {

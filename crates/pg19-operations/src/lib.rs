@@ -1,5 +1,7 @@
 pub mod deparse;
 pub mod fingerprint;
+mod sql;
+pub use sql::{is_utility_statement, split_with_parser, utility_statements};
 
 use pg19_lexer::{Error, Scanner};
 use std::ops::Range;
