@@ -14,6 +14,7 @@ pub(super) enum Expr {
     Positive,
     Negative,
     Logic(BoolExprType),
+    Document(bool),
     NullTest(NullTestType),
     BooleanTest(BoolTestType),
     Column(bool),
@@ -158,6 +159,26 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
         ),
         Expr::Negative => negate(rhs.take(2).node()?, location),
         Expr::Logic(which) => logic(which, rhs)?,
+        Expr::Document(negate) => {
+            let location = rhs.location(2);
+            let document = XmlExpr {
+                op: XmlExprOp::IS_DOCUMENT,
+                args: vec![rhs.take(1).node()?],
+                location,
+                ..Default::default()
+            }
+            .into();
+            if negate {
+                BoolExpr {
+                    boolop: BoolExprType::NOT_EXPR,
+                    args: vec![document],
+                    location,
+                }
+                .into()
+            } else {
+                document
+            }
+        }
         Expr::NullTest(which) => NullTest {
             arg: Some(Box::new(rhs.take(1).node()?)),
             nulltesttype: which,
