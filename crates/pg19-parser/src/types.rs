@@ -50,7 +50,7 @@ pub(super) enum Types {
     },
 }
 
-fn named(names: Vec<Node>, typmods: Vec<Node>, location: Location) -> TypeName {
+pub(super) fn named(names: Vec<Node>, typmods: Vec<Node>, location: Location) -> TypeName {
     TypeName {
         names,
         typmods,
@@ -60,7 +60,7 @@ fn named(names: Vec<Node>, typmods: Vec<Node>, location: Location) -> TypeName {
     }
 }
 
-fn builtin(name: &str, typmods: Vec<Node>, location: Location) -> TypeName {
+pub(super) fn builtin(name: &str, typmods: Vec<Node>, location: Location) -> TypeName {
     named(
         vec![
             Node::String("pg_catalog".into()),

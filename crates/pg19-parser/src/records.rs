@@ -12,7 +12,7 @@ macro_rules! record {
     };
 }
 pub(crate) use record;
-fn optional_node(value: Value) -> Result<Option<Box<Node>>, Failure> {
+pub(super) fn optional_node(value: Value) -> Result<Option<Box<Node>>, Failure> {
     Ok(match value.cell()? {
         Node::Null => None,
         node => Some(Box::new(node)),

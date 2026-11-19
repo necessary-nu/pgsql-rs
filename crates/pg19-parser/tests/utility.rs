@@ -45,3 +45,43 @@ fn verify_utility_snapshots() {
         assert_eq!(result["parse_error"], case["error"], "{sql}");
     }
 }
+
+#[test]
+fn deeply_nested_argument_types_are_copied_independently() {
+    use pg19_nodes::Node;
+    std::thread::Builder::new()
+        .stack_size(2 * 1024 * 1024)
+        .spawn(|| {
+            let sql = format!("DROP FUNCTION f(custom_type(1{}))", "+1".repeat(20_000));
+            let parsed = parse(&sql, ParseMode::Sql, Options::default()).unwrap();
+            let [Node::RawStmt(raw)] = parsed.as_slice() else {
+                panic!()
+            };
+            let Some(Node::DropStmt(drop)) = raw.stmt.as_deref() else {
+                panic!()
+            };
+            let [Node::ObjectWithArgs(signature)] = drop.objects.as_slice() else {
+                panic!()
+            };
+            let [Node::TypeName(ty)] = signature.objargs.as_slice() else {
+                panic!()
+            };
+            let [Node::FunctionParameter(param)] = signature.objfuncargs.as_slice() else {
+                panic!()
+            };
+            let original = param.arg_type.as_deref().unwrap();
+            assert!(!std::ptr::eq(ty.as_ref(), original));
+            for ty in [ty.as_ref(), original] {
+                let mut expr = &ty.typmods[0];
+                let mut depth = 0;
+                while let Node::AExpr(operation) = expr {
+                    depth += 1;
+                    expr = operation.lexpr.as_deref().unwrap();
+                }
+                assert_eq!(depth, 20_000);
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}

@@ -19,7 +19,10 @@ pub(super) enum Call {
     NamedWindow,
 }
 
-fn function_name(qualified: bool, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+pub(super) fn function_name(
+    qualified: bool,
+    rhs: &mut Reduction<'_, Value>,
+) -> Result<Value, Failure> {
     let mut names = vec![Node::String(rhs.take(1).text()?)];
     if qualified {
         let tail = rhs.take(2).list()?;
