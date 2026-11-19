@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T18:59:40.907400142Z
+last_sync_at 2026-11-19T19:01:16.095563559Z
 
 rule_versions (
     {id api.native, version 0}
@@ -168,10 +168,19 @@ impl_evidence (
         {id fingerprint.lists, version 0}
         {id fingerprint.relation-digits, version 0}
     )}
+    {id operations.split-parity, covered_rules (
+        split.boundaries
+    ), covered_claims (
+        {impl_name rust, rule split.boundaries}
+    ), rule_versions_seen (
+        {id split.boundaries, version 0}
+    )}
     {id operations.split-parser, covered_rules (
         split.parser
     ), covered_claims (
         {impl_name rust, rule split.parser}
+    ), rule_versions_seen (
+        {id split.parser, version 0}
     )}
     {id operations.split-scanner, covered_rules (
         split.scanner
@@ -239,6 +248,7 @@ impl_evidence (
     )}
     {id parser.parity}
     {id parser.queries}
+    {id parser.reduce}
     {id parser.tables, covered_rules (
         grammar.action-inventory
         grammar.tables
@@ -271,11 +281,6 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
-    )}
-    {id operations.split-parity, covered_rules (
-        split.boundaries
-    ), covered_claims (
-        {impl_name rust, rule split.boundaries}
     )}
 )
 
