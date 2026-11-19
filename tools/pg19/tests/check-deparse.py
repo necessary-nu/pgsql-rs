@@ -16,7 +16,8 @@ def without_locations(obj):
         return [without_locations(item) for item in obj]
     if isinstance(obj, dict):
         return {key: without_locations(value) for key, value in obj.items()
-                if key not in ("location", "stmt_len") and not key.endswith("_location")}
+                if key not in ("location", "stmt_len", "rexpr_list_start", "rexpr_list_end",
+                               "list_start", "list_end") and not key.endswith("_location")}
     return obj
 
 
@@ -28,6 +29,12 @@ def check(probe, write):
     original = parse("deparse.sql")
     if without_locations(original) != without_locations(parse("deparse.expected.sql")):
         raise ValueError("deparsed SQL reparses to a different PG19 raw tree")
+    for fixture in sorted(FIXTURES.glob("deparse-*.jsonl")):
+        for line in fixture.read_text().splitlines():
+            query, compact = json.loads(line)
+            trees = [json.loads(subprocess.check_output([probe, sql])) for sql in (query, compact)]
+            if without_locations(trees[0]) != without_locations(trees[1]):
+                raise ValueError(f"deparsing changes the PG19 tree for {query}")
     pool = descriptor_pool.DescriptorPool()
     for file in descriptor_pb2.FileDescriptorSet.FromString(
             (ROOT / "protobuf/pg19/pg_query.pb").read_bytes()).file:
