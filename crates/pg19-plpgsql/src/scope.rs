@@ -3,6 +3,7 @@ use crate::{DataType, Datum, Namespace, Resolved, Variable};
 #[derive(Default)]
 struct Scope {
     label: Option<String>,
+    is_loop: bool,
     variables: Vec<(String, usize)>,
 }
 
@@ -16,8 +17,24 @@ impl Environment {
     pub fn push(&mut self, label: Option<String>) {
         self.scopes.push(Scope {
             label,
+            is_loop: false,
             variables: Vec::new(),
         });
+    }
+
+    pub fn push_loop(&mut self, label: Option<String>) {
+        self.scopes.push(Scope {
+            label,
+            is_loop: true,
+            variables: Vec::new(),
+        });
+    }
+    pub fn label_kind(&self, label: Option<&str>) -> Option<bool> {
+        self.scopes
+            .iter()
+            .rev()
+            .find(|s| label.map_or(s.is_loop, |l| s.label.as_deref() == Some(l)))
+            .map(|s| s.is_loop)
     }
 
     pub fn pop(&mut self) {

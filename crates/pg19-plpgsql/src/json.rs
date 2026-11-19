@@ -80,43 +80,149 @@ pub fn block(b: &Block) -> Value {
     if let Some(label) = &b.label {
         v["label"] = json!(label);
     }
-    if !b.body.is_empty() {
-        v["body"] = b
-            .body
-            .iter()
-            .map(|s| match s {
-                Statement::Return {
-                    lineno,
-                    expression: expr,
-                    ..
-                } => {
-                    let mut v = json!({});
-                    if *lineno > 0 {
-                        v["lineno"] = json!(lineno);
-                    }
-                    if let Some(e) = expr {
-                        v["expr"] = expression(e);
-                    }
-                    json!({"PLpgSQL_stmt_return":v})
-                }
-                Statement::Block(inner) => block(inner),
-                Statement::Assign {
-                    lineno,
-                    datum,
-                    expression: e,
-                } => {
-                    let mut v = json!({"lineno":lineno, "expr":expression(e)});
-                    if *datum > 0 {
-                        v["varno"] = json!(datum);
-                    }
-                    json!({"PLpgSQL_stmt_assign":v})
-                }
-                Statement::Perform {
-                    lineno,
-                    expression: e,
-                } => json!({"PLpgSQL_stmt_perform":{"lineno":lineno,"expr":expression(e)}}),
-            })
-            .collect();
-    }
+    statements(&mut v, "body", &b.body);
     json!({"PLpgSQL_stmt_block":v})
+}
+
+fn statements(v: &mut Value, key: &str, body: &[Statement]) {
+    if !body.is_empty() {
+        v[key] = body.iter().map(statement).collect();
+    }
+}
+
+fn optional_expr(v: &mut Value, name: &str, e: &Option<Expression>) {
+    if let Some(e) = e {
+        v[name] = expression(e);
+    }
+}
+
+fn statement(s: &Statement) -> Value {
+    match s {
+        Statement::If {
+            lineno,
+            condition,
+            then_body,
+            elsif,
+            else_body,
+        } => {
+            let mut v = json!({"lineno":lineno,"cond":expression(condition)});
+            statements(&mut v, "then_body", then_body);
+            if !elsif.is_empty() {
+                v["elsif_list"] = elsif
+                    .iter()
+                    .map(|el| {
+                        let mut branch =
+                            json!({"lineno":el.lineno,"cond":expression(&el.condition)});
+                        statements(&mut branch, "stmts", &el.body);
+                        json!({"PLpgSQL_if_elsif":branch})
+                    })
+                    .collect();
+            }
+            statements(&mut v, "else_body", else_body);
+            json!({"PLpgSQL_stmt_if":v})
+        }
+        Statement::Loop {
+            lineno,
+            label,
+            condition,
+            body,
+        } => {
+            let mut v = json!({"lineno":lineno});
+            if let Some(label) = label {
+                v["label"] = json!(label);
+            }
+            optional_expr(&mut v, "cond", condition);
+            statements(&mut v, "body", body);
+            if condition.is_some() {
+                json!({"PLpgSQL_stmt_while":v})
+            } else {
+                json!({"PLpgSQL_stmt_loop":v})
+            }
+        }
+        Statement::Exit {
+            lineno,
+            is_exit,
+            label,
+            condition,
+        } => {
+            let mut v = json!({"lineno":lineno});
+            if *is_exit {
+                v["is_exit"] = json!(true);
+            }
+            if let Some(label) = label {
+                v["label"] = json!(label);
+            }
+            optional_expr(&mut v, "cond", condition);
+            json!({"PLpgSQL_stmt_exit":v})
+        }
+        Statement::Assert {
+            lineno,
+            condition,
+            message,
+        } => {
+            let mut v = json!({"lineno":lineno,"cond":expression(condition)});
+            optional_expr(&mut v, "message", message);
+            json!({"PLpgSQL_stmt_assert":v})
+        }
+        Statement::Call {
+            lineno,
+            is_call,
+            expression: e,
+        } => {
+            let mut v = json!({"lineno":lineno,"expr":expression(e)});
+            if *is_call {
+                v["is_call"] = json!(true);
+            }
+            json!({"PLpgSQL_stmt_call":v})
+        }
+        Statement::Transaction {
+            lineno,
+            commit,
+            chain,
+        } => {
+            let mut v = json!({"lineno":lineno});
+            if *chain {
+                v["chain"] = json!(true);
+            }
+            if *commit {
+                json!({"PLpgSQL_stmt_commit":v})
+            } else {
+                json!({"PLpgSQL_stmt_rollback":v})
+            }
+        }
+        Statement::ExecSql {
+            lineno,
+            expression: e,
+        } => json!({"PLpgSQL_stmt_execsql":{"lineno":lineno,"sqlstmt":expression(e)}}),
+        Statement::Return {
+            lineno,
+            expression: expr,
+            ..
+        } => {
+            let mut v = json!({});
+            if *lineno > 0 {
+                v["lineno"] = json!(lineno);
+            }
+            if let Some(e) = expr {
+                v["expr"] = expression(e);
+            }
+            json!({"PLpgSQL_stmt_return":v})
+        }
+        Statement::Block(inner) => block(inner),
+        Statement::Assign {
+            lineno,
+            datum,
+            expression: e,
+        } => {
+            let mut v = json!({"lineno":lineno, "expr":expression(e)});
+            if *datum > 0 {
+                v["varno"] = json!(datum);
+            }
+            json!({"PLpgSQL_stmt_assign":v})
+        }
+        Statement::Perform {
+            lineno,
+            expression: e,
+        } => json!({"PLpgSQL_stmt_perform":{"lineno":lineno,"expr":expression(e)}}),
+    }
 }

@@ -39,8 +39,53 @@ pub struct Block {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Elsif {
+    pub lineno: usize,
+    pub condition: Expression,
+    pub body: Vec<Statement>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
     Block(Block),
+    If {
+        lineno: usize,
+        condition: Expression,
+        then_body: Vec<Statement>,
+        elsif: Vec<Elsif>,
+        else_body: Vec<Statement>,
+    },
+    Loop {
+        lineno: usize,
+        label: Option<String>,
+        condition: Option<Expression>,
+        body: Vec<Statement>,
+    },
+    Exit {
+        lineno: usize,
+        is_exit: bool,
+        label: Option<String>,
+        condition: Option<Expression>,
+    },
+    Assert {
+        lineno: usize,
+        condition: Expression,
+        message: Option<Expression>,
+    },
+    ExecSql {
+        lineno: usize,
+        expression: Expression,
+    },
+    Call {
+        lineno: usize,
+        is_call: bool,
+        expression: Expression,
+    },
+    Transaction {
+        lineno: usize,
+        commit: bool,
+        chain: bool,
+    },
     Return {
         lineno: usize,
         datum: Option<usize>,

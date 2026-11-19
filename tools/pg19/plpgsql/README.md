@@ -110,3 +110,9 @@ python3 tools/pg19/plpgsql/check.py "$run" --candidate "$PWD/target/debug/exampl
 The example emits the oracle's result and diagnostic fields for
 supported inputs. It reports an `unsupported` record for unimplemented
 SQL or PL/pgSQL actions, with the production identity when available.
+
+The body compiler also handles IF/ELSIF/ELSE, LOOP and WHILE,
+labeled EXIT/CONTINUE, ASSERT, CALL/DO, transaction control, and
+embedded SQL. The SQL statement reader preserves comments before a
+terminating semicolon and tracks parentheses and nested SQL routine
+definitions with BEGIN ATOMIC and CASE expressions.
