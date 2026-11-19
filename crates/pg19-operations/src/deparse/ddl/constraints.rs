@@ -67,7 +67,7 @@ fn foreign_keys(nodes: &[Node], period: bool, p: &mut Plan<'_>) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn constraint<'a>(c: &'a Constraint, p: &mut Plan<'a>) -> Result<()> {
+pub(super) fn constraint<'a>(c: &'a Constraint, domain: bool, p: &mut Plan<'a>) -> Result<()> {
     use ConstrType as C;
     p.mark(c.location);
     if let Some(n) = &c.conname {
@@ -79,7 +79,7 @@ pub(super) fn constraint<'a>(c: &'a Constraint, p: &mut Plan<'a>) -> Result<()> 
         C::CONSTR_NULL => p.text("NULL"),
         C::CONSTR_NOTNULL => {
             p.text("NOT NULL");
-            if !c.keys.is_empty() {
+            if !domain && !c.keys.is_empty() {
                 p.text(" ");
                 p.text(names(&c.keys, ", ")?)
             }
@@ -100,7 +100,9 @@ pub(super) fn constraint<'a>(c: &'a Constraint, p: &mut Plan<'a>) -> Result<()> 
                 _ => return Err(Error::InvalidField("Constraint.generated_when")),
             });
             if !c.options.is_empty() {
-                return Err(Error::InvalidField("identity sequence options"));
+                p.text(" (");
+                super::sequence::options(&c.options, false, p)?;
+                p.text(" )");
             }
         }
         C::CONSTR_GENERATED => {

@@ -1,9 +1,11 @@
 mod alter;
 mod constraints;
+mod definition;
 pub(in crate::deparse) mod index;
 mod object;
 mod privileges;
 mod routine;
+mod sequence;
 mod session;
 mod table;
 use super::query::{named, relation};

@@ -3,7 +3,7 @@ use super::{
 };
 use pg19_nodes::*;
 
-fn persistence(r: &RangeVar, p: &mut Plan<'_>) -> Result<()> {
+pub(super) fn persistence(r: &RangeVar, p: &mut Plan<'_>) -> Result<()> {
     match r.relpersistence {
         b't' => p.text("TEMPORARY "),
         b'u' => p.text("UNLOGGED "),
@@ -73,7 +73,7 @@ pub(super) fn column<'a>(s: &'a ColumnDef, p: &mut Plan<'a>) -> Result<()> {
             return Err(Error::InvalidField("ColumnDef.constraints"));
         };
         p.text(" ");
-        super::constraints::constraint(c, p)?;
+        super::constraints::constraint(c, false, p)?;
     }
     Ok(())
 }
@@ -177,7 +177,7 @@ fn elements<'a>(nodes: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
         }
         match n {
             Node::ColumnDef(c) => column(c, p)?,
-            Node::Constraint(c) => super::constraints::constraint(c, p)?,
+            Node::Constraint(c) => super::constraints::constraint(c, false, p)?,
             Node::TableLikeClause(t) => table_like(t, p)?,
             _ => return Err(Error::InvalidField("CreateStmt.tableElts")),
         }
@@ -255,7 +255,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text(named(&s.servername, "CreateForeignTableStmt.servername")?);
             generic_options(&s.options, p)?;
         }
-        _ => return Ok(false),
+        _ => return super::definition::statement(n, p),
     }
     Ok(true)
 }
