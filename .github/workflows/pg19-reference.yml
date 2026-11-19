@@ -9,10 +9,14 @@ on:
       - 'protobuf/pg_query.proto'
       - 'scripts/extract_headers.rb'
       - 'scripts/generate_fingerprint_outfuncs.rb'
-      - 'src/pg_query_fingerprint.c'
+      - 'pg_query.h'
+      - 'src/pg_query*.c'
+      - 'src/pg_query*.h'
+      - 'src/postgres_deparse.c'
+      - 'src/include/**'
+      - 'test/**'
+      - 'vendor/upb/**'
       - 'vendor/xxhash/**'
-      - 'src/pg_query_outfuncs_json.c'
-      - 'src/include/pg_query_json_helper.c'
       - 'scripts/generate_protobuf_and_funcs.rb'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -25,10 +29,14 @@ on:
       - 'protobuf/pg_query.proto'
       - 'scripts/extract_headers.rb'
       - 'scripts/generate_fingerprint_outfuncs.rb'
-      - 'src/pg_query_fingerprint.c'
+      - 'pg_query.h'
+      - 'src/pg_query*.c'
+      - 'src/pg_query*.h'
+      - 'src/postgres_deparse.c'
+      - 'src/include/**'
+      - 'test/**'
+      - 'vendor/upb/**'
       - 'vendor/xxhash/**'
-      - 'src/pg_query_outfuncs_json.c'
-      - 'src/include/pg_query_json_helper.c'
       - 'scripts/generate_protobuf_and_funcs.rb'
       - 'Cargo.toml'
       - 'Cargo.lock'
@@ -44,6 +52,8 @@ jobs:
       - run: python3 tools/pg19/tests/check-fixtures.py
       - run: /usr/bin/python3 tools/pg19/tests/check-schema.py
       - run: cargo test --locked --workspace
+      - run: cargo build --release --locked -p pg19-parser --example pg19-native
       - run: cargo test --locked -p pg19-reference --test reference -- --ignored
         env:
           PYTHONPATH: /usr/lib/python3/dist-packages
+          PG19_NATIVE_PROBE: ${{ github.workspace }}/target/release/examples/pg19-native

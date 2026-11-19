@@ -6,6 +6,38 @@ use std::process::Command;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+fn compare_native_corpus(tools: &Path, run: &Path, native: &Path) -> Result<()> {
+    let corpus = run.join("regression");
+    let regress = tools.join("regress");
+    let extraction = Command::new("python3")
+        .arg(regress.join("extract.py"))
+        .args([run, &corpus])
+        .status()?;
+    assert!(extraction.success(), "inspect {}", corpus.display());
+    let capture = Command::new("python3")
+        .arg(regress.join("probes.py"))
+        .arg("capture")
+        .args([run, &corpus])
+        .status()?;
+    assert!(capture.success(), "inspect {}", corpus.display());
+    let comparison = Command::new(env!("CARGO"))
+        .args([
+            "test",
+            "--locked",
+            "-p",
+            "pg19-parser",
+            "--test",
+            "corpus",
+            "--",
+            "--ignored",
+        ])
+        .env("PG19_NATIVE_PROBE", native)
+        .env("PG19_REGRESSION_DIR", &corpus)
+        .status()?;
+    assert!(comparison.success(), "inspect {}", corpus.display());
+    Ok(())
+}
+
 fn check_probe_options(probe: &Path) -> Result<()> {
     let sql = r"SELECT E'it\'s'";
     let default = Command::new(probe).arg(sql).output()?;
@@ -140,6 +172,9 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         .env("PG19_REFERENCE_DIR", &run)
         .status()?
         .success());
+    if let Some(native) = env::var_os("PG19_NATIVE_PROBE") {
+        compare_native_corpus(tools, &run, Path::new(&native))?;
+    }
     fs::copy(run.join("stock/probe"), run.join("patched/probe"))?;
     let mismatch = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
         .arg("compare")
