@@ -86,6 +86,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pg19-plpgsql"
+version = "0.1.0"
+dependencies = [
+ "pg19-engine",
+ "pg19-lexer",
+ "pg19-tables",
+ "serde_json",
+]
+
+[[package]]
 name = "pg19-reference"
 version = "0.1.0"
 dependencies = [

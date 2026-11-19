@@ -47,3 +47,24 @@ a function signature whose return type depends on a table column's
 `%TYPE` can produce SQLSTATE `XX000` and message `Not implemented`.
 Local variable `%TYPE` and `%ROWTYPE` declarations use the library's
 offline datatypes. [Fixtures and upstream source spans](fixtures/cases.json)
+
+The native body scanner and LALR driver are in `crates/pg19-plpgsql`.
+Regenerate or verify their 336 states, 255 production signatures/action
+digests and keyword catalogs with Bison 3.8.2. Cargo builds read the
+checked-in artifacts. The scanner test compares external token IDs and
+byte spans with the PL/pgSQL scanner in the reference build.
+
+```sh
+python3 tools/pg19/generate-tables.py "$run/patched-source" --plpgsql
+"$run/plpgsql-probe" --scan 'BEGIN PERFORM $1; END;'
+PG19_REFERENCE_DIR="$run" cargo test --locked -p pg19-plpgsql -- --include-ignored
+```
+
+A compiler implements `Actions` and `Namespace` and calls `parse_body`
+on the original routine body. Each reduction sees the pending Bison
+lookahead and the live scanner. Datatype actions can take the pending
+token. Expression and assignment actions consume their own terminator
+through `read_sql`, which retains the original byte range and raw parse
+mode. Record-field lookup can create datums while the scanner reads
+embedded SQL. The compiler can pass each fragment to the SQL parser
+for validation with that mode.
