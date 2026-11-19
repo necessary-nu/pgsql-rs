@@ -68,6 +68,14 @@ children (
                     rust ([spec:pgq:req:grammar.tables] [spec:pgq:req:grammar.action-inventory])
                 }
                 deps (reference.corpus)
+                log (
+                    {
+                        at 2026-11-19T17:44:31.491037468Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
 
             {

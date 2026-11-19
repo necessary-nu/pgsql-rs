@@ -27,6 +27,12 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
     let status = command.status()?;
     assert!(status.success(), "inspect {}", parent.display());
     let run = fs::read_dir(&parent)?.next().expect("one import")?.path();
+    let generator = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("generate-tables.py");
+    let generation = Command::new("python3")
+        .arg(generator)
+        .arg(run.join("patched-source"))
+        .status()?;
+    assert!(generation.success(), "inspect {}", run.display());
     fs::copy(run.join("stock/probe"), run.join("patched/probe"))?;
     let mismatch = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
         .arg("compare")
