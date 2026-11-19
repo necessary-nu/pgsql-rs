@@ -1,6 +1,121 @@
 --- postgres_deparse.c
 +++ postgres_deparse.c
-@@ -10979 +10979,8 @@
+@@ -3065 +3065,4 @@
+-		if (strcmp(def_elem->defname, "connection_limit") == 0)
++		const char *name = def_elem->defname;
++		const char *quoted = quote_identifier(name);
++
++		if (strcmp(name, "connection_limit") == 0)
+@@ -3066,0 +3070,8 @@
++		else if (strcmp(name, "encoding") == 0 || strcmp(name, "location") == 0 ||
++				 strcmp(name, "owner") == 0 || strcmp(name, "tablespace") == 0 ||
++				 strcmp(name, "template") == 0)
++			deparseGenericDefElemName(state, name);
++		else if (quoted != name)
++			deparseAppendStringInfoString(state, quoted);
++		else if (ScanKeywordLookup(name, &ScanKeywords) >= 0)
++			deparseAppendStringInfo(state, "\"%s\"", name);
+@@ -3068 +3079 @@
+-			deparseGenericDefElemName(state, def_elem->defname);
++			deparseGenericDefElemName(state, name);
+@@ -3074,2 +3085,2 @@
+-		else if (IsA(def_elem->arg, Integer))
+-			deparseSignedIconst(state, def_elem->arg);
++		else if (IsA(def_elem->arg, Integer) || IsA(def_elem->arg, Float))
++			deparseNumericOnly(state, (union ValUnion *) def_elem->arg);
+@@ -3096 +3107,9 @@
+-			deparseGenericDefElemName(state, def_elem->defname);
++			const char *name = def_elem->defname;
++			int keyword = ScanKeywordLookup(name, &ScanKeywords);
++
++			if (strcmp(name, "analyze") == 0 || quote_identifier(name) == name ||
++				(keyword >= 0 && ScanKeywordCategories[keyword] != RESERVED_KEYWORD &&
++				 strcmp(name, GetScanKeyword(keyword, &ScanKeywords)) == 0))
++				deparseGenericDefElemName(state, name);
++			else
++				deparseAppendStringInfoString(state, quote_identifier(name));
+@@ -7319 +7338 @@
+-	deparseAppendStringInfoString(state, drop_table_space_stmt->tablespacename);
++	deparseAppendStringInfoString(state, quote_identifier(drop_table_space_stmt->tablespacename));
+@@ -7363 +7382 @@
+-	deparseAppendStringInfo(state, "DEPENDS ON EXTENSION %s", alter_object_depends_stmt->extname->sval);
++	deparseAppendStringInfo(state, "DEPENDS ON EXTENSION %s", quote_identifier(alter_object_depends_stmt->extname->sval));
+@@ -7891 +7910 @@
+-	deparseAppendStringInfoString(state, move_all_stmt->orig_tablespacename);
++	deparseAppendStringInfoString(state, quote_identifier(move_all_stmt->orig_tablespacename));
+@@ -7902 +7921 @@
+-	deparseAppendStringInfoString(state, move_all_stmt->new_tablespacename);
++	deparseAppendStringInfoString(state, quote_identifier(move_all_stmt->new_tablespacename));
+@@ -10384,0 +10404 @@
++			case PUBLICATIONOBJ_EXCEPT_TABLE:
+@@ -10425 +10445 @@
+-static void deparseCreatePublicationStmt(DeparseState *state, CreatePublicationStmt *create_publication_stmt)
++static void deparsePublicationObjects(DeparseState *state, List *objects, bool all_tables, bool all_sequences)
+@@ -10427 +10447,12 @@
+-	ListCell *lc = NULL;
++	if (all_tables)
++	{
++		deparseAppendStringInfoString(state, "ALL TABLES");
++		if (objects)
++		{
++			deparseAppendStringInfoString(state, " EXCEPT (");
++			deparsePublicationObjectList(state, objects);
++			deparseAppendStringInfoChar(state, ')');
++		}
++	}
++	else if (objects)
++		deparsePublicationObjectList(state, objects);
+@@ -10428,0 +10460,10 @@
++	if (all_sequences)
++	{
++		if (all_tables)
++			deparseAppendStringInfoString(state, ", ");
++		deparseAppendStringInfoString(state, "ALL SEQUENCES");
++	}
++}
++
++static void deparseCreatePublicationStmt(DeparseState *state, CreatePublicationStmt *create_publication_stmt)
++{
+@@ -10433 +10474,2 @@
+-	if (list_length(create_publication_stmt->pubobjects) > 0)
++	if (create_publication_stmt->pubobjects || create_publication_stmt->for_all_tables ||
++		create_publication_stmt->for_all_sequences)
+@@ -10436 +10478,2 @@
+-		deparsePublicationObjectList(state, create_publication_stmt->pubobjects);
++		deparsePublicationObjects(state, create_publication_stmt->pubobjects,
++								  create_publication_stmt->for_all_tables, create_publication_stmt->for_all_sequences);
+@@ -10439,4 +10481,0 @@
+-	else if (create_publication_stmt->for_all_tables)
+-	{
+-		deparseAppendStringInfoString(state, "FOR ALL TABLES ");
+-	}
+@@ -10454 +10493,2 @@
+-	if (list_length(alter_publication_stmt->pubobjects) > 0)
++	if (alter_publication_stmt->pubobjects || alter_publication_stmt->for_all_tables ||
++		alter_publication_stmt->for_all_sequences)
+@@ -10469 +10509,2 @@
+-		deparsePublicationObjectList(state, alter_publication_stmt->pubobjects);
++		deparsePublicationObjects(state, alter_publication_stmt->pubobjects,
++								  alter_publication_stmt->for_all_tables, alter_publication_stmt->for_all_sequences);
+@@ -10755 +10796 @@
+-		deparseAppendStringInfoString(state, stats_elem->name);
++		deparseAppendStringInfoString(state, quote_identifier(stats_elem->name));
+@@ -10936,3 +10977,5 @@
+-	deparseAppendStringInfoString(state, " CONNECTION ");
+-	if (create_subscription_stmt->conninfo != NULL)
+-		deparseStringLiteral(state, create_subscription_stmt->conninfo);
++	if (create_subscription_stmt->servername)
++	{
++		deparseAppendStringInfoString(state, " SERVER ");
++		deparseColId(state, create_subscription_stmt->servername);
++	}
+@@ -10940 +10983,4 @@
+-		deparseAppendStringInfoString(state, "''");
++	{
++		deparseAppendStringInfoString(state, " CONNECTION ");
++		deparseStringLiteral(state, create_subscription_stmt->conninfo ? create_subscription_stmt->conninfo : "");
++	}
+@@ -10979 +11025,8 @@
 -		case ALTER_SUBSCRIPTION_REFRESH:
 +		case ALTER_SUBSCRIPTION_SERVER:
 +			deparseAppendStringInfoString(state, "SERVER ");
@@ -10,10 +125,15 @@
 +			deparseAppendStringInfoString(state, "REFRESH SEQUENCES");
 +			break;
 +		case ALTER_SUBSCRIPTION_REFRESH_PUBLICATION:
-@@ -12092 +12099 @@
+@@ -11041 +11094,3 @@
+-	deparseAppendStringInfoString(state, drop_subscription_stmt->subname);
++	deparseColId(state, drop_subscription_stmt->subname);
++	if (drop_subscription_stmt->behavior == DROP_CASCADE)
++		deparseAppendStringInfoString(state, " CASCADE");
+@@ -12092 +12147 @@
 -static void deparseClusterStmt(DeparseState *state, ClusterStmt *cluster_stmt)
 +static void deparseRepackStmt(DeparseState *state, RepackStmt *stmt)
-@@ -12094,3 +12101,6 @@
+@@ -12094,3 +12149,6 @@
 -	deparseAppendStringInfoString(state, "CLUSTER ");
 -
 -        deparseUtilityOptionList(state, cluster_stmt->params);
@@ -23,11 +143,11 @@
 +		deparseAppendStringInfoString(state, "REPACK ");
 +	else
 +		elog(ERROR, "unexpected raw RepackStmt command %d", stmt->command);
-@@ -12098 +12108,2 @@
+@@ -12098 +12156,2 @@
 -	if (cluster_stmt->relation != NULL)
 +	deparseUtilityOptionList(state, stmt->params);
 +	if (stmt->relation)
-@@ -12100 +12111,7 @@
+@@ -12100 +12159,7 @@
 -		deparseRangeVar(state, cluster_stmt->relation, DEPARSE_NODE_CONTEXT_NONE);
 +		deparseRangeVar(state, stmt->relation->relation, DEPARSE_NODE_CONTEXT_NONE);
 +		if (stmt->relation->va_cols)
@@ -36,7 +156,7 @@
 +			deparseColumnList(state, stmt->relation->va_cols);
 +			deparseAppendStringInfoChar(state, ')');
 +		}
-@@ -12102,0 +12120,8 @@
+@@ -12102,0 +12168,8 @@
 +	if (stmt->command == REPACK_COMMAND_REPACK && stmt->usingindex)
 +		deparseAppendStringInfoString(state, "USING INDEX ");
 +	else if (stmt->command == REPACK_COMMAND_CLUSTER && stmt->indexname)
@@ -45,22 +165,28 @@
 +		deparseAppendStringInfoString(state, quote_identifier(stmt->indexname));
 +	removeTrailingSpace(state);
 +}
-@@ -12104 +12129,5 @@
+@@ -12104 +12177,5 @@
 -	if (cluster_stmt->indexname != NULL)
 +static void deparseWaitStmt(DeparseState *state, WaitStmt *stmt)
 +{
 +	deparseAppendStringInfoString(state, "WAIT FOR LSN ");
 +	deparseStringLiteral(state, stmt->lsn_literal);
 +	if (stmt->options)
-@@ -12106,3 +12135,2 @@
+@@ -12106,3 +12183,2 @@
 -		deparseAppendStringInfoString(state, "USING ");
 -		deparseAppendStringInfoString(state, quote_identifier(cluster_stmt->indexname));
 -		deparseAppendStringInfoChar(state, ' ');
 +		deparseAppendStringInfoString(state, " WITH ");
 +		deparseUtilityOptionList(state, stmt->options);
-@@ -12110 +12137,0 @@
+@@ -12110 +12185,0 @@
 -
-@@ -12438,2 +12465,5 @@
+@@ -12341,0 +12417,5 @@
++		case T_AlterDatabaseRefreshCollStmt:
++			deparseAppendStringInfoString(state, "ALTER DATABASE ");
++			deparseColId(state, castNode(AlterDatabaseRefreshCollStmt, node)->dbname);
++			deparseAppendStringInfoString(state, " REFRESH COLLATION VERSION");
++			break;
+@@ -12438,2 +12518,5 @@
 -		case T_ClusterStmt:
 -			deparseClusterStmt(state, castNode(ClusterStmt, node));
 +		case T_WaitStmt:

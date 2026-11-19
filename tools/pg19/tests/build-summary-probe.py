@@ -1,5 +1,6 @@
 """Build the library summary operation against a completed PostgreSQL 19 import."""
 import argparse
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -28,7 +29,7 @@ def build(run, work):
     (work / "statements.c").write_text(handler + "All the cases below here" + unused)
     subprocess.run(["patch", "--silent", "-o", str(work / "deparse.c"),
                     str(ROOT / "src/postgres_deparse.c"), str(HERE / "summary-deparse-pg19.patch")], check=True)
-    subprocess.run(["make", "-s", "-j4", "-C", build / "backend", "-f", "Makefile", "-f",
+    subprocess.run(["make", "-s", "-j" + os.environ.get("PG19_JOBS", "4"), "-C", build / "backend", "-f", "Makefile", "-f",
                     HERE / "summary-probe.mk", f"repo={ROOT}", f"work={work}", work / "summary-probe"], check=True)
 
 

@@ -1,4 +1,4 @@
-# PostgreSQL 19.0 reference parsers
+# Maintaining the PostgreSQL 19 grammar
 
 Run this command from the repository root to build both C references and
 check the raw-parser corpus.
@@ -38,7 +38,9 @@ For the Rust port, the release archive and the reviewed patch series are the
 source of truth. The scanner imports Flex's transitions and the keyword
 catalog. The parser imports Bison's resolved tables and inventories each
 production and semantic action. The raw node generator reads the patched
-headers with Clang. A release update therefore has reviewable diffs for
+headers with Clang. The 19.0 Rust parser implements all 2,326 explicit
+grammar actions and uses Bison's default reductions for the remaining rules.
+A release update therefore has reviewable diffs for
 syntax, actions and data layout. The stock and patched probes establish
 whether a behavioral change came from PostgreSQL or from the overlay.
 [Parser table regeneration](../../crates/pg19-tables/README.md)
@@ -59,8 +61,9 @@ The translator matches a complete C reduction against recognized allocation,
 field assignment, location, list and helper-call forms. It uses the generated
 Rust node definitions for the field types. It emits `records.tsv` and
 `src/records.in` in `crates/pg19-parser`. Handwritten family actions override
-generated fallbacks. Unrecognized C requires another translation and appears
-in the coverage report when a query reaches that reduction.
+generated fallbacks. A new or changed action requires a reviewed mapping
+before the complete-inventory test passes. The corpus comparison identifies
+SQL inputs that reach an unmapped reduction.
 
 ### Comparing parser behavior
 
@@ -104,7 +107,10 @@ runs the Rust tests. `python3 tools/pg19/tests/check-fixtures.py` checks
 stored outcomes and token boundaries without building the probes. CI also
 rebuilds both references when their inputs change. To run the full build through Cargo's test
 runner, use `cargo test -p pg19-reference --test reference -- --ignored`. Set `PG19_ARCHIVE` to an
-already downloaded archive for an offline run.
+already downloaded archive for an offline run. CI passes the release
+`pg19-native` executable as `PG19_NATIVE_PROBE` to this test. The test then
+captures both references across the full regression corpus, verifies the
+pinned digests and compares every patched outcome with Rust.
 
 The native Rust scanner uses the Flex transitions from the patched build and
 the release token and keyword catalogs. To verify the checked-in tables and
@@ -205,7 +211,7 @@ printf '%s' 'SELECT a, b, c, d, e, f FROM xyz WHERE a = b' | "$run/summary/summa
 cargo test --locked -p pg19-operations --test summary
 ```
 
-The build adapts the reference to PG19’s RepackStmt, WaitStmt and split subscription refresh kinds in the import directory. The fixture check reads the original C summary and truncation tests, verifies their expected truncated SQL, and compares the resulting wire messages and diagnostics with the checked-in snapshots. Use `check-summary.py --write` with the rebuilt probe when reviewing a version change.
+The build adapts the reference in the import directory for PG19’s REPACK and WAIT statements, publication targets and subscription commands. It also preserves quoted utility identifiers, numeric database options and database collation refreshes. The fixture check reads the original C summary and truncation tests, verifies their expected truncated SQL, and compares the resulting wire messages and diagnostics with the checked-in snapshots. Use `check-summary.py --write` with the rebuilt probe when reviewing a version change.
 
 To repeat the full entity and diagnostic comparison, point the ignored integration test at the extracted regression corpus and the probe.
 
