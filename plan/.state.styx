@@ -105,6 +105,30 @@ derived_priorities (
 )
 
 impl_evidence (
+    {id parser.lexer, covered_rules (
+        lex.byte-spans
+        lex.comments
+        lex.keywords
+        lex.numbers-and-parameters
+        lex.parser-lookahead
+        lex.quoted-values
+        lex.unicode-escape
+    ), covered_claims (
+        {impl_name rust, rule lex.byte-spans}
+        {impl_name rust, rule lex.comments}
+        {impl_name rust, rule lex.keywords}
+        {impl_name rust, rule lex.numbers-and-parameters}
+        {impl_name rust, rule lex.parser-lookahead}
+        {impl_name rust, rule lex.quoted-values}
+        {impl_name rust, rule lex.unicode-escape}
+    )}
+    {id parser.tables, covered_rules (
+        grammar.action-inventory
+        grammar.tables
+    ), covered_claims (
+        {impl_name rust, rule grammar.action-inventory}
+        {impl_name rust, rule grammar.tables}
+    )}
     {id reference.corpus, covered_rules (
         corpus.compare
     ), covered_claims (
@@ -125,23 +149,6 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
-    )}
-    {id parser.lexer, covered_rules (
-        lex.byte-spans
-        lex.comments
-        lex.keywords
-        lex.numbers-and-parameters
-        lex.parser-lookahead
-        lex.quoted-values
-        lex.unicode-escape
-    ), covered_claims (
-        {impl_name rust, rule lex.byte-spans}
-        {impl_name rust, rule lex.comments}
-        {impl_name rust, rule lex.keywords}
-        {impl_name rust, rule lex.numbers-and-parameters}
-        {impl_name rust, rule lex.parser-lookahead}
-        {impl_name rust, rule lex.quoted-values}
-        {impl_name rust, rule lex.unicode-escape}
     )}
 )
 
