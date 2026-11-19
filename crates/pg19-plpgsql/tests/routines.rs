@@ -131,6 +131,12 @@ fn native_routine_setup_matches_c() {
     for r in rows() {
         let result = compile_routines(&[raw(&r)], Options::default(), &mut NativeSql::default());
         assert_eq!(outcome(result), r["expected"], "{}", r["sql"]);
+        let sql = r["sql"].as_str().unwrap();
+        assert_eq!(
+            outcome(parse_routines(sql, Options::default())),
+            r["expected"],
+            "{sql}"
+        );
     }
 }
 
@@ -185,6 +191,7 @@ fn check_native_routine_cases(source: Option<&std::path::Path>) {
         "../../../tools/pg19/plpgsql/fixtures/expected.json"
     ))
     .unwrap();
+    let trigger = rows().find(|r| r["id"] == "trigger-self-field").unwrap();
     for case in cases {
         let sql = if let Some(text) = case["sql"].as_str() {
             text.to_owned()
@@ -202,9 +209,21 @@ fn check_native_routine_cases(source: Option<&std::path::Path>) {
             expected[name],
             "{name}"
         );
+        if !expected[name]["error"].is_null() {
+            let result = parse_routines(trigger["sql"].as_str().unwrap(), Options::default());
+            assert_eq!(
+                outcome(result),
+                trigger["expected"],
+                "valid trigger after {name}"
+            );
+        }
     }
 }
 
+// [spec:pgq:req:plpgsql.routines/test]
+// [spec:pgq:req:plpgsql.datums/test]
+// [spec:pgq:req:plpgsql.body/test]
+// [spec:pgq:req:plpgsql.errors/test]
 #[test]
 fn native_entrypoint_matches_checked_routines_and_errors() {
     check_native_routine_cases(None);

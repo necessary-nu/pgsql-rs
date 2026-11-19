@@ -280,7 +280,17 @@ impl_evidence (
         {id grammar.tables, version 0}
     )}
     {id parser.utility}
-    {id plpgsql.functions}
+    {id plpgsql.functions, covered_rules (
+        plpgsql.body
+        plpgsql.datums
+        plpgsql.errors
+        plpgsql.routines
+    ), covered_claims (
+        {impl_name rust, rule plpgsql.body}
+        {impl_name rust, rule plpgsql.datums}
+        {impl_name rust, rule plpgsql.errors}
+        {impl_name rust, rule plpgsql.routines}
+    )}
     {id reference.corpus, covered_rules (
         corpus.compare
     ), covered_claims (
