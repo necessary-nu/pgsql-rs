@@ -22,6 +22,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pg19-operations"
+version = "0.1.0"
+dependencies = [
+ "pg19-lexer",
+ "serde_json",
+]
+
+[[package]]
 name = "pg19-reference"
 version = "0.1.0"
 

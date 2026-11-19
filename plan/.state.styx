@@ -143,6 +143,11 @@ impl_evidence (
         {impl_name rust, rule lex.quoted-values}
         {impl_name rust, rule lex.unicode-escape}
     )}
+    {id operations.split-scanner, covered_rules (
+        split.scanner
+    ), covered_claims (
+        {impl_name rust, rule split.scanner}
+    )}
 )
 
 onboarding {kind @adopt, phase 11}

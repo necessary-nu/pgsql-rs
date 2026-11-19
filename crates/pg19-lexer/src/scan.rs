@@ -24,6 +24,12 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    /// Byte offset after the last consumed token or whitespace. At end of
+    /// input this points to the terminating NUL or the end of the string.
+    pub fn offset(&self) -> usize {
+        self.cursor
+    }
+
     pub fn grammar(self) -> crate::GrammarScanner<'a> {
         crate::GrammarScanner::new(self)
     }

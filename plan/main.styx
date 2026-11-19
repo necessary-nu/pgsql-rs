@@ -219,6 +219,14 @@ children (
                     rust ([spec:pgq:req:split.scanner])
                 }
                 deps (parser.lexer)
+                log (
+                    {
+                        at 2026-11-19T17:54:43.895997252Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
 
             {

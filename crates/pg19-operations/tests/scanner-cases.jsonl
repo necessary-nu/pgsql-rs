@@ -1,0 +1,31 @@
+{"sql": "", "ranges": []}
+{"sql": "SELECT 1", "ranges": [[0, 8]]}
+{"sql": "SELECT 1; SELECT 2", "ranges": [[0, 8], [9, 18]]}
+{"sql": "SELECT 1; SELECT 2; SELECT 3", "ranges": [[0, 8], [9, 18], [19, 28]]}
+{"sql": "SELECT /* comment with ; */ 1; SELECT 2", "ranges": [[0, 29], [30, 39]]}
+{"sql": "SELECT --othercomment with ;\n 1; SELECT 2", "ranges": [[0, 31], [32, 41]]}
+{"sql": "CREATE RULE x AS ON SELECT TO tbl DO (SELECT 1; SELECT 2)", "ranges": [[0, 57]]}
+{"sql": "SELECT 1;\n;\n-- comment\nSELECT 2;\n;", "ranges": [[0, 8], [11, 31]]}
+{"sql": " \t\r\n", "ranges": []}
+{"sql": ";; /* outer /* SELECT; */ ; */ -- WAIT\n ;", "ranges": []}
+{"sql": "SELECT FROM; missing_name; \"select\" 42; 'FROM' $1;", "ranges": [[0, 11]]}
+{"sql": ";-- one\n SELECT 1\t  ", "ranges": [[1, 20]]}
+{"sql": "SELECT 1 -- comment", "ranges": [[0, 19]]}
+{"sql": "SELECT /* tail ; */", "ranges": [[0, 19]]}
+{"sql": "SELECT 'é; )'; /* ( */ WAIT FOR LSN '0/1'; REPACK α USING INDEX i", "ranges": [[0, 14], [15, 42], [43, 67]]}
+{"sql": "SELECT $$inside; ;$$; SELECT $body$(; text);$body$; SELECT \"quoted; select\"  ", "ranges": [[0, 20], [21, 50], [51, 77]]}
+{"sql": "SELECT E'a\\';b'; SELECT U&'x;'; SELECT B'101'; SELECT X'ff'", "ranges": [[0, 15], [16, 30], [31, 45], [46, 59]]}
+{"sql": "CREATE RULE x AS ON SELECT TO tbl DO (SELECT ((1)); SELECT $$(;)$$; SELECT 2); SELECT 3", "ranges": [[0, 77], [78, 87]]}
+{"sql": "SELECT 1; SELECT (", "ranges": [[0, 8]]}
+{"sql": "SELECT 1); x; ( ; wait;", "ranges": [[0, 16], [17, 22]]}
+{"sql": ")(; name; SELECT 1", "ranges": [[3, 8], [9, 18]]}
+{"sql": "SELECT 1; 42; not_keyword; FROM", "ranges": [[0, 8], [26, 31]]}
+{"sql": "WAIT; LSN; REPACK; RESPECT; IGNORE;", "ranges": [[0, 4], [5, 9], [10, 17], [18, 26], [27, 34]]}
+{"sql": "-- leading α\nSELECT 'twø' ; /*é*/ SELECT 3\n\t", "ranges": [[0, 28], [29, 47]]}
+{"sql": "SELECT 'é'; SELECT 'unterminated", "position": 20, "error": "unterminated quoted string at or near \"'unterminated\""}
+{"sql": "SELECT 1; /* bad", "position": 11, "error": "unterminated /* comment at or near \"/* bad\""}
+{"sql": "SELECT $tag$bad", "position": 8, "error": "unterminated dollar-quoted string at or near \"$tag$bad\""}
+{"sql": "SELECT \"bad", "position": 8, "error": "unterminated quoted identifier at or near \"\"bad\""}
+{"sql": " ; abc 123xyz", "position": 8, "error": "trailing junk after numeric literal at or near \"123xyz\""}
+{"sql": "UPDATE; SELECT $2147483648", "position": 16, "error": "parameter number too large at or near \"$2147483648\""}
+{"sql": "SELECT 1; CREATE FUNCTION foo() RETURNS int LANGUAGE SQL BEGIN ATOMIC SELECT 1; SELECT 2; END;", "ranges": [[0, 8], [9, 78], [79, 88], [89, 93]]}
