@@ -32,6 +32,9 @@ pub(super) enum Builtin {
     },
     ArgList(Args),
     NullIf,
+    XmlRoot(Option<i32>),
+    MergeAction,
+    SubstringLength,
     Overlaps,
     Treat,
 }
@@ -143,6 +146,30 @@ pub(super) fn reduce(op: Builtin, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             ..Default::default()
         }
         .into(),
+        Builtin::XmlRoot(number) => Node::AConst(AConst {
+            val: number.map_or(Literal::Null, Literal::Integer),
+            location: Location::UNKNOWN,
+        }),
+        Builtin::MergeAction => MergeSupportFunc {
+            msftype: 25,
+            location: rhs.location(1),
+            ..Default::default()
+        }
+        .into(),
+        Builtin::SubstringLength => {
+            let loc = Location::UNKNOWN;
+            let target = crate::types::builtin("int4", Vec::new(), loc);
+            let length = TypeCast {
+                arg: Some(Box::new(rhs.take(3).node()?)),
+                type_name: Some(Box::new(target)),
+                location: loc,
+            };
+            return Ok(Value::List(vec![
+                rhs.take(1).node()?,
+                crate::types::int_constant(1, loc),
+                length.into(),
+            ]));
+        }
         Builtin::NullIf => AExpr {
             kind: AExprKind::AEXPR_NULLIF,
             name: vec![Node::String("=".into())],

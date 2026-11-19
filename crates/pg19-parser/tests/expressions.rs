@@ -61,3 +61,45 @@ fn verify_expression_snapshots() {
         assert_eq!(result["parse_error"], case["error"], "{sql}");
     }
 }
+
+// [spec:pgq:req:grammar.expression-binding/test]
+#[test]
+fn precedence_and_parentheses_build_different_operator_trees() {
+    use pg19_nodes::{Literal, Node};
+    fn notation(node: &Node) -> String {
+        match node {
+            Node::AConst(n) => match &n.val {
+                Literal::Integer(v) => v.to_string(),
+                x => panic!("unexpected literal {x:?}"),
+            },
+            Node::AExpr(e) => {
+                let [Node::String(op)] = e.name.as_slice() else {
+                    panic!("expected operator")
+                };
+                format!(
+                    "({} {op} {})",
+                    notation(e.lexpr.as_deref().unwrap()),
+                    notation(e.rexpr.as_deref().unwrap())
+                )
+            }
+            _ => panic!("expected arithmetic expression"),
+        }
+    }
+    for (sql, expected) in [
+        ("SELECT 1 + 2 * 3", "(1 + (2 * 3))"),
+        ("SELECT (1 + 2) * 3", "((1 + 2) * 3)"),
+        ("SELECT 8 - 4 - 2", "((8 - 4) - 2)"),
+    ] {
+        let nodes = parse(sql, ParseMode::Sql, Options::default()).unwrap();
+        let [Node::RawStmt(raw)] = nodes.as_slice() else {
+            panic!("expected one statement")
+        };
+        let Some(Node::SelectStmt(select)) = raw.stmt.as_deref() else {
+            panic!("expected SELECT")
+        };
+        let [Node::ResTarget(target)] = select.target_list.as_slice() else {
+            panic!("expected one expression")
+        };
+        assert_eq!(notation(target.val.as_deref().unwrap()), expected, "{sql}");
+    }
+}

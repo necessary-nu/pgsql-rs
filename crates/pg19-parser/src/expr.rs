@@ -26,6 +26,9 @@ pub(super) enum Expr {
     Slice,
 }
 
+// The LALR reductions already encode PostgreSQL precedence. Their left and
+// right values become children without reassociating the tree.
+// [spec:pgq:req:grammar.expression-binding]
 fn operator(
     kind: AExprKind,
     name: &str,

@@ -105,7 +105,16 @@ macro_rules! scalar {
         }
     )*}
 }
-scalar!(AConst, i32, String, bool, Vec<i32>, Vec<u32>);
+// Preserve the shared source when duplicating a multi-column assignment.
+scalar!(
+    AConst,
+    i32,
+    String,
+    bool,
+    Vec<i32>,
+    Vec<u32>,
+    Option<Arc<Node>>
+);
 
 macro_rules! record_copy {
     ($record:ident { $($child:ident),* } { $($plain:ident),* }) => {

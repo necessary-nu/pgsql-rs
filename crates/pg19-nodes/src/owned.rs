@@ -49,6 +49,14 @@ where
     }
 }
 
+impl Edges for Option<Arc<Node>> {
+    fn detach(&mut self, pending: &mut Vec<Node>) {
+        if let Some(node) = self.take().and_then(Arc::into_inner) {
+            pending.push(node);
+        }
+    }
+}
+
 impl Edges for Vec<Node> {
     fn detach(&mut self, pending: &mut Vec<Node>) {
         pending.append(self);

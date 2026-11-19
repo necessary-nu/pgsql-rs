@@ -6,3 +6,4 @@ set_clause: set_target '=' a_expr	24af71296a27274c8ac58d3ee1a05597e88cab02ed54f0
 set_target: ColId opt_indirection	9484cc7ac1775194c115a77b1e7ab573611ebdca111bad2af82261e7f93d5de9	Dml(crate::dml::Dml::Target)
 relation_expr_opt_alias: relation_expr ColId	bd3b69a4ba2a4f01137b6236cb91bbc7248df846ec74cde12832c98dd5fbf03a	Dml(crate::dml::Dml::RelationAlias(2))
 relation_expr_opt_alias: relation_expr AS ColId	0094720ad11d174073a2957338cdc3bbcfa1fa1ff821a16297e801002bd201d2	Dml(crate::dml::Dml::RelationAlias(3))
+set_clause: '(' set_target_list ')' '=' a_expr	0f125a2aadfd47d65b0c218d773f83610b4298985065b5ffdfb90c700b526779	Dml(crate::dml::Dml::MultiAssignment)

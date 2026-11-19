@@ -169,3 +169,39 @@ fn clones_embedded_records_siblings_and_nullable_values() {
     let copy = node.clone();
     assert_eq!(node, copy);
 }
+
+#[test]
+fn shared_assignment_clone_and_drop_use_bounded_stacks() {
+    use std::sync::Arc;
+    small_stack(|| {
+        let mut source = Arc::new(Node::Integer(1));
+        for _ in 0..DEPTH {
+            let targets = (1..=2)
+                .map(|colno| {
+                    Node::from(MultiAssignRef {
+                        source: Some(source.clone()),
+                        colno,
+                        ncolumns: 2,
+                    })
+                })
+                .collect::<Vec<_>>();
+            source = Arc::new(Node::from(targets));
+        }
+        let duplicate = (*source).clone();
+        let Node::List(original) = &*source else {
+            unreachable!()
+        };
+        let Node::List(copy) = &duplicate else {
+            unreachable!()
+        };
+        let (Node::MultiAssignRef(a), Node::MultiAssignRef(b)) = (&original[0], &copy[1]) else {
+            unreachable!()
+        };
+        assert!(Arc::ptr_eq(
+            a.source.as_ref().unwrap(),
+            b.source.as_ref().unwrap()
+        ));
+        drop(source);
+        drop(duplicate);
+    });
+}
