@@ -115,6 +115,7 @@ pub(super) fn range_name(
     })
 }
 
+// [spec:pgq:sem:grammar.utility-actions]
 pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     match op {
         Utility::Unsupported(message, slot) => {
