@@ -1,4 +1,5 @@
 mod object;
+mod routine;
 mod session;
 use super::query::{named, relation};
 use super::writer::{names, required, Plan, Role};
@@ -220,7 +221,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("RETURN ");
             p.expr(required(&s.returnval, "ReturnStmt.returnval")?)
         }
-        _ => return Ok(false),
+        _ => return routine::statement(n, p),
     }
     Ok(true)
 }

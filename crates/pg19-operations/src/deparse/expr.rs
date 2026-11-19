@@ -155,7 +155,7 @@ fn cast<'a>(t: &'a TypeCast, p: &mut Plan<'a>) -> Result<()> {
     p.typename(ty);
     Ok(())
 }
-fn function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
+pub(super) fn function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
     if f.funcformat == CoercionForm::COERCE_SQL_SYNTAX {
         return sql_function(f, p);
     }
