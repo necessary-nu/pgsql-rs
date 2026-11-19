@@ -140,6 +140,13 @@ children (
                         kind @note
                         text "At 3e13dee the first-party Rust parser matches 47,619 of 54,471 PostgreSQL 19 regression cases on raw trees or diagnostics and scanner output. The other 6,852 stop at 192 distinct first unported actions. All completed cases agree with the patched PG19 reference."
                     }
+
+                    {
+                        at 2026-11-19T19:15:59.420217018Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The merged SQL implementation at 333e9f2 exactly matches 50,352 of the 54,471 PG19 regression cases. The remaining 4,119 stop at 129 distinct first unported actions. No completed SQL tree, diagnostic or scan differs."
+                    }
                 )
             }
 
