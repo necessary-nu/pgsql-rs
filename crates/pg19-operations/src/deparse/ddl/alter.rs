@@ -18,6 +18,17 @@ fn ident_arg(s: &AlterTableCmd) -> Result<String> {
     }
 }
 
+fn reloptions<'a>(s: &'a AlterTableCmd, p: &mut Plan<'a>) -> Result<()> {
+    let Node::List(opts) = def(s)? else {
+        return Err(Error::InvalidField("alter relation options"));
+    };
+    p.text(match s.subtype {
+        AlterTableType::AT_SetOptions | AlterTableType::AT_SetRelOptions => "SET ",
+        _ => "RESET ",
+    });
+    super::index::reloptions(opts, p)
+}
+
 fn alter_constraint(c: &ATAlterConstraint, p: &mut Plan<'_>) -> Result<()> {
     p.text("ALTER CONSTRAINT ");
     p.text(named(&c.conname, "ATAlterConstraint.conname")?);
@@ -102,6 +113,10 @@ fn alter_column<'a>(s: &'a AlterTableCmd, attribute: bool, p: &mut Plan<'a>) -> 
                 " SET COMPRESSION "
             });
             p.text(ident_arg(s)?)
+        }
+        A::AT_SetOptions | A::AT_ResetOptions => {
+            p.text(" ");
+            reloptions(s, p)?
         }
         A::AT_SetExpression => {
             p.text(" SET EXPRESSION AS (");
@@ -294,6 +309,7 @@ fn command<'a>(s: &'a AlterTableCmd, attribute: bool, p: &mut Plan<'a>) -> Resul
                 p.text("OF ");
                 p.typename(t)
             }
+            A::AT_SetRelOptions | A::AT_ResetRelOptions => reloptions(s, p)?,
             A::AT_ReplicaIdentity => replica(s, p)?,
             A::AT_SetAccessMethod => {
                 p.text("SET ACCESS METHOD ");

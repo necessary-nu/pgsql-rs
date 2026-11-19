@@ -1,5 +1,5 @@
 // SELECT clauses, set-operation arms and table references from postgres_deparse.c.
-use super::operator::{operator, precedence, Prec};
+use super::operator::{operator, precedence, restricted, Prec};
 use super::writer::{names, required, Plan, Role};
 use super::{ident, Error, Result};
 use pg19_nodes::*;
@@ -383,16 +383,24 @@ fn select_tail<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
     if let Some(n) = &s.limit_count {
         let ties = s.limit_option == LimitOption::LIMIT_OPTION_WITH_TIES;
         p.clause(if ties { "FETCH FIRST " } else { "LIMIT " });
-        if matches!(
-            n.as_ref(),
-            Node::AConst(AConst {
-                val: Literal::Null,
-                ..
-            })
-        ) {
+        if !ties
+            && matches!(
+                n.as_ref(),
+                Node::AConst(AConst {
+                    val: Literal::Null,
+                    ..
+                })
+            )
+        {
             p.text("ALL");
         } else {
-            p.wrapped(n, Role::Expr, ties && precedence(n) < Prec::Atom);
+            p.wrapped(
+                n,
+                Role::Expr,
+                ties && (precedence(n) < Prec::Atom
+                    || restricted(n)
+                    || matches!(n.as_ref(), Node::TypeCast(_))),
+            );
         }
         if ties {
             p.text(" ROWS WITH TIES");

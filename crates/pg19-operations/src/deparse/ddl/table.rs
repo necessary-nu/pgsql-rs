@@ -229,7 +229,8 @@ pub(super) fn create<'a>(s: &'a CreateStmt, foreign: bool, p: &mut Plan<'a>) -> 
         p.text(ident(am)?)
     }
     if !s.options.is_empty() {
-        return Err(Error::InvalidField("storage options"));
+        p.text(" WITH ");
+        super::index::reloptions(&s.options, p)?;
     }
     match s.oncommit {
         OnCommitAction::ONCOMMIT_NOOP => {}

@@ -67,6 +67,61 @@ fn foreign_keys(nodes: &[Node], period: bool, p: &mut Plan<'_>) -> Result<()> {
     Ok(())
 }
 
+fn exclude<'a>(c: &'a Constraint, p: &mut Plan<'a>) -> Result<()> {
+    p.text("EXCLUDE ");
+    let method = c
+        .access_method
+        .as_deref()
+        .ok_or(Error::InvalidField("Constraint.access_method"))?;
+    if method != "btree" {
+        p.text("USING ");
+        p.text(ident(method)?);
+        p.text(" ");
+    }
+    p.text("(");
+    for (i, n) in c.exclusions.iter().enumerate() {
+        let Node::List(pair) = n else {
+            return Err(Error::InvalidField("Constraint.exclusions"));
+        };
+        let [Node::IndexElem(elem), Node::List(op)] = pair.as_slice() else {
+            return Err(Error::InvalidField("Constraint.exclusions"));
+        };
+        if i > 0 {
+            p.text(", ");
+        }
+        crate::deparse::dml::index_elem(elem, p)?;
+        p.text(" WITH ");
+        p.text(crate::deparse::operator::any_operator(op)?);
+    }
+    p.text(")");
+    Ok(())
+}
+
+fn index_attributes<'a>(c: &'a Constraint, p: &mut Plan<'a>) -> Result<()> {
+    if !c.including.is_empty() {
+        p.text(" INCLUDE");
+        keys(&c.including, "", p)?
+    }
+    if !c.options.is_empty() {
+        p.text(" WITH ");
+        super::index::reloptions(&c.options, p)?;
+    }
+    if let Some(i) = &c.indexname {
+        p.text(" USING INDEX ");
+        p.text(ident(i)?)
+    }
+    if let Some(ts) = &c.indexspace {
+        p.text(" USING INDEX TABLESPACE ");
+        p.text(ident(ts)?)
+    }
+    if let Some(predicate) = c.where_clause.as_deref() {
+        p.text(" WHERE (");
+        p.expr(predicate);
+        p.text(")");
+    }
+    Ok(())
+}
+
 pub(super) fn constraint<'a>(c: &'a Constraint, domain: bool, p: &mut Plan<'a>) -> Result<()> {
     use ConstrType as C;
     p.mark(c.location);
@@ -136,22 +191,8 @@ pub(super) fn constraint<'a>(c: &'a Constraint, domain: bool, p: &mut Plan<'a>) 
                 },
                 p,
             )?;
-            if !c.including.is_empty() {
-                p.text(" INCLUDE");
-                keys(&c.including, "", p)?
-            }
-            if !c.options.is_empty() {
-                return Err(Error::InvalidField("index storage options"));
-            }
-            if let Some(i) = &c.indexname {
-                p.text(" USING INDEX ");
-                p.text(ident(i)?)
-            }
-            if let Some(ts) = &c.indexspace {
-                p.text(" USING INDEX TABLESPACE ");
-                p.text(ident(ts)?)
-            }
         }
+        C::CONSTR_EXCLUSION => exclude(c, p)?,
         C::CONSTR_FOREIGN => foreign(c, p)?,
         C::CONSTR_ATTR_DEFERRABLE => p.text("DEFERRABLE"),
         C::CONSTR_ATTR_NOT_DEFERRABLE => p.text("NOT DEFERRABLE"),
@@ -160,6 +201,12 @@ pub(super) fn constraint<'a>(c: &'a Constraint, domain: bool, p: &mut Plan<'a>) 
         C::CONSTR_ATTR_ENFORCED => p.text("ENFORCED"),
         C::CONSTR_ATTR_NOT_ENFORCED => p.text("NOT ENFORCED"),
         _ => return Err(Error::InvalidField("Constraint.contype")),
+    }
+    if matches!(
+        c.contype,
+        C::CONSTR_PRIMARY | C::CONSTR_UNIQUE | C::CONSTR_EXCLUSION
+    ) {
+        index_attributes(c, p)?;
     }
     if c.deferrable {
         p.text(" DEFERRABLE")
