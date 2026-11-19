@@ -4,12 +4,25 @@ use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
 fn main() {
     let inventory = "../pg19-tables/data/productions.tsv";
-    let manifest = "actions.tsv";
+    let manifests = "actions";
     println!("cargo:rerun-if-changed={inventory}");
-    println!("cargo:rerun-if-changed={manifest}");
+    println!("cargo:rerun-if-changed={manifests}");
     let table = fs::read_to_string(inventory).unwrap();
     let mut actions = BTreeMap::new();
-    let source = fs::read_to_string(manifest).unwrap();
+    let mut paths: Vec<_> = fs::read_dir(manifests)
+        .unwrap()
+        .map(|file| file.unwrap().path())
+        .filter(|path| path.extension().is_some_and(|ext| ext == "tsv"))
+        .collect();
+    paths.sort();
+    let source: String = paths
+        .iter()
+        .map(|path| {
+            let mut text = fs::read_to_string(path).unwrap();
+            text.push('\n');
+            text
+        })
+        .collect();
     for line in source
         .lines()
         .filter(|l| !l.starts_with('#') && !l.is_empty())
