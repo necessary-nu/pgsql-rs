@@ -1,6 +1,8 @@
 mod access;
 mod copy;
+mod foreign;
 mod object;
+mod policy;
 mod session;
 use super::query::{named, relation};
 use super::writer::{names, required, Plan, Role};
@@ -74,6 +76,13 @@ fn enum_change(s: &AlterEnumStmt, p: &mut Plan<'_>) -> Result<()> {
 }
 
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
+    Ok(general(n, p)?
+        || access::statement(n, p)?
+        || policy::statement(n, p)?
+        || foreign::statement(n, p)?)
+}
+
+fn general<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
         Node::CopyStmt(s) => copy::statement(s, p)?,
         Node::DropStmt(s) => object::drop_objects(s, p)?,
@@ -223,7 +232,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("RETURN ");
             p.expr(required(&s.returnval, "ReturnStmt.returnval")?)
         }
-        _ => return access::statement(n, p),
+        _ => return Ok(false),
     }
     Ok(true)
 }
