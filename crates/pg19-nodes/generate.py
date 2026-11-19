@@ -141,6 +141,7 @@ def generate(run, check):
     for name in selected:
         nodes.append(f'        {name.replace("_", "")} ({tags[name]}, "{name}") {{')
         children = []
+        plain = []
         for field in fields(records[name]):
             t = rust_type(field, enums, selected)
             if t is None:
@@ -151,6 +152,8 @@ def generate(run, check):
                 t = t.replace("Option<Box<", "Option<NodeBox<", 1)
             if t == "Vec<Node>" or target in selected or t == "Option<Box<Node>>":
                 children.append(field_name(cname))
+            else:
+                plain.append(field_name(cname))
             if name == "RawStmt" and cname == "stmt_len":
                 t = "i32"  # ParseLoc in C, but this field stores a length.
             if t in enums:
@@ -158,7 +161,7 @@ def generate(run, check):
                 t = t.replace("_", "")
             nodes.append(f'            {field_name(cname)} ["{cname}"]: {t},')
         nodes.append("        }")
-        edges.append(f'    {name.replace("_", "")} {{ {", ".join(children)} }}')
+        edges.append(f'    {name.replace("_", "")} {{ {", ".join(children)} }} {{ {", ".join(plain)} }}')
     edges.append("}")
     nodes.extend(["    }", "}"])
     enum_lines = [header + "pg_enums! {"]
