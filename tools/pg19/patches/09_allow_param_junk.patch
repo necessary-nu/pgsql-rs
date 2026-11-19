@@ -1,0 +1,28 @@
+--- a/src/backend/parser/scan.l
++++ b/src/backend/parser/scan.l
+@@ -411,13 +411,12 @@
+  * XXXinteger to make this work correctly: 0x1234 will match both hexinteger
+  * and integer_junk, and we need hexinteger to be chosen in that case.
+  *
+- * Also disallow strings matched by numeric_junk, real_junk and param_junk
++ * Also disallow strings matched by numeric_junk and real_junk
+  * for consistency.
+  */
+ integer_junk	{decinteger}{identifier}
+ numeric_junk	{numeric}{identifier}
+ real_junk		{real}{identifier}
+-param_junk		\${decdigit}+{identifier}
+ 
+ other			.
+ 
+@@ -1002,10 +1001,6 @@
+ 					yylval->ival = val;
+ 					return PARAM;
+ 				}
+-{param_junk}	{
+-					SET_YYLLOC();
+-					yyerror("trailing junk after parameter");
+-				}
+ 
+ {decinteger}	{
+ 					SET_YYLLOC();

@@ -1,0 +1,1 @@
+{"tree":"({RAWSTMT :stmt {NOTIFYSTMT :conditionname t :payload changed} :stmt_location 0 :stmt_len 19})","parse_error":null,"tokens":[{"id":552,"name":"NOTIFY","start":0,"end":6},{"id":258,"name":"IDENT","start":7,"end":8},{"id":44,"name":",","start":8,"end":9},{"id":261,"name":"SCONST","start":10,"end":19},{"id":59,"name":";","start":19,"end":20}],"scan_error":null}

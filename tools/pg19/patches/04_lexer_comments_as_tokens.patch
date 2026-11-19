@@ -1,0 +1,78 @@
+--- a/src/backend/parser/gram.y
++++ b/src/backend/parser/gram.y
+@@ -699,6 +699,7 @@
+ %token <ival>	ICONST PARAM
+ %token			TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
+ %token			LESS_EQUALS GREATER_EQUALS NOT_EQUALS
++%token			SQL_COMMENT C_COMMENT
+ 
+ /*
+  * If you want to make any keyword changes, update the keyword table in
+--- a/src/backend/parser/scan.l
++++ b/src/backend/parser/scan.l
+@@ -436,10 +436,19 @@
+ 
+ %%
+ 
+-{whitespace}	{
++{space}+	{
+ 					/* ignore */
+ 				}
+ 
++{comment}	{
++					/* ignore, unless comments were requested as tokens */
++					if (yyextra->return_comments)
++					{
++						SET_YYLLOC();
++						return SQL_COMMENT;
++					}
++				}
++
+ {xcstart}		{
+ 					/* Set location in case of syntax error in comment */
+ 					SET_YYLLOC();
+@@ -458,7 +467,14 @@
+ 
+ {xcstop}		{
+ 					if (yyextra->xcdepth <= 0)
++					{
+ 						BEGIN(INITIAL);
++						if (yyextra->return_comments)
++						{
++							yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
++							return C_COMMENT;
++						}
++					}
+ 					else
+ 						(yyextra->xcdepth)--;
+ 				}
+@@ -1248,6 +1264,7 @@
+ 	yyext->keyword_tokens = keyword_tokens;
+ 
+ 	yyext->backslash_quote = backslash_quote;
++	yyext->return_comments = false;
+ 
+ 	/*
+ 	 * Make a scan buffer with special termination needed by flex.
+--- a/src/include/parser/scanner.h
++++ b/src/include/parser/scanner.h
+@@ -112,6 +112,9 @@
+ 	bool		saw_non_ascii;
+ 
+ 	int yyllocend;
++
++	/* return comments as SQL_COMMENT/C_COMMENT tokens, instead of ignoring */
++	bool		return_comments;
+ } core_yy_extra_type;
+ 
+ /*
+--- a/src/pl/plpgsql/src/pl_gram.y
++++ b/src/pl/plpgsql/src/pl_gram.y
+@@ -247,6 +247,7 @@
+ %token <ival>	ICONST PARAM
+ %token			TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
+ %token			LESS_EQUALS GREATER_EQUALS NOT_EQUALS
++%token			SQL_COMMENT C_COMMENT
+ 
+ /*
+  * Other tokens recognized by plpgsql's lexer interface layer (pl_scanner.c).

@@ -1,0 +1,1 @@
+{"tree":null,"parse_error":{"sqlstate":"42601","message":"trailing junk after parameter at or near \"$1alias\"","position":8},"tokens":[{"id":655,"name":"SELECT","start":0,"end":6}],"scan_error":{"sqlstate":"42601","message":"trailing junk after parameter at or near \"$1alias\"","position":8}}

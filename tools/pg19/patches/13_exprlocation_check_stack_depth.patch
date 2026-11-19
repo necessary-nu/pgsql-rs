@@ -1,0 +1,13 @@
+--- a/src/backend/nodes/nodeFuncs.c
++++ b/src/backend/nodes/nodeFuncs.c
+@@ -1398,6 +1398,10 @@
+ 
+ 	if (expr == NULL)
+ 		return -1;
++
++	/* Guard against stack overflow due to overly complex expressions */
++	check_stack_depth();
++
+ 	switch (nodeTag(expr))
+ 	{
+ 		case T_RangeVar:

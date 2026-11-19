@@ -1,0 +1,358 @@
+name libpg_query
+
+source {
+    url https://github.com/pganalyze/libpg_query
+    ref 27112f8af5de70368319a12c346c2fb37cd74476
+}
+
+children (
+    {
+        id reference
+        title "Reproduce the PostgreSQL 19.0 raw parser references"
+        kind @build
+        children (
+            {
+                id reference.import
+                title "Verify and extract the PostgreSQL 19.0 release"
+                implements {
+                    rust ([spec:pgq:req:import.release] [spec:pgq:req:import.checksum] [spec:pgq:req:import.isolation])
+                }
+            }
+
+            {
+                id reference.probes
+                title "Build stock and patched raw parser probes"
+                implements {
+                    rust ([spec:pgq:req:reference.overlay] [spec:pgq:req:reference.build])
+                }
+                deps (reference.import)
+            }
+
+            {
+                id reference.corpus
+                title "Compare both raw parsers with reviewed corpus results"
+                implements {
+                    rust ([spec:pgq:req:corpus.compare])
+                }
+                deps (reference.probes)
+            }
+        )
+    }
+
+    {
+        id parser
+        title "Port PostgreSQL raw parsing to Rust"
+        kind @feat
+        children (
+            {
+                id parser.lexer
+                title "Scan SQL and apply PostgreSQL lookahead"
+                implements {
+                    rust (
+                        [spec:pgq:req:lex.keywords]
+                        [spec:pgq:req:lex.byte-spans]
+                        [spec:pgq:req:lex.comments]
+                        [spec:pgq:req:lex.quoted-values]
+                        [spec:pgq:req:lex.numbers-and-parameters]
+                        [spec:pgq:req:lex.parser-lookahead]
+                        [spec:pgq:req:lex.unicode-escape]
+                    )
+                }
+                deps (reference.corpus)
+            }
+
+            {
+                id parser.tables
+                title "Generate Rust tables and identify changed grammar actions"
+                implements {
+                    rust ([spec:pgq:req:grammar.tables] [spec:pgq:req:grammar.action-inventory])
+                }
+                deps (reference.corpus)
+            }
+
+            {
+                id parser.nodes
+                title "Represent raw PostgreSQL node fields and source locations"
+                implements {
+                    rust ([spec:pgq:req:tree.node-layout] [spec:pgq:req:tree.statement-spans] [spec:pgq:req:tree.node-locations])
+                }
+                deps (reference.corpus)
+            }
+
+            {
+                id parser.reduce
+                title "Integrate raw statements and all parser start modes"
+                implements {
+                    rust (
+                        [spec:pgq:req:grammar.raw-sql]
+                        [spec:pgq:req:grammar.sql-families]
+                        [spec:pgq:req:grammar.parse-modes]
+                        [spec:pgq:req:grammar.overlay-differences]
+                        [spec:pgq:req:grammar.runtime]
+                    )
+                }
+                deps (parser.dml parser.utility parser.diagnostics)
+            }
+
+            {
+                id parser.parity
+                title "Verify Rust raw parsing against the PG19 regression corpus"
+                kind @test
+                implements {
+                    rust ([spec:pgq:req:grammar.corpus-parity])
+                }
+                deps (parser.reduce reference.corpus)
+            }
+
+            {
+                id parser.engine
+                title "Run the shift/reduce engine and propagate semantic values"
+                implements {
+                    rust ([spec:pgq:req:grammar.reductions])
+                }
+                deps (parser.tables parser.nodes parser.lexer)
+            }
+
+            {
+                id parser.expressions
+                title "Construct expressions with PostgreSQL precedence"
+                implements {
+                    rust ([spec:pgq:req:grammar.expression-binding])
+                }
+                deps (parser.engine)
+            }
+
+            {
+                id parser.queries
+                title "Construct SELECT and set-operation trees"
+                implements {
+                    rust ([spec:pgq:sem:grammar.query-actions])
+                }
+                deps (parser.expressions)
+            }
+
+            {
+                id parser.dml
+                title "Construct INSERT, UPDATE, DELETE and MERGE trees"
+                implements {
+                    rust ([spec:pgq:sem:grammar.dml-actions])
+                }
+                deps (parser.queries)
+            }
+
+            {
+                id parser.utility
+                title "Construct DDL, transaction and utility trees"
+                implements {
+                    rust ([spec:pgq:sem:grammar.utility-actions])
+                }
+                deps (parser.expressions)
+            }
+
+            {
+                id parser.diagnostics
+                title "Report parse errors with per-call lexer settings"
+                implements {
+                    rust ([spec:pgq:req:grammar.diagnostics] [spec:pgq:req:grammar.string-settings])
+                }
+                deps (parser.engine)
+            }
+        )
+    }
+
+    {
+        id codec
+        title "Serialize and read PG19 trees and tokens"
+        kind @feat
+        children (
+            {
+                id codec.json
+                title "Encode raw trees using the PG19 JSON mapping"
+                implements {
+                    rust ([spec:pgq:req:codec.json-envelope] [spec:pgq:req:codec.json-fields])
+                }
+                deps (parser.reduce)
+            }
+
+            {
+                id codec.protobuf
+                title "Read and write PG19 node and token messages"
+                implements {
+                    rust (
+                        [spec:pgq:req:lex.token-results]
+                        [spec:pgq:req:tree.literal-variants]
+                        [spec:pgq:req:codec.protobuf-schema]
+                        [spec:pgq:req:codec.errors-and-depth]
+                    )
+                }
+                deps (parser.reduce codec.schema)
+            }
+
+            {
+                id codec.schema
+                title "Generate and pin the PG19 compatibility descriptor"
+                implements {
+                    rust ([spec:pgq:req:codec.schema-import])
+                }
+                deps (reference.corpus)
+            }
+        )
+    }
+
+    {
+        id operations
+        title "Port SQL query operations"
+        kind @feat
+        children (
+            {
+                id operations.split-scanner
+                title "Split statement spans using the scanner"
+                implements {
+                    rust ([spec:pgq:req:split.scanner])
+                }
+                deps (parser.lexer)
+            }
+
+            {
+                id operations.split-parser
+                title "Split validated raw statements"
+                implements {
+                    rust ([spec:pgq:req:split.parser])
+                }
+                deps (parser.reduce)
+            }
+
+            {
+                id operations.fingerprint
+                title "Fingerprint raw trees with compatibility options"
+                implements {
+                    rust (
+                        [spec:pgq:req:fingerprint.digest]
+                        [spec:pgq:req:fingerprint.constants]
+                        [spec:pgq:req:fingerprint.lists]
+                        [spec:pgq:req:fingerprint.aliases]
+                        [spec:pgq:req:fingerprint.relation-digits]
+                    )
+                }
+                deps (parser.reduce)
+            }
+
+            {
+                id operations.utility
+                title "Classify utility statements"
+                implements {
+                    rust ([spec:pgq:req:utility.classify] [spec:pgq:req:utility.sequence])
+                }
+                deps (parser.reduce)
+            }
+
+            {
+                id operations.normalize
+                title "Normalize SQL literals and utility statements"
+                implements {
+                    rust (
+                        [spec:pgq:req:normalize.substitutions]
+                        [spec:pgq:req:normalize.literal-spans]
+                        [spec:pgq:req:normalize.grouping]
+                        [spec:pgq:req:normalize.utility]
+                    )
+                }
+                deps (operations.fingerprint operations.utility)
+            }
+
+            {
+                id operations.deparse
+                title "Render SQL from raw trees with formatting and comments"
+                implements {
+                    rust (
+                        [spec:pgq:req:deparse.round-trip]
+                        [spec:pgq:req:deparse.stream]
+                        [spec:pgq:req:deparse.quoting]
+                        [spec:pgq:req:deparse.pretty]
+                        [spec:pgq:req:deparse.comments]
+                    )
+                }
+                deps (parser.reduce)
+            }
+
+            {
+                id operations.deparse-protobuf
+                title "Deparse protobuf trees"
+                implements {
+                    rust ([spec:pgq:req:deparse.protobuf])
+                }
+                deps (operations.deparse codec.protobuf)
+            }
+
+            {
+                id operations.summary
+                title "Summarize and truncate raw queries"
+                implements {
+                    rust (
+                        [spec:pgq:req:summary.entities]
+                        [spec:pgq:req:summary.cte-scope]
+                        [spec:pgq:req:summary.nested-filters]
+                        [spec:pgq:req:summary.truncation]
+                        [spec:pgq:req:summary.protobuf]
+                    )
+                }
+                deps (operations.deparse codec.protobuf)
+            }
+
+            {
+                id operations.split-parity
+                title "Check statement boundaries across both split APIs"
+                kind @test
+                implements {
+                    rust ([spec:pgq:req:split.boundaries])
+                }
+                deps (operations.split-scanner operations.split-parser)
+            }
+        )
+    }
+
+    {
+        id plpgsql
+        title "Port PL/pgSQL function parsing"
+        kind @feat
+        children (
+            {
+                id plpgsql.functions
+                title "Parse routine bodies and expose PL/pgSQL results"
+                implements {
+                    rust (
+                        [spec:pgq:req:plpgsql.routines]
+                        [spec:pgq:req:plpgsql.datums]
+                        [spec:pgq:req:plpgsql.body]
+                        [spec:pgq:req:plpgsql.errors]
+                    )
+                }
+                deps (parser.reduce)
+            }
+        )
+    }
+
+    {
+        id delivery
+        title "Verify the standalone Rust library"
+        kind @test
+        children (
+            {
+                id delivery.native
+                title "Exercise every public operation without the C runtime"
+                implements {
+                    rust ([spec:pgq:req:api.native])
+                }
+                deps (
+                    parser.parity
+                    codec.json
+                    operations.split-parity
+                    operations.normalize
+                    operations.deparse-protobuf
+                    operations.summary
+                    plpgsql.functions
+                )
+            }
+        )
+    }
+)

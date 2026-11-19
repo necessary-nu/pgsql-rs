@@ -349,6 +349,10 @@ This will output (formatted for clarity):
 
 ## Versions
 
+The Rust port uses PostgreSQL 19.0 as its grammar baseline. The development
+workspace can build stock and patched raw-parser references and check their
+results on a shared SQL corpus. See the [PG19 reference instructions](tools/pg19/README.md).
+
 For stability, it is recommended you use individual tagged git versions, see CHANGELOG.
 
 Each major version is maintained in a dedicated git branch. Only the latest Postgres stable release receives active updates, with exceptions being made for the prior release branch for critical fixes.

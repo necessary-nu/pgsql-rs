@@ -1,0 +1,131 @@
+schema_version 7
+
+last_sync_at 2026-11-19T17:43:11.229483469Z
+
+rule_versions (
+    {id api.native, version 0}
+    {id codec.errors-and-depth, version 0}
+    {id codec.json-envelope, version 0}
+    {id codec.json-fields, version 0}
+    {id codec.protobuf-schema, version 0}
+    {id codec.schema-import, version 0}
+    {id corpus.compare, version 0}
+    {id deparse.comments, version 0}
+    {id deparse.pretty, version 0}
+    {id deparse.protobuf, version 0}
+    {id deparse.quoting, version 0}
+    {id deparse.round-trip, version 0}
+    {id deparse.stream, version 0}
+    {id fingerprint.aliases, version 0}
+    {id fingerprint.constants, version 0}
+    {id fingerprint.digest, version 0}
+    {id fingerprint.lists, version 0}
+    {id fingerprint.relation-digits, version 0}
+    {id grammar.action-inventory, version 0}
+    {id grammar.corpus-parity, version 0}
+    {id grammar.diagnostics, version 0}
+    {id grammar.dml-actions, version 0}
+    {id grammar.expression-binding, version 0}
+    {id grammar.overlay-differences, version 0}
+    {id grammar.parse-modes, version 0}
+    {id grammar.query-actions, version 0}
+    {id grammar.raw-sql, version 0}
+    {id grammar.reductions, version 0}
+    {id grammar.runtime, version 0}
+    {id grammar.sql-families, version 0}
+    {id grammar.string-settings, version 0}
+    {id grammar.tables, version 0}
+    {id grammar.utility-actions, version 0}
+    {id import.checksum, version 0}
+    {id import.isolation, version 0}
+    {id import.release, version 0}
+    {id lex.byte-spans, version 0}
+    {id lex.comments, version 0}
+    {id lex.keywords, version 0}
+    {id lex.numbers-and-parameters, version 0}
+    {id lex.parser-lookahead, version 0}
+    {id lex.quoted-values, version 0}
+    {id lex.token-results, version 0}
+    {id lex.unicode-escape, version 0}
+    {id normalize.grouping, version 0}
+    {id normalize.literal-spans, version 0}
+    {id normalize.substitutions, version 0}
+    {id normalize.utility, version 0}
+    {id plpgsql.body, version 0}
+    {id plpgsql.datums, version 0}
+    {id plpgsql.errors, version 0}
+    {id plpgsql.routines, version 0}
+    {id reference.build, version 0}
+    {id reference.overlay, version 0}
+    {id split.boundaries, version 0}
+    {id split.parser, version 0}
+    {id split.scanner, version 0}
+    {id summary.cte-scope, version 0}
+    {id summary.entities, version 0}
+    {id summary.nested-filters, version 0}
+    {id summary.protobuf, version 0}
+    {id summary.truncation, version 0}
+    {id tree.literal-variants, version 0}
+    {id tree.node-layout, version 0}
+    {id tree.node-locations, version 0}
+    {id tree.statement-spans, version 0}
+    {id utility.classify, version 0}
+    {id utility.sequence, version 0}
+)
+
+derived_priorities (
+    {id codec.json, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id codec.protobuf, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id codec.schema, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id delivery.native, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id operations.deparse, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id operations.deparse-protobuf, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id operations.fingerprint, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id operations.normalize, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id operations.split-parity, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id operations.split-parser, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id operations.split-scanner, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id operations.summary, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id operations.utility, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id parser.diagnostics, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id parser.dml, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id parser.engine, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id parser.expressions, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id parser.lexer, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id parser.nodes, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id parser.parity, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id parser.queries, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id parser.reduce, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id parser.tables, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id parser.utility, priority 3, derived_at 2026-11-19T17:43:11.229483469Z}
+    {id plpgsql.functions, priority 3, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id reference.corpus, priority 2, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id reference.import, priority 0, derived_at 2026-11-19T17:11:55.315787638Z}
+    {id reference.probes, priority 1, derived_at 2026-11-19T17:11:55.315787638Z}
+)
+
+impl_evidence (
+    {id reference.import, covered_rules (
+        import.checksum
+        import.isolation
+        import.release
+    ), covered_claims (
+        {impl_name rust, rule import.checksum}
+        {impl_name rust, rule import.isolation}
+        {impl_name rust, rule import.release}
+    )}
+    {id reference.probes, covered_rules (
+        reference.build
+        reference.overlay
+    ), covered_claims (
+        {impl_name rust, rule reference.build}
+        {impl_name rust, rule reference.overlay}
+    )}
+    {id reference.corpus, covered_rules (
+        corpus.compare
+    ), covered_claims (
+        {impl_name rust, rule corpus.compare}
+    )}
+)
+
+onboarding {kind @adopt, phase 10}

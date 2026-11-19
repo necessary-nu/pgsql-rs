@@ -1,0 +1,27 @@
+platforms (
+    {
+        platform "rust"
+        files ("Cargo.toml" "Cargo.lock" "tools/pg19/Cargo.toml" "tools/pg19/**/*.rs" "crates/**/*.rs" "crates/**/Cargo.toml")
+        checks {
+            format {cmd "cargo fmt --all -- --check", fix "cargo fmt --all"}
+            lint {cmd "cargo clippy --workspace --all-targets -- -D warnings"}
+            test {cmd "cargo test --workspace"}
+        }
+    }
+    {
+        platform "c"
+        files ("Makefile" "pg_query.h" "src/**/*.c" "src/**/*.h" "test/*.c")
+        checks {
+            test {cmd "make -j4 test"}
+        }
+    }
+    {
+        platform "pg19-reference"
+        files ("tools/pg19/**/*")
+        checks {
+            test {cmd "python3 tools/pg19/tests/check-fixtures.py && cargo test -p pg19-reference"}
+        }
+    }
+)
+commit {type-prefix "required"}
+adoption {scope "porting"}

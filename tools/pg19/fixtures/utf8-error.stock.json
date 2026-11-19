@@ -1,0 +1,1 @@
+{"tree":null,"parse_error":{"sqlstate":"42601","message":"syntax error at or near \")\"","position":13},"tokens":[{"id":655,"name":"SELECT","start":0,"end":6},{"id":261,"name":"SCONST","start":7,"end":11},{"id":44,"name":",","start":11,"end":12},{"id":41,"name":")","start":13,"end":14},{"id":59,"name":";","start":14,"end":15}],"scan_error":null}

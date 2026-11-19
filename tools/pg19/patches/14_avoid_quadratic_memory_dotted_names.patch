@@ -1,0 +1,43 @@
+--- a/src/backend/parser/gram.y
++++ b/src/backend/parser/gram.y
+@@ -370,7 +370,7 @@
+ %type <str>		opt_in_database
+ 
+ %type <str>		parameter_name
+-%type <list>	OptSchemaEltList parameter_name_list
++%type <list>	OptSchemaEltList parameter_name_list dotted_colid_list
+ 
+ %type <chr>		am_type
+ 
+@@ -1919,9 +1919,12 @@
+ 				}
+ 		;
+ 
+-var_name:	ColId								{ $$ = $1; }
+-			| var_name '.' ColId
+-				{ $$ = psprintf("%s.%s", $1, $3); }
++var_name:	dotted_colid_list						{ $$ = NameListToString($1); }
++		;
++
++dotted_colid_list:
++			ColId									{ $$ = list_make1(makeString($1)); }
++			| dotted_colid_list '.' ColId			{ $$ = lappend($1, makeString($3)); }
+ 		;
+ 
+ var_list:	var_value								{ $$ = list_make1($1); }
+@@ -7965,13 +7968,9 @@
+ 		;
+ 
+ parameter_name:
+-		ColId
+-			{
+-				$$ = $1;
+-			}
+-		| parameter_name '.' ColId
++		dotted_colid_list
+ 			{
+-				$$ = psprintf("%s.%s", $1, $3);
++				$$ = NameListToString($1);
+ 			}
+ 		;
+ 

@@ -1,0 +1,85 @@
+--- a/src/backend/parser/scan.l
++++ b/src/backend/parser/scan.l
+@@ -534,6 +534,7 @@
+ 					{
+ 						/* If NCHAR isn't a keyword, just return "n" */
+ 						yylval->str = pstrdup("n");
++						yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 						return IDENT;
+ 					}
+ 				}
+@@ -591,9 +592,11 @@
+ 					{
+ 						case xb:
+ 							yylval->str = litbufdup(yyscanner);
++							yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 							return BCONST;
+ 						case xh:
+ 							yylval->str = litbufdup(yyscanner);
++							yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 							return XCONST;
+ 						case xq:
+ 						case xe:
+@@ -606,9 +609,11 @@
+ 											   yyextra->literallen,
+ 											   false);
+ 							yylval->str = litbufdup(yyscanner);
++							yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 							return SCONST;
+ 						case xus:
+ 							yylval->str = litbufdup(yyscanner);
++							yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 							return USCONST;
+ 						default:
+ 							yyerror("unhandled previous state in xqs");
+@@ -736,6 +741,7 @@
+ 						yyextra->dolqstart = NULL;
+ 						BEGIN(INITIAL);
+ 						yylval->str = litbufdup(yyscanner);
++						yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 						return SCONST;
+ 					}
+ 					else
+@@ -781,6 +787,7 @@
+ 					if (yyextra->literallen >= NAMEDATALEN)
+ 						truncate_identifier(ident, yyextra->literallen, true);
+ 					yylval->str = ident;
++					yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 					return IDENT;
+ 				}
+ <xui>{dquote}	{
+@@ -789,6 +796,7 @@
+ 						yyerror("zero-length delimited identifier");
+ 					/* can't truncate till after we de-escape the ident */
+ 					yylval->str = litbufdup(yyscanner);
++					yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 					return UIDENT;
+ 				}
+ <xd,xui>{xddouble}	{
+@@ -808,6 +816,7 @@
+ 					/* and treat it as {identifier} */
+ 					ident = downcase_truncate_identifier(yytext, yyleng, true);
+ 					yylval->str = ident;
++					yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 					return IDENT;
+ 				}
+ 
+@@ -1066,6 +1075,7 @@
+ 					 */
+ 					ident = downcase_truncate_identifier(yytext, yyleng, true);
+ 					yylval->str = ident;
++					yyextra->yyllocend = yytext - yyextra->scanbuf + yyleng;
+ 					return IDENT;
+ 				}
+ 
+--- a/src/include/parser/scanner.h
++++ b/src/include/parser/scanner.h
+@@ -110,6 +110,8 @@
+ 
+ 	/* true if we need to verify valid encoding of current literal string */
+ 	bool		saw_non_ascii;
++
++	int yyllocend;
+ } core_yy_extra_type;
+ 
+ /*

@@ -1,0 +1,15 @@
+specs (
+    {
+        name pgq
+        include ("docs/spec/**/*.md")
+        impls (
+            {
+                name rust
+                languages (@rust)
+                include ("tools/pg19/src/**/*.rs" "crates/**/*.rs")
+                test_include ("tools/**/tests/**/*.rs" "crates/**/tests/**/*.rs")
+                exclude ("**/target/**")
+            }
+        )
+    }
+)

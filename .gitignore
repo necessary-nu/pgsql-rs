@@ -27,3 +27,4 @@ tmp/*
 .vs/*
 
 vendor/upb/.upb-update-tmp/
+/target/

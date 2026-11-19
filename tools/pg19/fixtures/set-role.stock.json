@@ -1,0 +1,1 @@
+{"tree":null,"parse_error":{"sqlstate":"42601","message":"syntax error at or near \"$1\"","position":10},"tokens":[{"id":662,"name":"SET","start":0,"end":3},{"id":639,"name":"ROLE","start":4,"end":8},{"id":267,"name":"PARAM","start":9,"end":11},{"id":59,"name":";","start":11,"end":12}],"scan_error":null}
