@@ -111,6 +111,7 @@ The same build emits the C field writers used by the JSON serializer.
 the mapping after reviewing an upstream change, run
 `python3 crates/pg19-codec/generate-json.py "$schema_dir/.."`, where
 `schema_dir` is the protobuf output directory printed by the schema command.
-The JSON fixtures in `crates/pg19-codec/tests` capture the C serializer linked
-to the patched PG19 backend for `SELECT DISTINCT 0, NULL, false, '', '<é>',
-B'10', 0.50, 7;` and `REPACK t USING INDEX i; WAIT FOR LSN '0/16B6C50'`.
+The checker links the C serializer to the patched PG19 backend and compares
+its output byte for byte with the native codec fixtures in
+`crates/pg19-codec/tests`. To inspect a difference, run the built
+`"$schema_dir/../json-probe" 'SELECT 0'` with the SQL under review.

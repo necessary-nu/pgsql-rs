@@ -203,10 +203,15 @@ fn main() -> Result<()> {
             println!("PG19 schema artifacts: {}", output.display());
             if command == "check-schema" {
                 schema::check(&output)?;
+                let work = output.parent().expect("schema output directory");
                 run(Command::new("python3")
                     .arg(Path::new(TOOLS).join("../../crates/pg19-codec/generate-json.py"))
-                    .arg(output.parent().expect("schema output directory"))
+                    .arg(work)
                     .arg("--check"))?;
+                run(Command::new("python3")
+                    .arg(Path::new(TOOLS).join("tests/check-json.py"))
+                    .arg(dir)
+                    .arg(work))?;
             }
             Ok(())
         }
