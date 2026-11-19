@@ -26,7 +26,9 @@ def extract(run, boundaries):
 def core_routines(corpus):
     manifest = json.loads((corpus / "inventory.json").read_bytes())
     inputs = corpus / "cases.jsonl"
-    if manifest["archive_sha256"] != ARCHIVE_SHA256 or digest(inputs.read_bytes()) != manifest["cases_sha256"]:
+    expected = json.loads((HERE.parent / "regress/pg19.0-summary.json").read_bytes())
+    if (manifest["archive_sha256"] != ARCHIVE_SHA256 or manifest["cases_sha256"] != expected["cases_sha256"]
+            or digest(inputs.read_bytes()) != manifest["cases_sha256"]):
         raise ValueError("core corpus archive or SQL inputs differ from the extraction manifest")
     with inputs.open(encoding="utf-8") as rows, gzip.open(corpus / "outcomes.jsonl.gz", "rt", encoding="utf-8") as outcomes:
         for row, outcome in zip(map(json.loads, rows), map(json.loads, outcomes), strict=True):
@@ -102,10 +104,14 @@ def run_suite(run, native, out, jobs, boundaries, core):
               "reference_results_sha256": witness.hexdigest(), "queries": len(cases), "core_routine_queries": core_count,
               "regions": dict(sorted(Counter(r["kind"] for r in regions).items())),
               "outcomes": dict(sorted(counts.items()))}
+    expected = json.loads((HERE / "fixtures/regress-witness.json").read_bytes())
+    scope = "pl_and_core" if core else "pl"
+    witness_matches = all(result[key] == value for key, value in expected[scope].items())
+    result["reference_matches_checked_witness"] = witness_matches
     payload = json.dumps(result, indent=2) + "\n"
     (out / "summary.json").write_text(payload)
     print(payload, end="")
-    return all(k.startswith("matched-") for k in counts)
+    return witness_matches and all(k.startswith("matched-") for k in counts)
 
 
 if __name__ == "__main__":

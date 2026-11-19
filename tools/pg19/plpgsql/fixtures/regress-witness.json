@@ -1,0 +1,10 @@
+{
+  "pl": {
+    "queries": 753,
+    "reference_results_sha256": "1e1ba9217a2ae741bfa66d48d28d744ab43906155656c429bc67607f989dd845"
+  },
+  "pl_and_core": {
+    "queries": 1966,
+    "reference_results_sha256": "7355b3fad976980b3408d6efc47f5b6ea03c2db90dc512bab75f68607cd2d35d"
+  }
+}

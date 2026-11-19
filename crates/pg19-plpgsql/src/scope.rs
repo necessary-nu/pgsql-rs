@@ -69,6 +69,7 @@ impl Environment {
         }
     }
 
+    // [spec:pgq:req:plpgsql.datums]
     fn record_field(&mut self, record: usize, name: &str) -> usize {
         if let Some(index) = self.datums.iter().position(|d| matches!(d, Datum::RecordField { name: field, parent } if *parent == record && field == name)) {
             return index;

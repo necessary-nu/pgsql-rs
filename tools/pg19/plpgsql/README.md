@@ -69,20 +69,12 @@ mode. Record-field lookup can create datums while the scanner reads
 embedded SQL. The compiler can pass each fragment to the SQL parser
 for validation with that mode.
 
-`compile_block` constructs a native block and ordered datum list for
-nested labeled blocks, scalar and record declarations, assignment,
-`PERFORM` and `NULL`. It accepts the routine's initial variables in
-datum order. The caller supplies type resolution and embedded SQL
-validation through `EmbeddedSql`; errors from those operations are
-transposed to character positions in the body. Unimplemented grammar
-actions yield `CompileError::Unsupported` with their production. The
-routine-level compiler still owns parameter and trigger initialization,
-routine extraction, implicit returns and the public JSON writer.
-
-The checked block fixtures exercise the native compiler against PG19
-for shadowing, block-qualified variables, constant and nullability
-errors, record fields and nested or quoted SQL. A trigger test checks
-the new datum numbers and assignment in the existing reference fixture.
+`compile_block` accepts a routine's initial variables in datum order
+and returns a native block and ordered datum list. The caller can
+supply type resolution and embedded SQL validation through `EmbeddedSql`.
+The routine compiler handles extraction, parameter and trigger setup,
+implicit returns and public JSON. Errors retain context, line numbers
+and character positions supplied by the reference.
 
 The standalone type catalog contains the 197 rows in PG19.0
 `postgres.bki`, including the `oid8` and `_oid8` OIDs. Run
@@ -113,14 +105,15 @@ The example emits the oracle's result and diagnostic fields for
 supported inputs. It reports an `unsupported` record for unimplemented
 SQL or PL/pgSQL actions, with the production identity when available.
 
-The body compiler also handles IF/ELSIF/ELSE, LOOP and WHILE,
-labeled EXIT/CONTINUE, ASSERT, CALL/DO, transaction control, and
-embedded SQL. The SQL statement reader preserves comments before a
+The body compiler handles declarations, exception handlers, diagnostics,
+conditionals, loops, cursors, returns, static and dynamic SQL, and
+transaction control. The SQL statement reader preserves comments before a
 terminating semicolon and tracks parentheses and nested SQL routine
 definitions with BEGIN ATOMIC and CASE expressions.
 
-The live `compare_project_sample_routines` test isolates the native
-PL/pgSQL compiler from incomplete SQL actions. The PG19 probes supply
+The standalone Rust test `native_entrypoint_matches_the_complete_project_sample`
+checks all 30 routines in one SQL call. The live `compare_project_sample_routines`
+test also exercises the same native PL compiler with external SQL inputs. The PG19 probes supply
 the outer routine inputs, parsed type names and validation of embedded
 SQL. Rust builds each routine's datums, statements, expressions and
 JSON. The test checks all 30 resulting trees against the corresponding

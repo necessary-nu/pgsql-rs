@@ -33,6 +33,7 @@ pub fn compile_block(
     compile_in(source, options, env, Returns::Value, sql).map_err(|(e, _)| e)
 }
 
+// [spec:pgq:req:plpgsql.body]
 pub(crate) fn compile_in(
     source: &str,
     options: Options,

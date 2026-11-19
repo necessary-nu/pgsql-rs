@@ -61,6 +61,7 @@ impl RoutineError {
     }
 }
 
+// [spec:pgq:req:plpgsql.routines]
 pub fn parse_routines(source: &str, options: Options) -> Result<Vec<Routine>, RoutineError> {
     let nodes =
         pg19_parser::parse(source, ParseMode::Sql, options).map_err(RoutineError::OuterSql)?;
@@ -213,6 +214,7 @@ fn finish(
 }
 
 impl RoutineError {
+    // [spec:pgq:req:plpgsql.errors]
     pub fn diagnostic(&self) -> Option<(&Error, Option<&str>)> {
         match self {
             Self::OuterSql(pg19_parser::Error::Diagnostic(e)) => Some((e, None)),
