@@ -2,9 +2,12 @@
 #include "pg_query.h"
 #include "pg_query_internal.h"
 #include "parser/parser.h"
+#include "parser/scanner.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "utils/json.h"
+#include "plpgsql.h"
+#include "pl_gram.h"
 
 static bool outer_error;
 static int last_sqlstate;
@@ -75,6 +78,47 @@ pg_query_raw_parse(const char *sql, int options)
 	return result;
 }
 
+static void
+scan_tokens(const char *body)
+{
+	MemoryContext context = pg_query_enter_memory_context();
+	StringInfo out = makeStringInfo();
+
+	PG_TRY();
+	{
+		yyscan_t scanner = plpgsql_scanner_init(body);
+		YYSTYPE value;
+		YYLTYPE location;
+		int token;
+		bool first = true;
+
+		plpgsql_ns_init();
+		appendStringInfoChar(out, '[');
+		while ((token = plpgsql_yylex(&value, &location, scanner)) != 0)
+		{
+			appendStringInfo(out, "%s[%d,%d,%d]", first ? "" : ",", token,
+							 location, location + plpgsql_token_length(scanner));
+			first = false;
+		}
+		appendStringInfoChar(out, ']');
+		plpgsql_scanner_finish(scanner);
+	}
+	PG_CATCH();
+	{
+		ErrorData *e;
+		MemoryContextSwitchTo(context);
+		e = CopyErrorData();
+		resetStringInfo(out);
+		appendStringInfoString(out, "{\"message\":");
+		escape_json(out, e->message);
+		appendStringInfo(out, ",\"position\":%d}", e->cursorpos);
+		FlushErrorState();
+	}
+	PG_END_TRY();
+	puts(out->data);
+	pg_query_exit_memory_context(context);
+}
+
 int
 __wrap_main(int argc, char **argv)
 {
@@ -83,6 +127,12 @@ __wrap_main(int argc, char **argv)
 	MemoryContextInit();
 	set_stack_base();
 	SetDatabaseEncoding(PG_UTF8);
+	if (strcmp(argv[1], "--scan") == 0)
+	{
+		for (int i = 2; i < argc; i++)
+			scan_tokens(argv[i]);
+		return argc > 2 ? 0 : 2;
+	}
 	for (int i = 1; i < argc; i++)
 	{
 		PgQueryPlpgsqlParseResult result;

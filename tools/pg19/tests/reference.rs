@@ -100,11 +100,14 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         );
     }
     let generator = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("generate-tables.py");
-    let generation = Command::new("python3")
-        .arg(generator)
-        .arg(run.join("patched-source"))
-        .status()?;
-    assert!(generation.success(), "inspect {}", run.display());
+    for args in [&[][..], &["--plpgsql"]] {
+        let generation = Command::new("python3")
+            .arg(&generator)
+            .arg(run.join("patched-source"))
+            .args(args)
+            .status()?;
+        assert!(generation.success(), "inspect {}", run.display());
+    }
     let schema = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
         .arg("check-schema")
         .arg(&run)
@@ -115,6 +118,11 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         let status = Command::new("python3").arg(path).arg(&run).status()?;
         assert!(status.success(), "inspect {} after {script}", run.display());
     }
+    assert!(Command::new(env!("CARGO"))
+        .args(["test", "--locked", "-p", "pg19-plpgsql", "--", "--ignored"])
+        .env("PG19_REFERENCE_DIR", &run)
+        .status()?
+        .success());
     fs::copy(run.join("stock/probe"), run.join("patched/probe"))?;
     let mismatch = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
         .arg("compare")
