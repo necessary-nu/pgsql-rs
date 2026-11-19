@@ -1,8 +1,16 @@
+assign1 --mode plpgsql-assign1
+assign2 --mode plpgsql-assign2
+assign3 --mode plpgsql-assign3
 comments
 constant-location
+expr --mode plpgsql-expr
 on-conflict
 param-junk
+quote-off --backslash-quote off
+quote-on --mode default --backslash-quote on
+quote-safe --backslash-quote safe_encoding
 repack
 set-role
+type-name --mode type-name
 utf8-error
 wait
