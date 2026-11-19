@@ -1,3 +1,5 @@
+mod control;
+mod execsql;
 use crate::body::Returns;
 use crate::scope::Environment;
 use crate::{
@@ -55,6 +57,12 @@ enum Reduced {
     Expression(Expression),
     Statement(Statement),
     List(Vec<Statement>),
+    Elsifs(Vec<crate::Elsif>),
+    LoopBody {
+        body: Vec<Statement>,
+        end: Option<String>,
+        at: usize,
+    },
 }
 
 impl Reduced {
@@ -76,6 +84,13 @@ impl Reduced {
             _ => unreachable!("grammar requires an optional identifier"),
         }
     }
+    fn expr(self) -> Expression {
+        let Self::Expression(e) = self else {
+            unreachable!("grammar requires an expression")
+        };
+        e
+    }
+
     fn list(self) -> Vec<Statement> {
         match self {
             Self::List(v) => v,
@@ -305,19 +320,30 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
     }
 }
 
+fn check_label(
+    label: Option<&str>,
+    end: &str,
+    at: usize,
+    source: &str,
+) -> Result<(), CompileError> {
+    let message = match label {
+        None => Some(format!("end label \"{end}\" specified for unlabeled block")),
+        Some(s) if s != end => Some(format!(
+            "end label \"{end}\" differs from block's label \"{s}\""
+        )),
+        Some(_) => None,
+    };
+    if let Some(m) = message {
+        return Err(Error::at(source, at, m, "42601").into());
+    }
+
+    Ok(())
+}
+
 fn block(rhs: &mut Reduction<Reduced>, scanner: &BodyScanner) -> Result<Reduced, CompileError> {
     let label = rhs.take(1).name();
     if let Some(end) = rhs.take(6).name() {
-        let message = match &label {
-            None => Some(format!("end label \"{end}\" specified for unlabeled block")),
-            Some(s) if *s != end => Some(format!(
-                "end label \"{end}\" differs from block's label \"{s}\""
-            )),
-            Some(_) => None,
-        };
-        if let Some(m) = message {
-            return Err(Error::at(scanner.source(), rhs.location(6), m, "42601").into());
-        }
+        check_label(label.as_deref(), &end, rhs.location(6), scanner.source())?;
     }
     Ok(Reduced::Statement(Statement::Block(Block {
         lineno: scanner.line(rhs.location(2)),
@@ -392,20 +418,17 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
             }
             "stmt_return" => self.return_stmt(rhs.location(1), s),
             "stmt_assign" => self.assignment(rhs.take(1).token(), s),
-            "stmt_execsql" if matches!(production, "T_WORD" | "T_CWORD") => {
+            "stmt_execsql" => self.execsql(rhs.take(1).token(), s),
+            "stmt_call" => {
                 let t = rhs.take(1).token();
-                if matches!(s.peek_raw(0)?.id, 61 | token::COLON_EQUALS | 91 | 46) {
-                    let name = t.names.join(".");
-                    Err(Error::at(
-                        s.source(),
-                        t.span.start,
-                        format!("\"{name}\" is not a known variable"),
-                        "42601",
-                    )
-                    .into())
-                } else {
-                    Err(CompileError::Unsupported { production: sig })
-                }
+                let lineno = s.line(t.span.start);
+                let is_call = t.id == token::K_CALL;
+                s.push_back(t);
+                Ok(Reduced::Statement(Statement::Call {
+                    lineno,
+                    is_call,
+                    expression: self.expression(s, ParseMode::Sql, false)?,
+                }))
             }
             "stmt_perform" => {
                 let t = rhs.take(1).token();
@@ -427,7 +450,7 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 Ok(Reduced::None)
             }
             "exception_sect" | "decl_collate" if production == "%empty" => Ok(Reduced::None),
-            _ => Err(CompileError::Unsupported { production: sig }),
+            _ => self.control(lhs, production, rhs, s, sig),
         }
     }
 }
