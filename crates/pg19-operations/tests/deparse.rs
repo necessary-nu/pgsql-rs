@@ -78,6 +78,7 @@ fn compact_queries_and_dml_preserve_the_reference_spelling() {
     for line in include_str!("deparse-query.jsonl")
         .lines()
         .chain(include_str!("deparse-dml.jsonl").lines())
+        .chain(include_str!("deparse-fn.jsonl").lines())
     {
         let [original, expected]: [String; 2] = serde_json::from_str(line).unwrap();
         let tree = pg19_parser::parse_statements(&original, Default::default()).unwrap();

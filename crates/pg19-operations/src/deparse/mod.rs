@@ -6,6 +6,7 @@ mod format;
 pub use format::Options;
 mod operator;
 mod query;
+mod window;
 mod writer;
 pub use comments::{comments, Comment};
 

@@ -210,8 +210,9 @@ pub(super) fn binary<'a>(a: &'a AExpr, p: &mut Plan<'a>, b_expr: bool) -> Result
                 _ => return Err(Error::InvalidField("pattern operator")),
             });
             if let Node::FuncCall(f) = r {
-                if f.funcformat == CoercionForm::COERCE_SQL_SYNTAX
-                    && matches!(builtin(f), Some("similar_to_escape" | "like_escape"))
+                if (a.kind == AExprKind::AEXPR_SIMILAR && builtin(f) == Some("similar_to_escape"))
+                    || (f.funcformat == CoercionForm::COERCE_SQL_SYNTAX
+                        && builtin(f) == Some("like_escape"))
                 {
                     let [pattern, end @ ..] = f.args.as_slice() else {
                         return Err(Error::InvalidField("pattern operands"));
