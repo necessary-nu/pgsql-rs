@@ -147,8 +147,148 @@ fn open_cursor(lineno: usize, cursor: usize, options: i32, query: &CursorQuery) 
     json!({"PLpgSQL_stmt_open":v})
 }
 
+fn diagnostics(lineno: usize, stacked: bool, items: &[crate::DiagnosticItem]) -> Value {
+    let mut v = json!({"lineno":lineno});
+    if stacked {
+        v["is_stacked"] = json!(true);
+    }
+    v["diag_items"] = items
+        .iter()
+        .map(|item| {
+            let mut a = json!({"kind":item.name});
+            if item.target > 0 {
+                a["target"] = json!(item.target);
+            }
+            json!({"PLpgSQL_diag_item":a})
+        })
+        .collect();
+    json!({"PLpgSQL_stmt_getdiag":v})
+}
+
+fn case(
+    lineno: usize,
+    operand: &Option<Expression>,
+    datum: usize,
+    branches: &[crate::Elsif],
+    otherwise: &Option<Vec<Statement>>,
+) -> Value {
+    let mut v = json!({"lineno":lineno});
+    optional_expr(&mut v, "t_expr", operand);
+    if datum != 0 {
+        v["t_varno"] = json!(datum);
+    }
+    v["case_when_list"] = branches
+        .iter()
+        .map(|b| {
+            let mut when = json!({"lineno":b.lineno,"expr":expression(&b.condition)});
+            statements(&mut when, "stmts", &b.body);
+            json!({"PLpgSQL_case_when":when})
+        })
+        .collect();
+    if let Some(body) = otherwise {
+        v["have_else"] = json!(true);
+        statements(&mut v, "else_stmts", body);
+    }
+    json!({"PLpgSQL_stmt_case":v})
+}
+
+fn foreach(
+    lineno: usize,
+    label: &Option<String>,
+    datum: usize,
+    slice: i32,
+    expr: &Expression,
+    body: &[Statement],
+) -> Value {
+    let mut v = json!({"lineno":lineno,"expr":expression(expr)});
+    if let Some(label) = label {
+        v["label"] = json!(label);
+    }
+    if datum != 0 {
+        v["varno"] = json!(datum);
+    }
+    if slice != 0 {
+        v["slice"] = json!(slice);
+    }
+    statements(&mut v, "body", body);
+    json!({"PLpgSQL_stmt_foreach_a":v})
+}
+
+fn for_loop(
+    lineno: usize,
+    label: &Option<String>,
+    target: &crate::Target,
+    source: &ForSource,
+    body: &[Statement],
+) -> Value {
+    let mut v = json!({"lineno":lineno,"var":datum(&target.variable,target.id)});
+    if let Some(l) = label {
+        v["label"] = json!(l);
+    }
+    statements(&mut v, "body", body);
+    let key = match source {
+        ForSource::Integer {
+            lower,
+            upper,
+            step,
+            reverse,
+        } => {
+            v["lower"] = expression(lower);
+            v["upper"] = expression(upper);
+            optional_expr(&mut v, "step", step);
+            if *reverse {
+                v["reverse"] = json!(true);
+            }
+            "PLpgSQL_stmt_fori"
+        }
+        ForSource::Query {
+            query,
+            dynamic,
+            params,
+        } => {
+            v["query"] = expression(query);
+            if !params.is_empty() {
+                v["params"] = params.iter().map(expression).collect();
+            }
+            if *dynamic {
+                "PLpgSQL_stmt_dynfors"
+            } else {
+                "PLpgSQL_stmt_fors"
+            }
+        }
+        ForSource::Cursor { cursor, argquery } => {
+            if *cursor > 0 {
+                v["curvar"] = json!(cursor);
+            }
+            optional_expr(&mut v, "argquery", argquery);
+            "PLpgSQL_stmt_forc"
+        }
+    };
+    json!({(key):v})
+}
+
 fn statement(s: &Statement) -> Value {
     match s {
+        Statement::GetDiagnostics {
+            lineno,
+            stacked,
+            items,
+        } => diagnostics(*lineno, *stacked, items),
+        Statement::Case {
+            lineno,
+            operand,
+            datum,
+            branches,
+            otherwise,
+        } => case(*lineno, operand, *datum, branches, otherwise),
+        Statement::Foreach {
+            lineno,
+            label,
+            datum,
+            slice,
+            expression,
+            body,
+        } => foreach(*lineno, label, *datum, *slice, expression, body),
         Statement::Close { lineno, cursor } => {
             let mut v = json!({"lineno":lineno});
             if *cursor > 0 {
@@ -298,52 +438,7 @@ fn statement(s: &Statement) -> Value {
             target,
             source,
             body,
-        } => {
-            let mut v = json!({"lineno":lineno,"var":datum(&target.variable,target.id)});
-            if let Some(l) = label {
-                v["label"] = json!(l);
-            }
-            statements(&mut v, "body", body);
-            let key = match source.as_ref() {
-                ForSource::Integer {
-                    lower,
-                    upper,
-                    step,
-                    reverse,
-                } => {
-                    v["lower"] = expression(lower);
-                    v["upper"] = expression(upper);
-                    optional_expr(&mut v, "step", step);
-                    if *reverse {
-                        v["reverse"] = json!(true);
-                    }
-                    "PLpgSQL_stmt_fori"
-                }
-                ForSource::Query {
-                    query,
-                    dynamic,
-                    params,
-                } => {
-                    v["query"] = expression(query);
-                    if !params.is_empty() {
-                        v["params"] = params.iter().map(expression).collect();
-                    }
-                    if *dynamic {
-                        "PLpgSQL_stmt_dynfors"
-                    } else {
-                        "PLpgSQL_stmt_fors"
-                    }
-                }
-                ForSource::Cursor { cursor, argquery } => {
-                    if *cursor > 0 {
-                        v["curvar"] = json!(cursor);
-                    }
-                    optional_expr(&mut v, "argquery", argquery);
-                    "PLpgSQL_stmt_forc"
-                }
-            };
-            json!({(key):v})
-        }
+        } => for_loop(*lineno, label, target, source, body),
         Statement::Execute {
             lineno,
             query,

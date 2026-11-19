@@ -1,7 +1,9 @@
+mod branches;
 mod control;
 mod cursor;
 mod exception;
 mod execsql;
+mod getdiag;
 mod loops;
 mod target;
 use crate::body::Returns;
@@ -69,6 +71,7 @@ enum Reduced {
     For(Box<crate::Target>, Box<crate::ForSource>),
     Handlers(Vec<crate::ExceptionHandler>),
     Conditions(Vec<String>),
+    Diags(Vec<crate::DiagnosticItem>),
     Elsifs(Vec<crate::Elsif>),
     LoopBody {
         body: Vec<Statement>,
@@ -475,6 +478,36 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 }
                 Ok(Reduced::List(list))
             }
+            "stmt_case"
+            | "opt_expr_until_when"
+            | "case_when"
+            | "case_when_list"
+            | "opt_case_else"
+            | "stmt_foreach_a"
+            | "foreach_slice" => self.branch(lhs, production, rhs, s),
+            "stmt_getdiag" | "getdiag_area_opt" | "getdiag_target" | "getdiag_item"
+            | "getdiag_list_item" | "getdiag_list" => self.getdiag(lhs, production, rhs, s),
+            "option_value" => Ok(rhs.take(1)),
+            "comp_option" => {
+                if production.contains("K_PRINT_STRICT_PARAMS") {
+                    let value = rhs.take(3).name().unwrap();
+                    if !matches!(value.as_str(), "on" | "off") {
+                        return Err(Error::without_position(
+                            format!("unrecognized print_strict_params option {value}"),
+                            "XX000",
+                        )
+                        .into());
+                    }
+                }
+                Ok(Reduced::None)
+            }
+            "decl_stmt" if production.starts_with("LESS_LESS") => Err(Error::at(
+                s.source(),
+                rhs.location(1),
+                "block label must be placed before DECLARE, not after",
+                "42601",
+            )
+            .into()),
             "for_variable" => self.for_variable(rhs.take(1).token(), s),
             "for_control" => self.for_control(rhs, s),
             "stmt_for" => self.finish_for(rhs, s),

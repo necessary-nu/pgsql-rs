@@ -94,6 +94,12 @@ pub enum ForSource {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticItem {
+    pub name: &'static str,
+    pub target: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CursorQuery {
     Bound(Option<Expression>),
     Static(Expression),
@@ -102,6 +108,26 @@ pub enum CursorQuery {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
+    Case {
+        lineno: usize,
+        operand: Option<Expression>,
+        datum: usize,
+        branches: Vec<Elsif>,
+        otherwise: Option<Vec<Statement>>,
+    },
+    Foreach {
+        lineno: usize,
+        label: Option<String>,
+        datum: usize,
+        slice: i32,
+        expression: Expression,
+        body: Vec<Statement>,
+    },
+    GetDiagnostics {
+        lineno: usize,
+        stacked: bool,
+        items: Vec<DiagnosticItem>,
+    },
     Open {
         lineno: usize,
         cursor: usize,
