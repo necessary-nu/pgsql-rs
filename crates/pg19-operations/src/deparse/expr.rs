@@ -24,7 +24,7 @@ fn constant(v: &Literal) -> Result<String> {
         }
     }
 }
-fn interval_mods(args: &[Node], p: &mut Plan<'_>) -> Result<()> {
+pub(super) fn interval_mods(args: &[Node], p: &mut Plan<'_>) -> Result<()> {
     // datetime.h assigns these field masks by token number, not ordinal position.
     let [Node::AConst(AConst {
         val: Literal::Integer(mask),
