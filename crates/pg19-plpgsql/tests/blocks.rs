@@ -151,11 +151,11 @@ fn trigger_fields_preserve_parent_and_assignment_references() {
 
 #[test]
 fn unported_actions_are_explicit() {
-    let result = compile("DECLARE x integer; BEGIN GET DIAGNOSTICS x = ROW_COUNT; END;");
+    let result = compile("DECLARE c refcursor; BEGIN MOVE FROM c; END;");
     assert_eq!(
         result,
         Err(CompileError::Unsupported {
-            production: "getdiag_area_opt: %empty"
+            production: "opt_fetch_direction: %empty"
         })
     );
 }
