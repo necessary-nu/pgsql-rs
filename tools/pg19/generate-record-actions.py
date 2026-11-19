@@ -13,9 +13,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PARSER = ROOT / "crates/pg19-parser"
 NODES = ROOT / "crates/pg19-nodes/src"
-EXTRA = set("""WaitStmt opt_wait_with_clause qualified_name_list name_list name file_name
-attr_name NonReservedWord SignedIconst RoleSpec RoleId role_list relation_expr_list LockStmt
-opt_lock lock_type opt_nowait""".split())
 POINTER = re.compile(r"Option<Box<(\w+)>>")
 
 
@@ -333,12 +330,9 @@ def generate(build):
     manifest = ["# Generated from the pinned PG19 actions by generate-record-actions.py."]
     functions = {}
     for number, raw in re.findall(pattern, source, re.M | re.S):
-        sig, line, digest = inventory[int(number) - 1].split("\t")
-        lhs, symbols = sig.split(": ", 1)
+        sig, _, digest = inventory[int(number) - 1].split("\t")
+        _, symbols = sig.split(": ", 1)
         if sig in simpler:
-            continue
-        utility = 1130 <= int(line) < 12556 or lhs in EXTRA
-        if not utility and "makeNode(" not in raw:
             continue
         if hashlib.sha256(raw.strip().encode()).hexdigest() != digest:
             raise ValueError(f"grammar build differs from the node inventory at {sig}")

@@ -8635,6 +8635,56 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // OptTempTableName: TEMPORARY opt_table qualified_name
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(3).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.relpersistence = (i32::from(b't')) as u8;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
+    // OptTempTableName: LOCAL TEMPORARY opt_table qualified_name
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(4).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.relpersistence = (i32::from(b't')) as u8;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
+    // OptTempTableName: UNLOGGED opt_table qualified_name
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(3).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.relpersistence = (i32::from(b'u')) as u8;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
+    // OptTempTableName: TABLE qualified_name
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(2).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.relpersistence = (i32::from(b'p')) as u8;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
+    // OptTempTableName: qualified_name
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(1).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.relpersistence = (i32::from(b'p')) as u8;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
     // sortby: a_expr USING qual_all_Op opt_nulls_order
     |rhs| {
         Ok(Value::Node(
@@ -8681,6 +8731,27 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // table_ref: xmltable opt_alias_clause
+    |rhs| {
+        Ok({
+            let Node::RangeTableFunc(mut node) = rhs.take(1).node()? else {
+                return Err("expected RangeTableFunc".into());
+            };
+            node.alias = record!(rhs.take(2), Alias);
+            Value::Node(Node::RangeTableFunc(node))
+        })
+    },
+    // table_ref: LATERAL_P xmltable opt_alias_clause
+    |rhs| {
+        Ok({
+            let Node::RangeTableFunc(mut node) = rhs.take(2).node()? else {
+                return Err("expected RangeTableFunc".into());
+            };
+            node.lateral = true;
+            node.alias = record!(rhs.take(3), Alias);
+            Value::Node(Node::RangeTableFunc(node))
+        })
     },
     // table_ref: select_with_parens opt_alias_clause
     |rhs| {
@@ -8792,6 +8863,41 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // join_qual: USING '(' name_list ')' opt_alias_clause_for_join_using
+    |rhs| Ok(Value::List(vec![rhs.take(3).cell()?, rhs.take(5).cell()?])),
+    // relation_expr: qualified_name
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(1).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.inh = true;
+            node.alias = None;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
+    // extended_relation_expr: ONLY qualified_name
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(2).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.inh = false;
+            node.alias = None;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
+    // extended_relation_expr: ONLY '(' qualified_name ')'
+    |rhs| {
+        Ok({
+            let Node::RangeVar(mut node) = rhs.take(3).node()? else {
+                return Err("expected RangeVar".into());
+            };
+            node.inh = false;
+            node.alias = None;
+            Value::Node(Node::RangeVar(node))
+        })
+    },
     // tablesample_clause: TABLESAMPLE func_name '(' expr_list ')' opt_repeatable_clause
     |rhs| {
         Ok(Value::Node(
@@ -8897,6 +9003,62 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // xmltable_column_option_el: DEFAULT b_expr
+    |rhs| {
+        Ok(Value::Node(
+            DefElem {
+                defnamespace: None,
+                defname: Some("default".to_owned()),
+                arg: optional_node(rhs.take(2))?,
+                defaction: DefElemAction::DEFELEM_UNSPEC,
+                location: rhs.location(1),
+                arg_location: Location::UNKNOWN,
+            }
+            .into(),
+        ))
+    },
+    // xmltable_column_option_el: NOT NULL_P
+    |rhs| {
+        Ok(Value::Node(
+            DefElem {
+                defnamespace: None,
+                defname: Some("__pg__is_not_null".to_owned()),
+                arg: Some(Box::new(Node::Boolean(true))),
+                defaction: DefElemAction::DEFELEM_UNSPEC,
+                location: rhs.location(1),
+                arg_location: Location::UNKNOWN,
+            }
+            .into(),
+        ))
+    },
+    // xmltable_column_option_el: NULL_P
+    |rhs| {
+        Ok(Value::Node(
+            DefElem {
+                defnamespace: None,
+                defname: Some("__pg__is_not_null".to_owned()),
+                arg: Some(Box::new(Node::Boolean(false))),
+                defaction: DefElemAction::DEFELEM_UNSPEC,
+                location: rhs.location(1),
+                arg_location: Location::UNKNOWN,
+            }
+            .into(),
+        ))
+    },
+    // xmltable_column_option_el: PATH b_expr
+    |rhs| {
+        Ok(Value::Node(
+            DefElem {
+                defnamespace: None,
+                defname: Some("path".to_owned()),
+                arg: optional_node(rhs.take(2))?,
+                defaction: DefElemAction::DEFELEM_UNSPEC,
+                location: rhs.location(1),
+                arg_location: Location::UNKNOWN,
+            }
+            .into(),
+        ))
+    },
     // xml_namespace_el: b_expr AS ColLabel
     |rhs| {
         Ok(Value::Node(
@@ -8932,6 +9094,99 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // Typename: SimpleTypename opt_array_bounds
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.array_bounds = rhs.take(2).list()?;
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // Typename: SETOF SimpleTypename opt_array_bounds
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.array_bounds = rhs.take(3).list()?;
+            node.setof = true;
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // Typename: SimpleTypename ARRAY '[' Iconst ']'
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.array_bounds = vec![Node::Integer(rhs.take(4).integer()?)];
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // Typename: SETOF SimpleTypename ARRAY '[' Iconst ']'
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.array_bounds = vec![Node::Integer(rhs.take(5).integer()?)];
+            node.setof = true;
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // Typename: SimpleTypename ARRAY
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.array_bounds = vec![Node::Integer(-1)];
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // Typename: SETOF SimpleTypename ARRAY
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.array_bounds = vec![Node::Integer(-1)];
+            node.setof = true;
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // SimpleTypename: ConstInterval opt_interval
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.typmods = rhs.take(2).list()?;
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // Numeric: FLOAT_P opt_float
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.location = rhs.location(1);
+            Value::Node(Node::TypeName(node))
+        })
+    },
+    // ConstBit: BitWithoutLength
+    |rhs| {
+        Ok({
+            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+                return Err("expected TypeName".into());
+            };
+            node.typmods = Vec::new();
+            Value::Node(Node::TypeName(node))
+        })
     },
     // a_expr: a_expr COLLATE any_name
     |rhs| {
@@ -9131,6 +9386,30 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // window_definition: ColId AS window_specification
+    |rhs| {
+        Ok({
+            let Node::WindowDef(mut node) = rhs.take(3).node()? else {
+                return Err("expected WindowDef".into());
+            };
+            node.name = optional_text(rhs.take(1))?;
+            Value::Node(Node::WindowDef(node))
+        })
+    },
+    // extract_list: PARAM FROM a_expr
+    |rhs| {
+        Ok(Value::List(vec![
+            Value::Node(
+                ParamRef {
+                    number: rhs.take(1).integer()?,
+                    location: rhs.location(1),
+                }
+                .into(),
+            )
+            .cell()?,
+            rhs.take(3).cell()?,
+        ]))
     },
     // indirection_el: '[' a_expr ']'
     |rhs| {
