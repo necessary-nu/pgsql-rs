@@ -118,7 +118,9 @@ fn cast(arg: Node, target: Box<TypeName>, location: Location) -> Value {
 }
 
 pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
-    let loc = rhs.location(1);
+    // The empty opt_float production has no $1. Every type constructor
+    // that records a position starts with its first located token.
+    let loc = rhs.lhs_location;
     let result = match op {
         Types::Builtin(name, mods) => builtin(name, modifiers(mods, rhs)?, loc),
         Types::Generic(qualified) => {
