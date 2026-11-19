@@ -15,6 +15,7 @@
 use std::sync::Arc;
 
 mod copy;
+mod equal;
 mod owned;
 pub use owned::{NodeBox, NodeList, NodeRecord};
 
