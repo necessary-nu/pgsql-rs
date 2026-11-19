@@ -1,4 +1,5 @@
 mod access;
+mod admin;
 mod alter;
 mod constraints;
 mod copy;
@@ -9,6 +10,7 @@ mod object;
 mod ownership;
 mod policy;
 mod privileges;
+mod replication;
 mod routine;
 mod sequence;
 mod session;
@@ -114,6 +116,8 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
         || access::statement(n, p)?
         || policy::statement(n, p)?
         || foreign::statement(n, p)?
+        || admin::statement(n, p)?
+        || replication::statement(n, p)?
     {
         return Ok(true);
     }

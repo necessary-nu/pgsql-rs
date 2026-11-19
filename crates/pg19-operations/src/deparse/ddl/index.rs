@@ -4,7 +4,7 @@ use crate::deparse::writer::{required, Plan};
 use crate::deparse::{ident, literal, numeric, Error, Result};
 use pg19_nodes::*;
 
-fn option_value<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
+pub(super) fn option_value<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
     match n {
         Node::TypeName(t) => p.typename(t),
         Node::Integer(i) => p.text(i.to_string()),

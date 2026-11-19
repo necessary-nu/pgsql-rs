@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T20:08:04.451605966Z
+last_sync_at 2026-11-19T20:35:59.66939337Z
 
 rule_versions (
     {id api.native, version 0}

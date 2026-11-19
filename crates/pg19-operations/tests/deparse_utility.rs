@@ -12,6 +12,8 @@ fn utilities_retain_compact_sql_from_the_c_deparser() {
         .chain(include_str!("deparse-privileges-index.jsonl").lines())
         .chain(include_str!("deparse-definition.jsonl").lines())
         .chain(include_str!("deparse-ownership.jsonl").lines())
+        .chain(include_str!("deparse-admin.jsonl").lines())
+        .chain(include_str!("deparse-replication.jsonl").lines())
     {
         let [sql, expected]: [String; 2] = serde_json::from_str(line).unwrap();
         let trees = pg19_parser::parse_statements(&sql, Default::default()).unwrap();
