@@ -52,3 +52,8 @@ stored outcomes and token boundaries without building the probes. CI also
 rebuilds both references when their inputs change. To run the full build through Cargo's test
 runner, use `cargo test --workspace -- --ignored`. Set `PG19_ARCHIVE` to an
 already downloaded archive for an offline run.
+
+The full reference test also regenerates the PG19 protobuf descriptor and
+checks all release pins. It requires Ruby with Bundler and JSON, protoc,
+and Python 3 with google.protobuf. To regenerate or verify the descriptor
+from an existing import, see the [PG19 schema and wire compatibility review](../../protobuf/pg19/README.md).

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
-# You need to call this with the PostgreSQL source directory as the first commandline agument
-# ./scripts/extract_headers.rb ./my_postgres_src_dir
+# The second argument locates generated headers in an out-of-tree build.
+# ./scripts/extract_headers.rb ./my_postgres_src_dir [./my_postgres_build_dir]
 
 # rubocop:disable Style/PerlBackrefs, Metrics/AbcSize, Metrics/LineLength, Metrics/MethodLength, Style/WordArray, Metrics/ClassLength, Style/Documentation, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity, Style/TrailingComma, Style/RegexpLiteral
 
@@ -25,15 +25,16 @@ def classify(str)
 end
 
 class Extractor
-  def initialize(pgdir)
+  def initialize(pgdir, builddir = pgdir)
     @pgdir = pgdir
+    @builddir = builddir
   end
 
   def generate_nodetypes!
     inside = false
     @nodetypes = []
 
-    lines = File.read(File.join(@pgdir, '/src/include/nodes/nodetags.h'))
+    lines = File.read(File.join(@builddir, '/src/include/nodes/nodetags.h'))
     lines.each_line do |line|
       if !line.start_with? /\/?\ *\*/
         if line[/T_([A-z_]+)(\s+=\s+\d+)?,/]
@@ -65,7 +66,8 @@ class Extractor
       @enum_defs[@target_group] = {}
       @comment_text = nil
 
-      lines = File.read(File.join(@pgdir, format('/src/include/%s.h', @target_group)))
+      root = group == '../backend/parser/gram' ? @builddir : @pgdir
+      lines = File.read(File.join(root, format('/src/include/%s.h', @target_group)))
       lines.each_line do |line|
         if !@current_struct_def.nil?
           handle_struct(line)
@@ -259,4 +261,4 @@ if !ARGV[0]
   return
 end
 
-Extractor.new(ARGV[0]).extract!
+Extractor.new(*ARGV).extract!

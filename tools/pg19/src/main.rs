@@ -1,3 +1,5 @@
+mod schema;
+
 use std::env;
 use std::error::Error;
 use std::ffi::OsString;
@@ -21,13 +23,23 @@ fn run(cmd: &mut Command) -> Result<()> {
     Ok(())
 }
 
+fn checksum(path: &Path) -> Result<String> {
+    let output = Command::new("sha256sum")
+        .stdin(File::open(path)?)
+        .output()?;
+    if !output.status.success() {
+        return Err(format!("sha256sum failed for {}", path.display()).into());
+    }
+    Ok(std::str::from_utf8(&output.stdout)?
+        .split_whitespace()
+        .next()
+        .ok_or("missing SHA-256 digest")?
+        .to_owned())
+}
+
 // [spec:pgq:req:import.checksum]
 fn verify_archive(archive: &Path) -> Result<()> {
-    let output = Command::new("sha256sum")
-        .stdin(File::open(archive)?)
-        .output()?;
-    let result = std::str::from_utf8(&output.stdout)?;
-    if !output.status.success() || result.split_whitespace().next() != Some(SHA256) {
+    if checksum(archive)? != SHA256 {
         return Err(format!(
             "{} failed PostgreSQL 19.0 SHA-256 verification",
             archive.display()
@@ -175,6 +187,14 @@ fn compare(dir: &Path) -> Result<()> {
 fn main() -> Result<()> {
     let args: Vec<_> = env::args_os().skip(1).collect();
     match args.as_slice() {
+        [command, dir] if command == "schema" || command == "check-schema" => {
+            let output = schema::generate(Path::new(dir))?;
+            println!("PG19 schema artifacts: {}", output.display());
+            if command == "check-schema" {
+                schema::check(&output)?;
+            }
+            Ok(())
+        }
         [command, dir] if command == "compare" => compare(Path::new(dir)),
         [command, parent, archive @ ..] if command == "import" && archive.len() <= 1 => {
             let dir = fresh_directory(Path::new(parent))?;
@@ -186,7 +206,7 @@ fn main() -> Result<()> {
             compare(&dir)
         }
         _ => Err(
-            "usage: pg19-reference import <work-parent> [local-tar.bz2] | compare <run-directory>"
+            "usage: pg19-reference import <work-parent> [local-tar.bz2] | {compare|schema|check-schema} <run-directory>"
                 .into(),
         ),
     }

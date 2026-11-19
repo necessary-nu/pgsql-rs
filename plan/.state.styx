@@ -126,6 +126,11 @@ impl_evidence (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
     )}
+    {id codec.schema, covered_rules (
+        codec.schema-import
+    ), covered_claims (
+        {impl_name rust, rule codec.schema-import}
+    )}
 )
 
 onboarding {kind @adopt, phase 11}

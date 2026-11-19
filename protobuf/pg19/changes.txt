@@ -1,0 +1,108 @@
+field pg_query.AlterDomainStmt.subtype: 1 string json=subtype -> 1 .pg_query.AlterDomainType json=subtype
+field pg_query.AlterPublicationStmt.action: 5 .pg_query.AlterPublicationAction json=action -> 4 .pg_query.AlterPublicationAction json=action
+field pg_query.AlterPublicationStmt.for_all_sequences: - -> 6 bool json=for_all_sequences
+field pg_query.AlterPublicationStmt.for_all_tables: 4 bool json=for_all_tables -> 5 bool json=for_all_tables
+field pg_query.AlterSubscriptionStmt.conninfo: 3 string json=conninfo -> 4 string json=conninfo
+field pg_query.AlterSubscriptionStmt.conninfo_location: 6 int32 json=conninfo_location -> 7 int32 json=conninfo_location
+field pg_query.AlterSubscriptionStmt.options: 5 repeated .pg_query.Node json=options -> 6 repeated .pg_query.Node json=options
+field pg_query.AlterSubscriptionStmt.publication: 4 repeated .pg_query.Node json=publication -> 5 repeated .pg_query.Node json=publication
+field pg_query.AlterSubscriptionStmt.servername: - -> 3 string json=servername
+field pg_query.CheckPointStmt.options: - -> 1 repeated .pg_query.Node json=options
+message pg_query.ClusterStmt: removed
+field pg_query.CreatePublicationStmt.for_all_sequences: - -> 5 bool json=for_all_sequences
+field pg_query.CreateStatsStmt.owner: - -> 8 uint32 json=owner
+field pg_query.CreateSubscriptionStmt.conninfo: 2 string json=conninfo -> 3 string json=conninfo
+field pg_query.CreateSubscriptionStmt.conninfo_location: 5 int32 json=conninfo_location -> 6 int32 json=conninfo_location
+field pg_query.CreateSubscriptionStmt.options: 4 repeated .pg_query.Node json=options -> 5 repeated .pg_query.Node json=options
+field pg_query.CreateSubscriptionStmt.publication: 3 repeated .pg_query.Node json=publication -> 4 repeated .pg_query.Node json=publication
+field pg_query.CreateSubscriptionStmt.servername: - -> 2 string json=servername
+field pg_query.FetchStmt.direction_keyword: - -> 5 .pg_query.FetchDirectionKeywords json=direction_keyword
+field pg_query.FetchStmt.location: - -> 6 int32 json=location
+field pg_query.FuncCall.agg_distinct: 8 bool json=agg_distinct -> 9 bool json=agg_distinct
+field pg_query.FuncCall.agg_star: 7 bool json=agg_star -> 8 bool json=agg_star
+field pg_query.FuncCall.agg_within_group: 6 bool json=agg_within_group -> 7 bool json=agg_within_group
+field pg_query.FuncCall.func_variadic: 9 bool json=func_variadic -> 10 bool json=func_variadic
+field pg_query.FuncCall.funcformat: 10 .pg_query.CoercionForm json=funcformat -> 11 .pg_query.CoercionForm json=funcformat
+field pg_query.FuncCall.ignore_nulls: - -> 6 int32 json=ignore_nulls
+field pg_query.FuncCall.location: 11 int32 json=location -> 12 int32 json=location
+field pg_query.IndexElem.location: - -> 9 int32 json=location
+field pg_query.JsonConstructorExpr.absent_on_null: 7 bool json=absent_on_null -> 9 bool json=absent_on_null
+field pg_query.JsonConstructorExpr.format: - -> 8 .pg_query.JsonFormat json=format
+field pg_query.JsonConstructorExpr.location: 9 int32 json=location -> 11 int32 json=location
+field pg_query.JsonConstructorExpr.orig_query: - -> 7 .pg_query.Node json=orig_query
+field pg_query.JsonConstructorExpr.unique: 8 bool json=unique -> 10 bool json=unique
+field pg_query.JsonIsPredicate.expr_base_type: - -> 5 uint32 json=exprBaseType
+field pg_query.JsonIsPredicate.location: 5 int32 json=location -> 6 int32 json=location
+field pg_query.Node.a_const: 271 .pg_query.A_Const (oneof node) json=A_Const -> 273 .pg_query.A_Const (oneof node) json=A_Const
+field pg_query.Node.alter_publication_stmt: 259 .pg_query.AlterPublicationStmt (oneof node) json=AlterPublicationStmt -> 260 .pg_query.AlterPublicationStmt (oneof node) json=AlterPublicationStmt
+field pg_query.Node.alter_subscription_stmt: 261 .pg_query.AlterSubscriptionStmt (oneof node) json=AlterSubscriptionStmt -> 262 .pg_query.AlterSubscriptionStmt (oneof node) json=AlterSubscriptionStmt
+field pg_query.Node.bit_string: 267 .pg_query.BitString (oneof node) json=BitString -> 269 .pg_query.BitString (oneof node) json=BitString
+field pg_query.Node.boolean: 265 .pg_query.Boolean (oneof node) json=Boolean -> 267 .pg_query.Boolean (oneof node) json=Boolean
+field pg_query.Node.cluster_stmt: 235 .pg_query.ClusterStmt (oneof node) json=ClusterStmt -> -
+field pg_query.Node.create_publication_stmt: 258 .pg_query.CreatePublicationStmt (oneof node) json=CreatePublicationStmt -> 259 .pg_query.CreatePublicationStmt (oneof node) json=CreatePublicationStmt
+field pg_query.Node.create_subscription_stmt: 260 .pg_query.CreateSubscriptionStmt (oneof node) json=CreateSubscriptionStmt -> 261 .pg_query.CreateSubscriptionStmt (oneof node) json=CreateSubscriptionStmt
+field pg_query.Node.drop_subscription_stmt: 262 .pg_query.DropSubscriptionStmt (oneof node) json=DropSubscriptionStmt -> 263 .pg_query.DropSubscriptionStmt (oneof node) json=DropSubscriptionStmt
+field pg_query.Node.float: 264 .pg_query.Float (oneof node) json=Float -> 266 .pg_query.Float (oneof node) json=Float
+field pg_query.Node.int_list: 269 .pg_query.IntList (oneof node) json=IntList -> 271 .pg_query.IntList (oneof node) json=IntList
+field pg_query.Node.integer: 263 .pg_query.Integer (oneof node) json=Integer -> 265 .pg_query.Integer (oneof node) json=Integer
+field pg_query.Node.list: 268 .pg_query.List (oneof node) json=List -> 270 .pg_query.List (oneof node) json=List
+field pg_query.Node.oid_list: 270 .pg_query.OidList (oneof node) json=OidList -> 272 .pg_query.OidList (oneof node) json=OidList
+field pg_query.Node.publication_all_obj_spec: - -> 258 .pg_query.PublicationAllObjSpec (oneof node) json=PublicationAllObjSpec
+field pg_query.Node.repack_stmt: - -> 237 .pg_query.RepackStmt (oneof node) json=RepackStmt
+field pg_query.Node.string: 266 .pg_query.String (oneof node) json=String -> 268 .pg_query.String (oneof node) json=String
+field pg_query.Node.vacuum_relation: 237 .pg_query.VacuumRelation (oneof node) json=VacuumRelation -> 236 .pg_query.VacuumRelation (oneof node) json=VacuumRelation
+field pg_query.Node.vacuum_stmt: 236 .pg_query.VacuumStmt (oneof node) json=VacuumStmt -> 235 .pg_query.VacuumStmt (oneof node) json=VacuumStmt
+field pg_query.Node.wait_stmt: - -> 264 .pg_query.WaitStmt (oneof node) json=WaitStmt
+field pg_query.OnConflictClause.location: 5 int32 json=location -> 6 int32 json=location
+field pg_query.OnConflictClause.lock_strength: - -> 3 .pg_query.LockClauseStrength json=lockStrength
+field pg_query.OnConflictClause.target_list: 3 repeated .pg_query.Node json=targetList -> 4 repeated .pg_query.Node json=targetList
+field pg_query.OnConflictClause.where_clause: 4 .pg_query.Node json=whereClause -> 5 .pg_query.Node json=whereClause
+field pg_query.OnConflictExpr.excl_rel_index: 7 int32 json=exclRelIndex -> 8 int32 json=exclRelIndex
+field pg_query.OnConflictExpr.excl_rel_tlist: 8 repeated .pg_query.Node json=exclRelTlist -> 9 repeated .pg_query.Node json=exclRelTlist
+field pg_query.OnConflictExpr.lock_strength: - -> 5 .pg_query.LockClauseStrength json=lockStrength
+field pg_query.OnConflictExpr.on_conflict_set: 5 repeated .pg_query.Node json=onConflictSet -> 6 repeated .pg_query.Node json=onConflictSet
+field pg_query.OnConflictExpr.on_conflict_where: 6 .pg_query.Node json=onConflictWhere -> 7 .pg_query.Node json=onConflictWhere
+message pg_query.PublicationAllObjSpec: added
+field pg_query.PublicationTable.except: - -> 4 bool json=except
+message pg_query.RepackStmt: added
+field pg_query.SubPlan.args: 15 repeated .pg_query.Node json=args -> 16 repeated .pg_query.Node json=args
+field pg_query.SubPlan.disabled_nodes: - -> 17 int32 json=disabled_nodes
+field pg_query.SubPlan.is_init_plan: - -> 10 bool json=isInitPlan
+field pg_query.SubPlan.par_param: 14 repeated .pg_query.Node json=parParam -> 15 repeated .pg_query.Node json=parParam
+field pg_query.SubPlan.parallel_safe: 12 bool json=parallel_safe -> 13 bool json=parallel_safe
+field pg_query.SubPlan.per_call_cost: 17 double json=per_call_cost -> 19 double json=per_call_cost
+field pg_query.SubPlan.set_param: 13 repeated .pg_query.Node json=setParam -> 14 repeated .pg_query.Node json=setParam
+field pg_query.SubPlan.startup_cost: 16 double json=startup_cost -> 18 double json=startup_cost
+field pg_query.SubPlan.unknown_eq_false: 11 bool json=unknownEqFalse -> 12 bool json=unknownEqFalse
+field pg_query.SubPlan.use_hash_table: 10 bool json=useHashTable -> 11 bool json=useHashTable
+message pg_query.WaitStmt: added
+field pg_query.WindowFunc.ignore_nulls: - -> 12 int32 json=ignore_nulls
+field pg_query.WindowFunc.location: 12 int32 json=location -> 13 int32 json=location
+enum pg_query.AlterDomainType: added
+enum pg_query.AlterSubscriptionType.ALTER_SUBSCRIPTION_REFRESH: 6 -> -
+enum pg_query.AlterSubscriptionType.ALTER_SUBSCRIPTION_REFRESH_PUBLICATION: - -> 7
+enum pg_query.AlterSubscriptionType.ALTER_SUBSCRIPTION_REFRESH_SEQUENCES: - -> 8
+enum pg_query.AlterSubscriptionType.ALTER_SUBSCRIPTION_SERVER: - -> 2
+enum pg_query.AlterSubscriptionType.ALTER_SUBSCRIPTION_CONNECTION..ALTER_SUBSCRIPTION_DROP_PUBLICATION: 2..5 -> 3..6
+enum pg_query.AlterSubscriptionType.ALTER_SUBSCRIPTION_ENABLED..ALTER_SUBSCRIPTION_SKIP: 7..8 -> 9..10
+enum pg_query.FetchDirectionKeywords: added
+enum pg_query.JsonConstructorType.JSCTOR_JSON_ARRAY_QUERY: - -> 3
+enum pg_query.JsonConstructorType.JSCTOR_JSON_OBJECTAGG..JSCTOR_JSON_SERIALIZE: 3..7 -> 4..8
+enum pg_query.ObjectType.OBJECT_PUBLICATION_EXCLUDED_REL: - -> 32
+enum pg_query.ObjectType.OBJECT_PUBLICATION_NAMESPACE..OBJECT_VIEW: 32..52 -> 33..53
+enum pg_query.OnConflictAction.ONCONFLICT_SELECT: - -> 4
+enum pg_query.PublicationAllObjType: added
+enum pg_query.PublicationObjSpecType.PUBLICATIONOBJ_EXCEPT_TABLE: - -> 2
+enum pg_query.PublicationObjSpecType.PUBLICATIONOBJ_TABLES_IN_SCHEMA..PUBLICATIONOBJ_CONTINUATION: 2..4 -> 3..5
+enum pg_query.RepackCommand: added
+enum pg_query.Token.IGNORE_P: - -> 454
+enum pg_query.Token.LSN_P: - -> 522
+enum pg_query.Token.REPACK: - -> 628
+enum pg_query.Token.RESPECT_P: - -> 633
+enum pg_query.Token.WAIT: - -> 750
+enum pg_query.Token.ILIKE..LOGGED: 454..520 -> 455..521
+enum pg_query.Token.MAPPING..RENAME: 521..625 -> 523..627
+enum pg_query.Token.REPEATABLE..RESET: 626..629 -> 629..632
+enum pg_query.Token.RESTART..VOLATILE: 630..745 -> 634..749
+enum pg_query.Token.WHEN..UMINUS: 746..781 -> 751..786
+enum pg_query.WCOKind.WCO_VIEW_CONFLICT_CHECK: - -> 7
