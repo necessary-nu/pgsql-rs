@@ -1,7 +1,6 @@
 use super::{projected_type, raw};
 use pg19_plpgsql::{
     compile_routines, Builtin, CompileError, DataType, EmbeddedSql, NativeSql, Options, ParseMode,
-    RoutineError,
 };
 use serde_json::Value;
 use std::{
@@ -61,23 +60,9 @@ fn compare_project_sample_routines() {
     let signatures = signatures.as_array().unwrap();
     assert_eq!(expected.len(), signatures.len());
     let mut sql = SqlReference { run };
-    let mut matched = 0;
     for (i, (r, target)) in signatures.iter().zip(expected).enumerate() {
-        match compile_routines(&[raw(r)], Options::default(), &mut sql) {
-            Ok(functions) => {
-                assert_eq!(functions[0].json(), target, "routine {i}: {}", r["name"]);
-                matched += 1;
-            }
-            Err(RoutineError::Body {
-                error: CompileError::Unsupported { production },
-                ..
-            }) => eprintln!("sample {i}: {production}"),
-            other => panic!("routine {i}: {other:?}"),
-        }
+        let functions = compile_routines(&[raw(r)], Options::default(), &mut sql)
+            .unwrap_or_else(|error| panic!("routine {i} {}: {error:?}", r["name"]));
+        assert_eq!(functions[0].json(), target, "routine {i}: {}", r["name"]);
     }
-    eprintln!(
-        "matched {matched}/{} complete routine trees",
-        signatures.len()
-    );
-    assert!(matched >= 28);
 }

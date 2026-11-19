@@ -26,6 +26,12 @@ pub struct Variable {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Datum {
     Variable(Variable),
+    Cursor {
+        variable: Variable,
+        query: Expression,
+        args: Option<usize>,
+        options: i32,
+    },
     Promise {
         variable: Variable,
         promise: u8,
@@ -88,7 +94,24 @@ pub enum ForSource {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CursorQuery {
+    Bound(Option<Expression>),
+    Static(Expression),
+    Dynamic(Expression, Vec<Expression>),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
+    Open {
+        lineno: usize,
+        cursor: usize,
+        options: i32,
+        query: CursorQuery,
+    },
+    Close {
+        lineno: usize,
+        cursor: usize,
+    },
     Block(Block),
     For {
         lineno: usize,

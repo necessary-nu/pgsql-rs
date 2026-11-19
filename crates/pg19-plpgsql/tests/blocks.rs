@@ -24,7 +24,7 @@ impl EmbeddedSql for Sql {
         self.validate(src, ParseMode::TypeName)?;
         Ok(match src.trim() {
             "integer" => DataType::Scalar("int4".into()),
-            "text" => DataType::Scalar("text".into()),
+            "text" | "refcursor" => DataType::Scalar(src.trim().into()),
             "record" => DataType::Record,
             other => panic!("unexpected fixture type {other}"),
         })
