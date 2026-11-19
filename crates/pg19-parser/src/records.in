@@ -2243,6 +2243,17 @@ pub(super) const ACTIONS: &[Action] = &[
             )
         })
     },
+    // ColConstraint: CONSTRAINT name ColConstraintElem
+    |rhs| {
+        Ok({
+            let Node::Constraint(mut node) = rhs.take(3).node()? else {
+                return Err("expected Constraint".into());
+            };
+            node.conname = optional_text(rhs.take(2))?;
+            node.location = rhs.location(1);
+            Value::Node(Node::Constraint(node))
+        })
+    },
     // ColConstraintElem: NOT NULL_P opt_no_inherit
     |rhs| {
         Ok(Value::Node(
@@ -2419,6 +2430,218 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // ConstraintElem: CHECK '(' a_expr ')' ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_CHECK,
+                location: rhs.location(1),
+                raw_expr: optional_node(rhs.take(3))?,
+                cooked_expr: None,
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(5).integer()?,
+                rhs.location(5),
+                "CHECK",
+                crate::utility::constraint::CAS_ENFORCED
+                    | crate::utility::constraint::CAS_NOT_VALID
+                    | crate::utility::constraint::CAS_NO_INHERIT,
+            )?;
+            node.initially_valid = !node.skip_validation;
+            Value::Node(node.into())
+        })
+    },
+    // ConstraintElem: NOT NULL_P ColId ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_NOTNULL,
+                location: rhs.location(1),
+                keys: vec![Node::String(rhs.take(3).text()?)],
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(4).integer()?,
+                rhs.location(4),
+                "NOT NULL",
+                crate::utility::constraint::CAS_NOT_VALID
+                    | crate::utility::constraint::CAS_NO_INHERIT,
+            )?;
+            node.initially_valid = !node.skip_validation;
+            Value::Node(node.into())
+        })
+    },
+    // ConstraintElem: UNIQUE opt_unique_null_treatment '(' columnList opt_without_overlaps ')' opt_c_include opt_definition OptConsTableSpace ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_UNIQUE,
+                location: rhs.location(1),
+                nulls_not_distinct: rhs.take(2).integer()? == 0,
+                keys: rhs.take(4).list()?,
+                without_overlaps: rhs.take(5).integer()? != 0,
+                including: rhs.take(7).list()?,
+                options: rhs.take(8).list()?,
+                indexname: None,
+                indexspace: optional_text(rhs.take(9))?,
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(10).integer()?,
+                rhs.location(10),
+                "UNIQUE",
+                crate::utility::constraint::CAS_DEFERRABLE
+                    | crate::utility::constraint::CAS_INITIALLY_DEFERRED,
+            )?;
+            Value::Node(node.into())
+        })
+    },
+    // ConstraintElem: UNIQUE ExistingIndex ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_UNIQUE,
+                location: rhs.location(1),
+                keys: Vec::new(),
+                including: Vec::new(),
+                options: Vec::new(),
+                indexname: optional_text(rhs.take(2))?,
+                indexspace: None,
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(3).integer()?,
+                rhs.location(3),
+                "UNIQUE",
+                crate::utility::constraint::CAS_DEFERRABLE
+                    | crate::utility::constraint::CAS_INITIALLY_DEFERRED,
+            )?;
+            Value::Node(node.into())
+        })
+    },
+    // ConstraintElem: PRIMARY KEY '(' columnList opt_without_overlaps ')' opt_c_include opt_definition OptConsTableSpace ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_PRIMARY,
+                location: rhs.location(1),
+                keys: rhs.take(4).list()?,
+                without_overlaps: rhs.take(5).integer()? != 0,
+                including: rhs.take(7).list()?,
+                options: rhs.take(8).list()?,
+                indexname: None,
+                indexspace: optional_text(rhs.take(9))?,
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(10).integer()?,
+                rhs.location(10),
+                "PRIMARY KEY",
+                crate::utility::constraint::CAS_DEFERRABLE
+                    | crate::utility::constraint::CAS_INITIALLY_DEFERRED,
+            )?;
+            Value::Node(node.into())
+        })
+    },
+    // ConstraintElem: PRIMARY KEY ExistingIndex ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_PRIMARY,
+                location: rhs.location(1),
+                keys: Vec::new(),
+                including: Vec::new(),
+                options: Vec::new(),
+                indexname: optional_text(rhs.take(3))?,
+                indexspace: None,
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(4).integer()?,
+                rhs.location(4),
+                "PRIMARY KEY",
+                crate::utility::constraint::CAS_DEFERRABLE
+                    | crate::utility::constraint::CAS_INITIALLY_DEFERRED,
+            )?;
+            Value::Node(node.into())
+        })
+    },
+    // ConstraintElem: EXCLUDE access_method_clause '(' ExclusionConstraintList ')' opt_c_include opt_definition OptConsTableSpace OptWhereClause ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_EXCLUSION,
+                location: rhs.location(1),
+                access_method: optional_text(rhs.take(2))?,
+                exclusions: rhs.take(4).list()?,
+                including: rhs.take(6).list()?,
+                options: rhs.take(7).list()?,
+                indexname: None,
+                indexspace: optional_text(rhs.take(8))?,
+                where_clause: optional_node(rhs.take(9))?,
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(10).integer()?,
+                rhs.location(10),
+                "EXCLUDE",
+                crate::utility::constraint::CAS_DEFERRABLE
+                    | crate::utility::constraint::CAS_INITIALLY_DEFERRED,
+            )?;
+            Value::Node(node.into())
+        })
+    },
+    // DomainConstraintElem: CHECK '(' a_expr ')' ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_CHECK,
+                location: rhs.location(1),
+                raw_expr: optional_node(rhs.take(3))?,
+                cooked_expr: None,
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(5).integer()?,
+                rhs.location(5),
+                "CHECK",
+                crate::utility::constraint::CAS_NOT_VALID
+                    | crate::utility::constraint::CAS_NO_INHERIT,
+            )?;
+            node.is_enforced = true;
+            node.initially_valid = !node.skip_validation;
+            Value::Node(node.into())
+        })
+    },
+    // DomainConstraintElem: NOT NULL_P ConstraintAttributeSpec
+    |rhs| {
+        Ok({
+            let mut node = Constraint {
+                contype: ConstrType::CONSTR_NOTNULL,
+                location: rhs.location(1),
+                keys: vec![Node::String("value".to_owned())],
+                ..Default::default()
+            };
+            crate::utility::constraint::process(
+                &mut node,
+                rhs.take(3).integer()?,
+                rhs.location(3),
+                "NOT NULL",
+                0,
+            )?;
+            node.initially_valid = true;
+            Value::Node(node.into())
+        })
     },
     // part_elem: ColId opt_collate opt_qualified_name
     |rhs| {
@@ -8775,6 +8998,27 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // table_ref: json_table opt_alias_clause
+    |rhs| {
+        Ok({
+            let Node::JsonTable(mut node) = rhs.take(1).node()? else {
+                return Err("expected JsonTable".into());
+            };
+            node.alias = record!(rhs.take(2), Alias);
+            Value::Node(Node::JsonTable(node))
+        })
+    },
+    // table_ref: LATERAL_P json_table opt_alias_clause
+    |rhs| {
+        Ok({
+            let Node::JsonTable(mut node) = rhs.take(2).node()? else {
+                return Err("expected JsonTable".into());
+            };
+            node.alias = record!(rhs.take(3), Alias);
+            node.lateral = true;
+            Value::Node(Node::JsonTable(node))
+        })
+    },
     // joined_table: table_ref CROSS JOIN table_ref
     |rhs| {
         Ok(Value::Node(
@@ -9390,6 +9634,16 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // c_expr: ARRAY array_expr
+    |rhs| {
+        Ok({
+            let Node::AArrayExpr(mut node) = rhs.take(2).node()? else {
+                return Err("expected AArrayExpr".into());
+            };
+            node.location = rhs.location(1);
+            Value::Node(Node::AArrayExpr(node))
+        })
     },
     // c_expr: explicit_row
     |rhs| {

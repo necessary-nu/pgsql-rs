@@ -1,8 +1,12 @@
 //! PostgreSQL utility grammar actions and their shared relation-name reductions.
 pub(crate) mod access;
+pub(crate) mod constraint;
 mod copy;
+pub(crate) mod definition;
+mod foreign_key;
 mod partition;
 mod routine;
+pub(crate) mod trigger;
 
 use super::{value::Value, Failure};
 use pg19_engine::Reduction;
@@ -17,6 +21,7 @@ pub(super) enum Utility {
     NegativeFloat,
     Signature(bool),
     TableFunction,
+    Definition(definition::Definition),
     PercentType(bool),
     RoutineBody,
     PartitionSpec,
@@ -223,6 +228,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             cols: rhs.take(index).list()?,
         }
         .into()])),
+        Utility::Definition(action) => action.reduce(rhs),
         Utility::Signature(qualified) => routine::signature(rhs, qualified),
         Utility::TableFunction => routine::table_function(rhs),
         Utility::PercentType(setof) => routine::percent_type(rhs, setof),

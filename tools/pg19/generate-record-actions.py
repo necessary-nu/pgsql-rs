@@ -233,6 +233,27 @@ def lower(s, ty="Value"):
     return convert(value, ty)
 
 
+def constraint_properties(stmt, local):
+    match = re.fullmatch(r"processCASbits\((.*), yyscanner\)", stmt)
+    if not match:
+        return None
+    args = arguments(match[1])
+    if len(args) != 8 or not re.fullmatch(r'"[A-Z ]+"', args[2]):
+        raise Unsupported(stmt)
+    targets = [("deferrable", "CAS_DEFERRABLE"), ("initdeferred", "CAS_INITIALLY_DEFERRED"),
+               ("is_enforced", "CAS_ENFORCED"), ("skip_validation", "CAS_NOT_VALID"),
+               ("is_no_inherit", "CAS_NO_INHERIT")]
+    flags = []
+    for dest, (field, flag) in zip(args[3:], targets):
+        if dest == f"&{local}->{field}":
+            flags.append(f"crate::utility::constraint::{flag}")
+        elif dest != "NULL":
+            raise Unsupported(stmt)
+    mask = " | ".join(flags) or "0"
+    return (f"crate::utility::constraint::process(&mut node, {lower(args[0], 'i32')}, "
+            f"{lower(args[1], 'Location')}, {args[2]}, {mask})?;")
+
+
 def compile_action(raw, symbols):
     body = re.sub(r"/\*.*?\*/", " ", raw.strip(), flags=re.S)
     if not (body.startswith("{") and body.endswith("}")):
@@ -252,6 +273,8 @@ def compile_action(raw, symbols):
         if body.count(pointer) != 2:
             raise Unsupported("shared relation")
         body = body[:m.start()] + body[m.end():].replace(pointer, f"with_persistence({pointer}, {storage})")
+    body = re.sub(r"(\w+)\s*\*\s*(\w+) = castNode\(\1, (\$\d+\.\w+)\);",
+                  lambda m: f"{m[1]} *{m[2]} = {m[3]};", body)
     # Each stack value is owned. Multiple C reads require an explicit ownership translation.
     uses = re.findall(r"\$(\d+)\.", body)
     if len(uses) != len(set(uses)) or any(int(slot) < 1 for slot in uses):
@@ -292,7 +315,18 @@ def compile_action(raw, symbols):
             raise Unsupported(statements[-1])
         assignments = []
         setup = []
+        updates = []
         for stmt in statements[1:-1]:
+            if c_name == "Constraint" and (properties := constraint_properties(stmt, local)) is not None:
+                updates.append(properties)
+                continue
+            if updates:
+                if stmt == f"{local}->initially_valid = !{local}->skip_validation":
+                    updates.append("node.initially_valid = !node.skip_validation;")
+                else:
+                    key, expr = apply_member(c_name, stmt, re.escape(local))
+                    updates.append(f"node.{key} = {expr};")
+                continue
             split = re.fullmatch(rf"SplitColQualList\((\$\d+\.list), &{local}->constraints, &{local}->collClause, yyscanner\)", stmt)
             if c_name == "ColumnDef" and split:
                 setup.append(f"let (constraints, coll_clause) = column_qualifiers({lower(split[1], 'Vec<Node>')})?;")
@@ -306,7 +340,11 @@ def compile_action(raw, symbols):
         init = ", ".join((key if key == val else f"{key}: {val}") for key, val in assignments)
         if len(assignments) != len(fields):
             init += ", ..Default::default()"
-        value = f"Value::Node({record} {{ {init} }}.into())"
+        constructor = f"{record} {{ {init} }}"
+        if updates:
+            setup.extend([f"let mut node = {constructor};", *updates])
+            constructor = "node"
+        value = f"Value::Node({constructor}.into())"
         return "{ " + " ".join(setup) + " " + value + " }" if setup else value
     if m := re.fullmatch(r"result\.(\w+) = (.*)", statements[0]):
         ctype, source = m.groups()
