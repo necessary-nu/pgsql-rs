@@ -4,6 +4,7 @@ use pg19_nodes::{Node, NodeBox, SelectStmt, StatementList};
 pub(crate) enum Value {
     #[default]
     Empty,
+    Limit(Box<crate::limits::SelectLimit>),
     Integer(i32),
     Text(String),
     Node(Node),

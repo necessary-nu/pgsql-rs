@@ -3,12 +3,28 @@ use pg19_lexer::Options;
 use pg19_parser::{parse, Error};
 use serde_json::{json, Value};
 
+fn mode(case: &Value) -> (&str, ParseMode) {
+    let name = case["mode"].as_str().unwrap_or("default");
+    (
+        name,
+        match name {
+            "default" => ParseMode::Sql,
+            "type-name" => ParseMode::TypeName,
+            "plpgsql-expr" => ParseMode::PlPgSqlExpr,
+            "plpgsql-assign1" => ParseMode::PlPgSqlAssign1,
+            "plpgsql-assign2" => ParseMode::PlPgSqlAssign2,
+            "plpgsql-assign3" => ParseMode::PlPgSqlAssign3,
+            _ => panic!("unknown PG19 mode {name}"),
+        },
+    )
+}
+
 #[test]
 fn expression_trees_match_patched_postgres() {
     for line in include_str!("expressions.jsonl").lines() {
         let case: Value = serde_json::from_str(line).unwrap();
         let sql = case["sql"].as_str().unwrap();
-        match parse(sql, ParseMode::Sql, Options::default()) {
+        match parse(sql, mode(&case).1, Options::default()) {
             Ok(nodes) => {
                 let tree = pg19_reference::nodes_text(&nodes).unwrap();
                 assert_eq!(case["tree"], tree, "{sql}");
@@ -52,7 +68,7 @@ fn verify_expression_snapshots() {
         let case: Value = serde_json::from_str(line).unwrap();
         let sql = case["sql"].as_str().unwrap();
         let run = std::process::Command::new(&probe)
-            .arg(sql)
+            .args([sql, "--mode", mode(&case).0])
             .output()
             .unwrap();
         assert!(run.status.success(), "{sql}");
