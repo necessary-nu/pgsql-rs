@@ -1,6 +1,7 @@
 //! Query entities and statement types from the PostgreSQL raw tree.
 mod entities;
 mod model;
+mod truncate;
 use crate::raw_walk::{is_summary_statement, summary_walks_children, RawRef};
 pub use model::*;
 use pg19_nodes::*;
@@ -15,6 +16,48 @@ pub fn summarize(sql: &str, mode: ParseMode, options: Options) -> Result<Summary
 pub fn summary_protobuf(sql: &str, mode: ParseMode, options: Options) -> Result<Vec<u8>, Error> {
     let result = summarize(sql, mode, options)?;
     Ok(result.encode_to_vec())
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SummaryError {
+    Parse(Error),
+    Deparse(crate::deparse::Error),
+}
+
+impl std::fmt::Display for SummaryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Parse(e) => e.fmt(f),
+            Self::Deparse(e) => e.fmt(f),
+        }
+    }
+}
+impl std::error::Error for SummaryError {}
+
+pub fn summarize_with_limit(
+    sql: &str,
+    mode: ParseMode,
+    options: Options,
+    limit: i32,
+) -> Result<Summary, SummaryError> {
+    let nodes = parse(sql, mode, options).map_err(SummaryError::Parse)?;
+    let mut summary = summarize_nodes(&nodes);
+    if limit != -1 {
+        summary.truncated_query =
+            Some(truncate::truncate(nodes, limit).map_err(SummaryError::Deparse)?);
+    }
+    Ok(summary)
+}
+
+// [spec:pgq:req:summary.protobuf]
+pub fn summary_protobuf_with_limit(
+    sql: &str,
+    mode: ParseMode,
+    options: Options,
+    limit: i32,
+) -> Result<Vec<u8>, SummaryError> {
+    let summary = summarize_with_limit(sql, mode, options, limit)?;
+    Ok(summary.encode_to_vec())
 }
 
 // [spec:pgq:req:summary.entities]
