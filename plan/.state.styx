@@ -115,12 +115,34 @@ impl_evidence (
         {id codec.json-envelope, version 0}
         {id codec.json-fields, version 0}
     )}
+    {id codec.protobuf, covered_rules (
+        codec.errors-and-depth
+        codec.protobuf-schema
+        lex.token-results
+        tree.literal-variants
+    ), covered_claims (
+        {impl_name rust, rule codec.errors-and-depth}
+        {impl_name rust, rule codec.protobuf-schema}
+        {impl_name rust, rule lex.token-results}
+        {impl_name rust, rule tree.literal-variants}
+    )}
     {id codec.schema, covered_rules (
         codec.schema-import
     ), covered_claims (
         {impl_name rust, rule codec.schema-import}
     ), rule_versions_seen (
         {id codec.schema-import, version 0}
+    )}
+    {id operations.fingerprint-tree, covered_rules (
+        fingerprint.aliases
+        fingerprint.digest
+        fingerprint.lists
+        fingerprint.relation-digits
+    ), covered_claims (
+        {impl_name rust, rule fingerprint.aliases}
+        {impl_name rust, rule fingerprint.digest}
+        {impl_name rust, rule fingerprint.lists}
+        {impl_name rust, rule fingerprint.relation-digits}
     )}
     {id operations.split-scanner, covered_rules (
         split.scanner
@@ -180,10 +202,6 @@ impl_evidence (
         {impl_name rust, rule tree.node-layout}
         {impl_name rust, rule tree.node-locations}
         {impl_name rust, rule tree.statement-spans}
-    ), rule_versions_seen (
-        {id tree.node-layout, version 0}
-        {id tree.node-locations, version 0}
-        {id tree.statement-spans, version 0}
     )}
     {id parser.tables, covered_rules (
         grammar.action-inventory
@@ -215,17 +233,6 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
-    )}
-    {id operations.fingerprint-tree, covered_rules (
-        fingerprint.aliases
-        fingerprint.digest
-        fingerprint.lists
-        fingerprint.relation-digits
-    ), covered_claims (
-        {impl_name rust, rule fingerprint.aliases}
-        {impl_name rust, rule fingerprint.digest}
-        {impl_name rust, rule fingerprint.lists}
-        {impl_name rust, rule fingerprint.relation-digits}
     )}
 )
 

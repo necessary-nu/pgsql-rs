@@ -25,6 +25,11 @@ mod catalog {
 }
 
 impl Kind {
+    pub fn from_id(id: u16) -> Option<Self> {
+        (id < 128 || (id >= 256 && usize::from(id - 256) < catalog::NAMES.len()))
+            .then_some(Self(id))
+    }
+
     pub fn id(self) -> u16 {
         self.0
     }
