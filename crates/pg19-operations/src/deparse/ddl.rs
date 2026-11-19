@@ -1,3 +1,4 @@
+mod catalog;
 pub(in crate::deparse) mod index;
 mod object;
 mod privileges;
@@ -228,7 +229,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("RETURN ");
             p.expr(required(&s.returnval, "ReturnStmt.returnval")?)
         }
-        _ => return Ok(false),
+        _ => return catalog::statement(n, p),
     }
     Ok(true)
 }
