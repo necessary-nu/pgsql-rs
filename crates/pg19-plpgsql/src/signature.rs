@@ -81,9 +81,8 @@ impl<'a> Signature<'a> {
                 )));
             }
             if p.mode == Mode::FUNC_PARAM_VARIADIC {
-                if !db_type.name.starts_with('_')
-                    && !matches!(db_type.name, "any" | "anyarray" | "anycompatiblearray")
-                {
+                // The standalone SearchSysCache1 tuple leaves typelem and typsubscript zero.
+                if !matches!(db_type.name, "any" | "anyarray" | "anycompatiblearray") {
                     return Err(CompileError::from(Error::without_position(
                         "VARIADIC parameter must be an array",
                         "42P13",
@@ -103,17 +102,12 @@ impl<'a> Signature<'a> {
                     )));
                 }
             }
-            if let Some(expr) = p.defexpr.as_deref() {
+            if p.defexpr.is_some() {
                 if !input {
                     return Err(CompileError::from(Error::without_position(
                         "only input parameters can have default values",
                         "42P13",
                     )));
-                }
-                if !matches!(expr, Node::AConst(_)) {
-                    return Err(CompileError::Unsupported {
-                        production: "parameter default expression analysis",
-                    });
                 }
                 defaulted = true;
             } else if defaulted && input {

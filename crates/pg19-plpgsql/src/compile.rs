@@ -174,10 +174,10 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
             return Err(scanner.error("missing data type declaration").into());
         }
         scanner.push_back(token);
-        let datatype = self
-            .sql
-            .datatype(type_name)
-            .map_err(|e| e.in_body(source, start))?;
+        let datatype = self.sql.datatype(type_name).map_err(|e| match &e {
+            CompileError::Diagnostic(d) if d.position == 0 => e,
+            _ => e.in_body(source, start),
+        })?;
         Ok(Reduced::Type(datatype))
     }
 

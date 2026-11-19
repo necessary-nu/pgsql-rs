@@ -119,12 +119,32 @@ impl EmbeddedSql for NativeSql {
                     _ => None,
                 };
                 if let Some(suffix) = suffix {
-                    if scanner.next_token(&mut ())?.id == 0 {
-                        return Ok(DataType::Scalar(format!(
-                            "{}%{suffix}",
-                            name.names.join(".")
-                        )));
+                    let mut t = scanner.next_token(&mut ())?;
+                    let mut array = t.id == token::K_ARRAY;
+                    if array {
+                        t = scanner.next_token(&mut ())?;
                     }
+                    while t.id == 91 {
+                        array = true;
+                        t = scanner.next_token(&mut ())?;
+                        if t.id == token::ICONST {
+                            t = scanner.next_token(&mut ())?;
+                        }
+                        if t.id != 93 {
+                            return Err(scanner.error("syntax error, expected \"]\"").into());
+                        }
+                        t = scanner.next_token(&mut ())?;
+                    }
+                    if array {
+                        return Err(Error::without_position("Not implemented (SearchSysCache1 got TYPEOID cache request for type OID 0)","XX000").into());
+                    }
+                    if t.id != 0 {
+                        return Err(scanner.error("syntax error").into());
+                    }
+                    return Ok(DataType::Scalar(format!(
+                        "{}%{suffix}",
+                        name.names.join(".")
+                    )));
                 }
             }
         }
@@ -134,7 +154,9 @@ impl EmbeddedSql for NativeSql {
                 "type-name parse mode must return a TypeName",
             ));
         };
-        Ok(Builtin::resolve(t)?.datatype())
+        Builtin::resolve(t)
+            .map(Builtin::datatype)
+            .map_err(|e| e.in_body(source, 0))
     }
 
     fn validate(&mut self, sql: &str, mode: ParseMode) -> Result<(), CompileError> {
