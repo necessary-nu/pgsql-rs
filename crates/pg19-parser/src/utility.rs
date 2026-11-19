@@ -2,6 +2,7 @@
 pub(crate) mod access;
 mod copy;
 mod partition;
+mod routine;
 
 use super::{value::Value, Failure};
 use pg19_engine::Reduction;
@@ -14,6 +15,10 @@ pub(super) enum Utility {
     VacuumLegacy,
     ExplainAnalyze,
     NegativeFloat,
+    Signature(bool),
+    TableFunction,
+    PercentType(bool),
+    RoutineBody,
     PartitionSpec,
     HashBound,
     AlterPartition(AlterTableType, bool),
@@ -218,6 +223,10 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             cols: rhs.take(index).list()?,
         }
         .into()])),
+        Utility::Signature(qualified) => routine::signature(rhs, qualified),
+        Utility::TableFunction => routine::table_function(rhs),
+        Utility::PercentType(setof) => routine::percent_type(rhs, setof),
+        Utility::RoutineBody => routine::body(rhs),
         Utility::PartitionSpec => partition::spec(rhs),
         Utility::HashBound => partition::hash_bound(rhs),
         Utility::AlterPartition(subtype, bound) => partition::alter(rhs, subtype, bound),
