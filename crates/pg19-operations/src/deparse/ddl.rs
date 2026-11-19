@@ -1,4 +1,6 @@
+pub(in crate::deparse) mod index;
 mod object;
+mod privileges;
 mod session;
 use super::query::{named, relation};
 use super::writer::{names, required, Plan, Role};
@@ -11,7 +13,7 @@ fn role(r: &RoleSpec) -> Result<String> {
         RoleSpecType::ROLESPEC_CURRENT_ROLE => "CURRENT_ROLE",
         RoleSpecType::ROLESPEC_CURRENT_USER => "CURRENT_USER",
         RoleSpecType::ROLESPEC_SESSION_USER => "SESSION_USER",
-        RoleSpecType::ROLESPEC_PUBLIC => "PUBLIC",
+        RoleSpecType::ROLESPEC_PUBLIC => "public",
         _ => return Err(Error::InvalidField("RoleSpec.roletype")),
     };
     Ok(name.to_owned())
@@ -71,8 +73,24 @@ fn enum_change(s: &AlterEnumStmt, p: &mut Plan<'_>) -> Result<()> {
     Ok(())
 }
 
+fn lock_mode(mode: i32) -> Result<&'static str> {
+    Ok(match mode {
+        1 => " IN ACCESS SHARE MODE",
+        2 => " IN ROW SHARE MODE",
+        3 => " IN ROW EXCLUSIVE MODE",
+        4 => " IN SHARE UPDATE EXCLUSIVE MODE",
+        5 => " IN SHARE MODE",
+        6 => " IN SHARE ROW EXCLUSIVE MODE",
+        7 => " IN EXCLUSIVE MODE",
+        8 => " IN ACCESS EXCLUSIVE MODE",
+        _ => return Err(Error::InvalidField("LockStmt.mode")),
+    })
+}
+
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
+        Node::GrantStmt(s) => privileges::grant(s, p)?,
+        Node::IndexStmt(s) => index::index(s, p)?,
         Node::DropStmt(s) => object::drop_objects(s, p)?,
         Node::CommentStmt(s) => {
             p.text("COMMENT ON ");
@@ -151,17 +169,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
         Node::LockStmt(s) => {
             p.text("LOCK TABLE ");
             relation_list(&s.relations, p)?;
-            p.text(match s.mode {
-                1 => " IN ACCESS SHARE MODE",
-                2 => " IN ROW SHARE MODE",
-                3 => " IN ROW EXCLUSIVE MODE",
-                4 => " IN SHARE UPDATE EXCLUSIVE MODE",
-                5 => " IN SHARE MODE",
-                6 => " IN SHARE ROW EXCLUSIVE MODE",
-                7 => " IN EXCLUSIVE MODE",
-                8 => " IN ACCESS EXCLUSIVE MODE",
-                _ => return Err(Error::InvalidField("LockStmt.mode")),
-            });
+            p.text(lock_mode(s.mode)?);
             if s.nowait {
                 p.text(" NOWAIT")
             }
