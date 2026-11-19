@@ -149,3 +149,7 @@ against the Rust code in `tools/pg19/src/tree`.
 For full upstream SQL statement coverage, the [PG19 regression corpus](regress/README.md)
 extracts source spans with the pinned psql lexer, captures trees and errors
 from both references, and compares a candidate parser against either build.
+
+The [PL/pgSQL reference](plpgsql/README.md) compiles function, procedure
+and DO bodies with the patched PG19 compiler and the library's offline
+catalog adapters. It emits routine JSON and SQL or body diagnostics.

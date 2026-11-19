@@ -110,6 +110,11 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         .arg(&run)
         .status()?;
     assert!(schema.success(), "inspect {}", run.display());
+    for script in ["plpgsql/build.py", "plpgsql/check.py"] {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(script);
+        let status = Command::new("python3").arg(path).arg(&run).status()?;
+        assert!(status.success(), "inspect {} after {script}", run.display());
+    }
     fs::copy(run.join("stock/probe"), run.join("patched/probe"))?;
     let mismatch = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
         .arg("compare")

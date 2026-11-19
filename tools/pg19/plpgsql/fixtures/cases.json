@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ordinary-sql",
+    "sql": "SELECT 1; SELECT 2;"
+  },
+  {
+    "id": "mixed-routines",
+    "sql": "SELECT 1;\nDO $$BEGIN NULL; END$$;\nCREATE PROCEDURE log_item(p int) LANGUAGE plpgsql AS $$\nDECLARE n integer := p;\nBEGIN RAISE NOTICE 'n = %', n; END;\n$$;\nCREATE FUNCTION in_sql() RETURNS int LANGUAGE SQL RETURN 1;"
+  },
+  {
+    "id": "trigger-fields",
+    "sql": "CREATE FUNCTION changed() RETURNS trigger LANGUAGE plpgsql AS $$\nDECLARE label text := 'ready';\nBEGIN\n  NEW.name = upper(cleanString(OLD.name));\n  RETURN NEW;\nEND;$$;"
+  },
+  {
+    "id": "sql-syntax-error",
+    "sql": "SELECT 'é' FROM ,;"
+  },
+  {
+    "id": "routine-body-error",
+    "sql": "CREATE FUNCTION broken() RETURNS integer LANGUAGE plpgsql AS $$\nBEGIN\n  unknown_variable := 3;\n  RETURN 1;\nEND;$$;"
+  },
+  {
+    "id": "embedded-expression-error",
+    "sql": "DO $$ BEGIN\n  PERFORM (1 + );\nEND $$;"
+  },
+  {
+    "id": "missing-body",
+    "sql": "DO LANGUAGE plpgsql;"
+  },
+  {
+    "id": "pg19-utility-body",
+    "sql": "DO $$BEGIN\n  WAIT FOR LSN '0/16B6C50';\n  REPACK sample USING INDEX sample_idx;\nEND$$;"
+  },
+  {
+    "id": "pg19-constant",
+    "path": "src/pl/plpgsql/src/sql/plpgsql_varprops.sql",
+    "start": 309,
+    "end": 384,
+    "sha256": "208cd645865e115495aa40d72ad8294c1bcc535d0c5d3149943ea9551f8f5ffb"
+  },
+  {
+    "id": "pg19-assign-constant",
+    "path": "src/pl/plpgsql/src/sql/plpgsql_varprops.sql",
+    "start": 386,
+    "end": 448,
+    "sha256": "5c9dde7148f32f0b9476102e4eb9547e48ba07dcbe58f98adcf601eee4bb2465"
+  },
+  {
+    "id": "pg19-sql-caller",
+    "path": "src/pl/plpgsql/src/sql/plpgsql_simple.sql",
+    "start": 207,
+    "end": 519,
+    "sha256": "ab7297e869a4efc4fe980e6b4229f7588ad94e165b7eb2abc01627e16db2d5aa"
+  },
+  {
+    "id": "pg19-for-loops",
+    "path": "src/pl/plpgsql/src/sql/plpgsql_control.sql",
+    "start": 69,
+    "end": 925,
+    "sha256": "9b4a7797e04abc58087b6ad2238157b754c0f6644b29767c00c50b691f66d5ef"
+  }
+]
