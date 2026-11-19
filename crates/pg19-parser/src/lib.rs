@@ -202,6 +202,37 @@ pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Err
 mod tests {
     use super::*;
 
+    // Use grammar block boundaries so a new or renamed production requires
+    // attention even if the PG regression corpus does not reduce it yet.
+    fn check_registered_block(first: &str, after: &str) {
+        let mut inside = false;
+        let mut checks = 0;
+        for rule in pg19_tables::productions() {
+            let info = rule.info();
+            let (lhs, _) = info.production.split_once(':').unwrap();
+            if inside && lhs == after {
+                assert!(checks > 0);
+                return;
+            }
+            inside |= lhs == first;
+            if inside && info.action.is_some() {
+                assert!(
+                    action(rule.number()).is_some(),
+                    "missing {}",
+                    info.production
+                );
+                checks += 1;
+            }
+        }
+        panic!("grammar block boundary missing for {first} to {after}");
+    }
+
+    #[test]
+    fn query_and_expression_actions_cover_their_grammar_blocks() {
+        check_registered_block("SelectStmt", "Typename");
+        check_registered_block("Typename", "ColId");
+    }
+
     #[test]
     fn each_unported_action_reports_its_pinned_identity() {
         for rule in pg19_tables::productions() {

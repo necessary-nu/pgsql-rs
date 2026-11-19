@@ -248,7 +248,11 @@ impl_evidence (
         {id tree.statement-spans, version 0}
     )}
     {id parser.parity}
-    {id parser.queries}
+    {id parser.queries, covered_rules (
+        grammar.query-actions
+    ), covered_claims (
+        {impl_name rust, rule grammar.query-actions}
+    )}
     {id parser.reduce}
     {id parser.tables, covered_rules (
         grammar.action-inventory
