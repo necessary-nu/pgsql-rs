@@ -1,8 +1,14 @@
+mod alter;
 mod catalog;
+mod constraints;
+mod definition;
 pub(in crate::deparse) mod index;
 mod object;
 mod privileges;
+mod routine;
+mod sequence;
 mod session;
+mod table;
 use super::query::{named, relation};
 use super::writer::{names, required, Plan, Role};
 use super::{ident, literal, Error, Result};
@@ -18,6 +24,16 @@ fn role(r: &RoleSpec) -> Result<String> {
         _ => return Err(Error::InvalidField("RoleSpec.roletype")),
     };
     Ok(name.to_owned())
+}
+
+fn relation_name(r: &RangeVar, p: &mut Plan<'_>) -> Result<()> {
+    p.mark(r.location);
+    for part in [&r.catalogname, &r.schemaname].into_iter().flatten() {
+        p.text(ident(part)?);
+        p.text(".")
+    }
+    p.text(named(&r.relname, "RangeVar.relname")?);
+    Ok(())
 }
 
 fn relation_list(nodes: &[Node], p: &mut Plan<'_>) -> Result<()> {
@@ -89,6 +105,13 @@ fn lock_mode(mode: i32) -> Result<&'static str> {
 }
 
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
+    if general(n, p)? || table::statement(n, p)? {
+        return Ok(true);
+    }
+    routine::statement(n, p)
+}
+
+fn general<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
         Node::GrantStmt(s) => privileges::grant(s, p)?,
         Node::IndexStmt(s) => index::index(s, p)?,

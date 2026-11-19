@@ -41,7 +41,7 @@ fn quant_prec(op: &[Node]) -> Prec {
         _ => token_prec(op),
     }
 }
-pub(super) fn operator(op: &[Node]) -> Result<String> {
+pub(super) fn any_operator(op: &[Node]) -> Result<String> {
     let Some((Node::String(name), schema)) = op.split_last() else {
         return Err(Error::InvalidField("operator name"));
     };
@@ -56,7 +56,15 @@ pub(super) fn operator(op: &[Node]) -> Result<String> {
     if schema.is_empty() {
         Ok(name.clone())
     } else {
-        Ok(format!("OPERATOR({}.{})", names(schema, ".")?, name))
+        Ok(format!("{}.{}", names(schema, ".")?, name))
+    }
+}
+pub(super) fn operator(op: &[Node]) -> Result<String> {
+    let name = any_operator(op)?;
+    if op.len() > 1 {
+        Ok(format!("OPERATOR({name})"))
+    } else {
+        Ok(name)
     }
 }
 fn quant_operator(op: &[Node]) -> Result<String> {
@@ -100,6 +108,7 @@ pub(super) fn precedence(n: &Node) -> Prec {
         },
         Node::BooleanTest(_) | Node::JsonIsPredicate(_) | Node::NullTest(_) => Prec::Is,
         Node::CollateClause(_) => Prec::Collate,
+        Node::XmlExpr(x) if x.op == XmlExprOp::IS_DOCUMENT => Prec::Is,
         Node::SubLink(s)
             if s.sub_link_type == SubLinkType::ANY_SUBLINK && s.oper_name.is_empty() =>
         {
@@ -121,7 +130,7 @@ pub(super) fn precedence(n: &Node) -> Prec {
         _ => Prec::Atom,
     }
 }
-fn restricted(n: &Node) -> bool {
+pub(super) fn restricted(n: &Node) -> bool {
     match n {
         Node::AExpr(a) => !matches!(
             a.kind,
@@ -136,7 +145,15 @@ fn restricted(n: &Node) -> bool {
         {
             true
         }
+        Node::XmlExpr(x) if x.op == XmlExprOp::IS_DOCUMENT => false,
         _ => precedence(n) != Prec::Atom,
+    }
+}
+pub(super) fn b_expr<'a>(n: &'a Node, p: &mut Plan<'a>) {
+    if restricted(n) {
+        p.wrapped(n, Role::Expr, true);
+    } else {
+        p.node(n, Role::Restricted);
     }
 }
 pub(super) fn operand<'a>(p: &mut Plan<'a>, n: &'a Node, parent: Prec, right: bool) {
@@ -210,8 +227,9 @@ pub(super) fn binary<'a>(a: &'a AExpr, p: &mut Plan<'a>, b_expr: bool) -> Result
                 _ => return Err(Error::InvalidField("pattern operator")),
             });
             if let Node::FuncCall(f) = r {
-                if f.funcformat == CoercionForm::COERCE_SQL_SYNTAX
-                    && matches!(builtin(f), Some("similar_to_escape" | "like_escape"))
+                if (a.kind == AExprKind::AEXPR_SIMILAR && builtin(f) == Some("similar_to_escape"))
+                    || (f.funcformat == CoercionForm::COERCE_SQL_SYNTAX
+                        && builtin(f) == Some("like_escape"))
                 {
                     let [pattern, end @ ..] = f.args.as_slice() else {
                         return Err(Error::InvalidField("pattern operands"));
