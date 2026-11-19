@@ -1,0 +1,16 @@
+[package]
+name = "pg19-parser"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "BSD-3-Clause AND PostgreSQL"
+
+[dependencies]
+pg19-engine = { path = "../pg19-engine" }
+pg19-lexer = { path = "../pg19-lexer" }
+pg19-nodes = { path = "../pg19-nodes" }
+pg19-tables = { path = "../pg19-tables" }
+
+[dev-dependencies]
+serde_json = "1"
+pg19-reference = { path = "../../tools/pg19" }

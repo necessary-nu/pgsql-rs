@@ -104,6 +104,10 @@ derived_priorities (
     {id reference.probes, priority 1, derived_at 2026-11-19T17:11:55.315787638Z}
 )
 
+assertions (
+    {id parser.expressions, kind @doing, author "brendan@necessary.nu", at 2026-11-19T18:30:29.88371388Z}
+)
+
 impl_evidence (
     {id codec.json, covered_rules (
         codec.json-envelope
