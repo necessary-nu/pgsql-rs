@@ -115,3 +115,7 @@ The checker links the C serializer to the patched PG19 backend and compares
 its output byte for byte with the native codec fixtures in
 `crates/pg19-codec/tests`. To inspect a difference, run the built
 `"$schema_dir/../json-probe" 'SELECT 0'` with the SQL under review.
+
+The [PL/pgSQL reference](plpgsql/README.md) compiles function, procedure
+and DO bodies with the patched PG19 compiler and the library's offline
+catalog adapters. It emits routine JSON and SQL or body diagnostics.
