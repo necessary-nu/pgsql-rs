@@ -164,6 +164,17 @@ impl_evidence (
         {id fingerprint.lists, version 0}
         {id fingerprint.relation-digits, version 0}
     )}
+    {id operations.normalize, covered_rules (
+        normalize.grouping
+        normalize.literal-spans
+        normalize.substitutions
+        normalize.utility
+    ), covered_claims (
+        {impl_name rust, rule normalize.grouping}
+        {impl_name rust, rule normalize.literal-spans}
+        {impl_name rust, rule normalize.substitutions}
+        {impl_name rust, rule normalize.utility}
+    )}
     {id operations.split-parity, covered_rules (
         split.boundaries
     ), covered_claims (
@@ -196,7 +207,11 @@ impl_evidence (
         {id grammar.diagnostics, version 0}
         {id grammar.string-settings, version 0}
     )}
-    {id parser.dml}
+    {id parser.dml, covered_rules (
+        grammar.dml-actions
+    ), covered_claims (
+        {impl_name rust, rule grammar.dml-actions}
+    )}
     {id parser.engine, covered_rules (
         grammar.reductions
     ), covered_claims (
@@ -248,7 +263,11 @@ impl_evidence (
         {id tree.statement-spans, version 0}
     )}
     {id parser.parity}
-    {id parser.queries}
+    {id parser.queries, covered_rules (
+        grammar.query-actions
+    ), covered_claims (
+        {impl_name rust, rule grammar.query-actions}
+    )}
     {id parser.reduce}
     {id parser.tables, covered_rules (
         grammar.action-inventory
@@ -282,17 +301,6 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
-    )}
-    {id operations.normalize, covered_rules (
-        normalize.grouping
-        normalize.literal-spans
-        normalize.substitutions
-        normalize.utility
-    ), covered_claims (
-        {impl_name rust, rule normalize.grouping}
-        {impl_name rust, rule normalize.literal-spans}
-        {impl_name rust, rule normalize.substitutions}
-        {impl_name rust, rule normalize.utility}
     )}
 )
 

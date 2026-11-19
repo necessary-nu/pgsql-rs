@@ -46,6 +46,7 @@ fn push_statement(
     Ok(())
 }
 
+// [spec:pgq:sem:grammar.query-actions]
 fn select(distinct: bool, rhs: &mut Reduction<'_, Value>) -> Result<SelectStmt, Failure> {
     let targets = rhs.take(3).list()?;
     let (group_clause, group_distinct) = rhs.take(7).group()?;
