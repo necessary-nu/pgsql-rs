@@ -49,7 +49,9 @@ fn alter_constraint(c: &ATAlterConstraint, p: &mut Plan<'_>) -> Result<()> {
 
 fn alter_column<'a>(s: &'a AlterTableCmd, attribute: bool, p: &mut Plan<'a>) -> Result<()> {
     use AlterTableType as A;
-    p.text(if attribute {
+    p.text(if s.subtype == A::AT_SetIdentity {
+        "ALTER "
+    } else if attribute {
         "ALTER ATTRIBUTE "
     } else {
         "ALTER COLUMN "
@@ -121,12 +123,19 @@ fn alter_column<'a>(s: &'a AlterTableCmd, attribute: bool, p: &mut Plan<'a>) -> 
                 p.expr(expr)
             }
         }
+        A::AT_SetIdentity => {
+            let Node::List(options) = def(s)? else {
+                return Err(Error::InvalidField("identity options"));
+            };
+            p.text(" ");
+            super::sequence::options(options, true, p)?;
+        }
         A::AT_AddIdentity => {
             let Node::Constraint(c) = def(s)? else {
                 return Err(Error::InvalidField("identity constraint"));
             };
             p.text(" ADD ");
-            constraints::constraint(c, p)?
+            constraints::constraint(c, false, p)?
         }
         A::AT_AlterColumnGenericOptions => {
             let Node::List(opts) = def(s)? else {
@@ -150,8 +159,10 @@ fn partition<'a>(s: &'a AlterTableCmd, p: &mut Plan<'a>) -> Result<()> {
     });
     relation(required(&cmd.name, "PartitionCmd.name")?, p, false)?;
     if s.subtype == AlterTableType::AT_AttachPartition {
-        p.text(" ");
-        table::bound(required(&cmd.bound, "PartitionCmd.bound")?, p)?
+        if let Some(bound) = cmd.bound.as_deref() {
+            p.text(" ");
+            table::bound(bound, p)?
+        }
     } else if s.subtype == AlterTableType::AT_DetachPartitionFinalize {
         p.text(" FINALIZE")
     } else if cmd.concurrent {
@@ -250,7 +261,7 @@ fn command<'a>(s: &'a AlterTableCmd, attribute: bool, p: &mut Plan<'a>) -> Resul
                     return Err(Error::InvalidField("added constraint"));
                 };
                 p.text("ADD ");
-                constraints::constraint(c, p)?
+                constraints::constraint(c, false, p)?
             }
             A::AT_AlterConstraint => {
                 let Node::ATAlterConstraint(c) = def(s)? else {

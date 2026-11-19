@@ -1,6 +1,8 @@
 mod alter;
 mod constraints;
+mod definition;
 mod object;
+mod sequence;
 mod session;
 mod table;
 use super::query::{named, relation};
