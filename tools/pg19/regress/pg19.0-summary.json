@@ -1,0 +1,71 @@
+{
+  "archive_sha256": "a89fd70efbad6a08c7dbed8d4872e3af30170d9e5ca9dc7906523be95b4e692d",
+  "cases_sha256": "c46f888efbbf3fe6105582d6aa0db8763e085c21fab40761352904763336454c",
+  "comparisons": {
+    "different": 54456,
+    "identical": 15
+  },
+  "differences": {
+    "01-parameter-references": 14,
+    "04-comment-tokens": 14164,
+    "04-token-numbers": 54453,
+    "05-limit-option": 400,
+    "09-parameter-junk": 4,
+    "15-string-locations": 5454
+  },
+  "differences_sha256": "fb3580312ff24fda7b21ef57f47944b724d2ce9d49efdefabb90bf58d3b3f85c",
+  "exact_outcomes_sha256": {
+    "patched": "cbc047cb843e3d262b48ecd8b16228408cfd330850cfe4ae122ddbf98050be97",
+    "stock": "5db0643d3a677e3288fe93bc8e92cf146ce60e38d15396dbfde4f4620a0384f2"
+  },
+  "families": {
+    "libpg_query": 81,
+    "postgres": 54374,
+    "smoke": 16
+  },
+  "modes": {
+    "default": 54457,
+    "plpgsql-assign1": 3,
+    "plpgsql-assign2": 3,
+    "plpgsql-assign3": 2,
+    "plpgsql-expr": 3,
+    "type-name": 3
+  },
+  "overlay_sha256": "230ce1ed2d3b396f023e98ccbf416c2fc8cd67fe85ef9ea4aeaacba972c9e591",
+  "parse_outcomes": {
+    "patched": {
+      "0A000": 10,
+      "22023": 4,
+      "22025": 2,
+      "22P06": 1,
+      "42601": 174,
+      "accepted": 54280
+    },
+    "stock": {
+      "0A000": 10,
+      "22023": 4,
+      "22025": 2,
+      "22P06": 1,
+      "42601": 192,
+      "accepted": 54262
+    }
+  },
+  "probe_source_sha256": "91afa0ce7108f4459c17379fe3cf9ec5e0db3171a6fb99cd21f3d7f37c246e53",
+  "psqlscan_sha256": "265eeabec3e4df4cd483e9b7551f7b91805afdbe211e015f1459628564407a2f",
+  "regions": {
+    "copy-data": 220,
+    "copy-line-tail": 217,
+    "legacy-string-settings": 2,
+    "non-utf8-file": 1,
+    "psql-buffer": 166,
+    "psql-escape": 51,
+    "psql-meta": 2677,
+    "psql-variable": 350,
+    "sql": 54471,
+    "trivia": 1552
+  },
+  "release": "postgresql-19.0",
+  "skips_sha256": "ad6f8f2bb0b609e1bd08fc58906f111e5520b3ea5d65807d5c0e0248374c5c89",
+  "sources": 265,
+  "sources_sha256": "10859b2090b1238e75d591bba463660773d63ca69eee2d4eaed647ba34a1678e"
+}

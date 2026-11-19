@@ -145,3 +145,7 @@ Omit `--check` to regenerate. The generator reads the patched backend's
 `outfuncs.funcs.c`, `outfuncs.switch.c` and `outfuncs.c`. When the recorded
 `outfuncs.c` digest changes, review its token, scalar and custom node writers
 against the Rust code in `tools/pg19/src/tree`.
+
+For full upstream SQL statement coverage, the [PG19 regression corpus](regress/README.md)
+extracts source spans with the pinned psql lexer, captures trees and errors
+from both references, and compares a candidate parser against either build.

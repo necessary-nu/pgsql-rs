@@ -56,7 +56,16 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         check_probe_options(&run.join(flavor).join("probe"))?;
     }
     let tools = Path::new(env!("CARGO_MANIFEST_DIR"));
-    for generator in ["import-lexer.py", "../../crates/pg19-nodes/generate.py"] {
+    assert!(Command::new("python3")
+        .arg(tools.join("regress/test_corpus.py"))
+        .arg(&run)
+        .status()?
+        .success());
+    for generator in [
+        "import-lexer.py",
+        "generate-tree-output.py",
+        "../../crates/pg19-nodes/generate.py",
+    ] {
         assert!(
             Command::new("python3")
                 .arg(tools.join(generator))
@@ -67,7 +76,11 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
             "{generator}"
         );
     }
-    for (krate, test) in [("pg19-lexer", "scan"), ("pg19-engine", "diagnostics")] {
+    for (krate, test) in [
+        ("pg19-lexer", "scan"),
+        ("pg19-engine", "diagnostics"),
+        ("pg19-reference", "native_tree"),
+    ] {
         assert!(
             Command::new(env!("CARGO"))
                 .args([
