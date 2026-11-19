@@ -129,6 +129,8 @@ def lower(s, ty="Value"):
         raise Unsupported(s)
     if re.fullmatch(r"\+\d+", s):
         s = s[1:]
+    if s == "FETCH_ALL" and ty == "i64":
+        return "i64::MAX >> (i64::BITS - core::ffi::c_long::BITS)"
     if s == "DEFAULT_INDEX_TYPE":
         return lower('"btree"', ty)
     if m := re.fullmatch(r"!\((\$\d+\.\w+)\)", s):
@@ -165,6 +167,9 @@ def lower(s, ty="Value"):
         raise Unsupported(s)
     name, raw = m.groups()
     args = arguments(raw)
+    if name == "makeNullAConst" and len(args) == 1:
+        value = f"Value::Node(Node::AConst(AConst {{ val: Literal::Null, location: {lower(args[0], 'Location')} }}))"
+        return convert(value, ty)
     if name == "makeRangeVarFromAnyName" and len(args) == 3 and args[2] == "yyscanner":
         value = f"any_relation({lower(args[0], 'Vec<Node>')}, {lower(args[1], 'Location')})?"
         if ty == "Option<Box<RangeVar>>":
@@ -364,6 +369,9 @@ def compile_action(raw, symbols):
     # Ordinary views set a field on the relation after storing it on the view.
     body = re.sub(r"(\w+->\w+) = (\$\d+\.range); \1->relpersistence = (\$\d+\.\w+);",
                   lambda m: f"{m[1]} = with_persistence({m[2]}, {m[3]});", body)
+    # A copied node pointer still refers to subsequent field assignments.
+    if m := re.fullmatch(r"(\w+ \*\w+ = makeNode\(\w+\); )result\.(\w+) = \(Node \*\) (\w+); (.+)", body):
+        body = f"{m[1]}{m[4]} result.{m[2]} = (Node *) {m[3]};"
     # Each stack value is owned. Multiple C reads require an explicit ownership translation.
     uses = re.findall(r"\$(\d+)\.", body)
     if len(uses) != len(set(uses)) or any(int(slot) < 1 for slot in uses):
@@ -464,6 +472,15 @@ def generate(build):
                                   (include / "nodes/parsenodes.h").read_text(), re.M):
         CONSTANTS[name] = value
     lock_header = include / "storage/lockdefs.h"
+    for filename in ("catalog/pg_class.h", "catalog/pg_am.h", "commands/trigger.h"):
+        header = (include / filename).read_text()
+        for name, char in re.findall(r"^#define\s+((?:REPLICA_IDENTITY_|AMTYPE_|TRIGGER_FIRES_|TRIGGER_DISABLED)\w*)\s+'([A-Za-z])'", header, re.M):
+            CONSTANTS[name] = str(ord(char))
+    options = re.search(r"typedef enum TableLikeOption\s*\{(.*?)\}", (include / "nodes/parsenodes.h").read_text(), re.S)
+    for name, exponent in re.findall(r"(CREATE_TABLE_LIKE_\w+) = 1 << (\d+)", options[1]):
+        CONSTANTS[name] = str(1 << int(exponent))
+    if "CREATE_TABLE_LIKE_ALL = PG_INT32_MAX" in options[1]:
+        CONSTANTS["CREATE_TABLE_LIKE_ALL"] = "2147483647"
     for name, value in re.findall(r"^#define\s+(\w+Lock)\s+(\d+)\b", lock_header.read_text(), re.M):
         CONSTANTS[name] = value
     pattern = (r"^  case (\d+): /\* [^\n]+ \*/\n#line \d+ \"[^\n]*gram.y\"\n"
