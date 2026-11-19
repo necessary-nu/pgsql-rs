@@ -66,3 +66,8 @@ PG19_REFERENCE_DIR="$run" cargo test -p pg19-lexer --test scan -- --ignored
 Omit `--check` to regenerate the scanner data. The importer pins the hashes of
 `scan.l` and `parser.c` so a change to lexical actions or grammar lookahead
 requires reviewing their Rust implementations alongside the generated data.
+
+The full reference test also regenerates the PG19 protobuf descriptor and
+checks all release pins. It requires Ruby with Bundler and JSON, protoc,
+and Python 3 with google.protobuf. To regenerate or verify the descriptor
+from an existing import, see the [PG19 schema and wire compatibility review](../../protobuf/pg19/README.md).

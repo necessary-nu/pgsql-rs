@@ -10,6 +10,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 // [spec:pgq:req:reference.overlay/test]
 // [spec:pgq:req:reference.build/test]
 // [spec:pgq:req:corpus.compare/test]
+// [spec:pgq:req:codec.schema-import/test]
 #[test]
 #[ignore = "builds two PostgreSQL backends; set PG19_ARCHIVE for an offline run"]
 fn compare_both_references_from_a_clean_import() -> Result<()> {
@@ -54,6 +55,11 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         .arg(run.join("patched-source"))
         .status()?;
     assert!(generation.success(), "inspect {}", run.display());
+    let schema = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
+        .arg("check-schema")
+        .arg(&run)
+        .status()?;
+    assert!(schema.success(), "inspect {}", run.display());
     fs::copy(run.join("stock/probe"), run.join("patched/probe"))?;
     let mismatch = Command::new(env!("CARGO_BIN_EXE_pg19-reference"))
         .arg("compare")

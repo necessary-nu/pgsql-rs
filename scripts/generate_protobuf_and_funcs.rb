@@ -217,6 +217,8 @@ class Generator
     scan_values = @enum_defs['../backend/parser/gram']['yytokentype']['values']
     scan_values.each do |value|
       next unless value['name']
+      # Bison 3.8 lists internal symbols before the PostgreSQL token range.
+      next if %w[YYEMPTY YYEOF YYerror YYUNDEF].include?(value['name'])
       @scan_protobuf_tokens << format('%s = %d;', value['name'], value['value'])
       @scan_token_names << [value['name'], value['value']]
     end

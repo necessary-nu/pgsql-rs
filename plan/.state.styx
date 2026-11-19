@@ -105,6 +105,11 @@ derived_priorities (
 )
 
 impl_evidence (
+    {id codec.schema, covered_rules (
+        codec.schema-import
+    ), covered_claims (
+        {impl_name rust, rule codec.schema-import}
+    )}
     {id parser.lexer, covered_rules (
         lex.byte-spans
         lex.comments

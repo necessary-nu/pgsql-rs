@@ -5,6 +5,10 @@ on:
     paths:
       - 'tools/pg19/**'
       - 'crates/**'
+      - 'protobuf/pg19/**'
+      - 'protobuf/pg_query.proto'
+      - 'scripts/extract_headers.rb'
+      - 'scripts/generate_protobuf_and_funcs.rb'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/pg19-reference.yml'
@@ -12,6 +16,10 @@ on:
     paths:
       - 'tools/pg19/**'
       - 'crates/**'
+      - 'protobuf/pg19/**'
+      - 'protobuf/pg_query.proto'
+      - 'scripts/extract_headers.rb'
+      - 'scripts/generate_protobuf_and_funcs.rb'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/pg19-reference.yml'
@@ -21,8 +29,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install PostgreSQL build dependencies
-        run: sudo apt-get update && sudo apt-get install -y bison flex
+      - name: Install reference and schema build dependencies
+        run: sudo apt-get update && sudo apt-get install -y bison flex ruby ruby-bundler protobuf-compiler python3-protobuf
       - run: python3 tools/pg19/tests/check-fixtures.py
+      - run: /usr/bin/python3 tools/pg19/tests/check-schema.py
       - run: cargo test --locked --workspace
       - run: cargo test --locked -p pg19-reference --test reference -- --ignored
+        env:
+          PYTHONPATH: /usr/lib/python3/dist-packages
