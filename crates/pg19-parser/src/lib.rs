@@ -234,6 +234,11 @@ mod tests {
     }
 
     #[test]
+    fn dml_actions_cover_their_grammar_block() {
+        check_registered_block("InsertStmt", "SelectStmt");
+    }
+
+    #[test]
     fn each_unported_action_reports_its_pinned_identity() {
         for rule in pg19_tables::productions() {
             let info = rule.info();

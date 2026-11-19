@@ -12,6 +12,7 @@ pub(super) enum Dml {
     MultiAssignment,
 }
 
+// [spec:pgq:sem:grammar.dml-actions]
 pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(match op {
         Dml::MergeWhen => {

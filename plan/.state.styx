@@ -196,7 +196,11 @@ impl_evidence (
         {id grammar.diagnostics, version 0}
         {id grammar.string-settings, version 0}
     )}
-    {id parser.dml}
+    {id parser.dml, covered_rules (
+        grammar.dml-actions
+    ), covered_claims (
+        {impl_name rust, rule grammar.dml-actions}
+    )}
     {id parser.engine, covered_rules (
         grammar.reductions
     ), covered_claims (
