@@ -46,6 +46,7 @@ fn keyword(word: &str, list: &[(&'static str, u16)]) -> Option<(&'static str, u1
 pub struct BodyScanner<'a> {
     source: &'a str,
     core: Scanner<'a>,
+    line_breaks: Vec<usize>,
     queue: VecDeque<Token>,
     previous_id: u16,
     last: Range<usize>,
@@ -58,6 +59,7 @@ impl<'a> BodyScanner<'a> {
         Self {
             source,
             core: Scanner::with_options(source, options),
+            line_breaks: source.match_indices('\n').map(|(i, _)| i).collect(),
             queue: VecDeque::new(),
             previous_id: 0,
             last: 0..0,
@@ -74,10 +76,9 @@ impl<'a> BodyScanner<'a> {
     }
 
     pub fn line(&self, offset: usize) -> usize {
-        1 + self.source.as_bytes()[..offset]
-            .iter()
-            .filter(|b| **b == b'\n')
-            .count()
+        1 + self
+            .line_breaks
+            .partition_point(|line_end| *line_end < offset)
     }
 
     fn read_core(&mut self) -> Result<Token, Error> {
