@@ -98,6 +98,8 @@ def lower(s, ty="Value"):
             return ""
         return match[0]
     s = re.sub(r"\((\w+)\s*\*\)\s*", pointer_cast, s.strip())
+    if ty in ENUM_TYPES and s.startswith(f"({ty})"):
+        s = s[len(ty) + 2:].lstrip()
     if m := re.fullmatch(r"\$(\d+)\.\w+", s):
         return convert(f"rhs.take({m[1]})", ty)
     if m := re.fullmatch(r"@(\d+)", s):
@@ -457,7 +459,11 @@ def generate(build):
     source_tree = re.search(r"^abs_top_srcdir\s*=\s*(.+)$", makefile, re.M)
     if not source_tree:
         raise ValueError("PostgreSQL Makefile.global has no configured source directory")
-    lock_header = Path(source_tree[1].strip()) / "src/include/storage/lockdefs.h"
+    include = Path(source_tree[1].strip()) / "src/include"
+    for name, value in re.findall(r"^#define\s+(OPCLASS_ITEM_\w+)\s+(\d+)\b",
+                                  (include / "nodes/parsenodes.h").read_text(), re.M):
+        CONSTANTS[name] = value
+    lock_header = include / "storage/lockdefs.h"
     for name, value in re.findall(r"^#define\s+(\w+Lock)\s+(\d+)\b", lock_header.read_text(), re.M):
         CONSTANTS[name] = value
     pattern = (r"^  case (\d+): /\* [^\n]+ \*/\n#line \d+ \"[^\n]*gram.y\"\n"

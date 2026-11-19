@@ -1,5 +1,11 @@
 //! Function signatures, TABLE return columns and SQL routine bodies from gram.y.
-use crate::{call, records::optional_node, types, value::Value, Failure};
+use crate::{
+    call,
+    records::{optional_node, record},
+    types,
+    value::Value,
+    Failure,
+};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
@@ -111,4 +117,27 @@ pub(super) fn body(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
         list.push(*statement);
     }
     Ok(Value::List(list))
+}
+
+pub(super) fn transform(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    let [from, to]: [Node; 2] = rhs
+        .take(9)
+        .list()?
+        .try_into()
+        .map_err(|_| Failure::Value("expected a pair of transform functions"))?;
+    let function = |node| match node {
+        Node::Null => Ok(None),
+        Node::ObjectWithArgs(f) => Ok(Some(f.into_box())),
+        _ => Err(Failure::Value("expected a transform function signature")),
+    };
+    Ok(Value::Node(
+        CreateTransformStmt {
+            replace: rhs.take(2).integer()? != 0,
+            type_name: record!(rhs.take(5), TypeName),
+            lang: Some(rhs.take(7).text()?),
+            fromsql: function(from)?,
+            tosql: function(to)?,
+        }
+        .into(),
+    ))
 }

@@ -4238,6 +4238,72 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // opclass_item: OPERATOR Iconst any_operator opclass_purpose
+    |rhs| {
+        Ok(Value::Node(
+            CreateOpClassItem {
+                itemtype: 1,
+                name: Some(Box::new(ObjectWithArgs {
+                    objname: rhs.take(3).list()?,
+                    objargs: Vec::new(),
+                    ..Default::default()
+                })),
+                number: rhs.take(2).integer()?,
+                order_family: rhs.take(4).list()?,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // opclass_item: OPERATOR Iconst operator_with_argtypes opclass_purpose
+    |rhs| {
+        Ok(Value::Node(
+            CreateOpClassItem {
+                itemtype: 1,
+                name: record!(rhs.take(3), ObjectWithArgs),
+                number: rhs.take(2).integer()?,
+                order_family: rhs.take(4).list()?,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // opclass_item: FUNCTION Iconst function_with_argtypes
+    |rhs| {
+        Ok(Value::Node(
+            CreateOpClassItem {
+                itemtype: 2,
+                name: record!(rhs.take(3), ObjectWithArgs),
+                number: rhs.take(2).integer()?,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // opclass_item: FUNCTION Iconst '(' type_list ')' function_with_argtypes
+    |rhs| {
+        Ok(Value::Node(
+            CreateOpClassItem {
+                itemtype: 2,
+                name: record!(rhs.take(6), ObjectWithArgs),
+                number: rhs.take(2).integer()?,
+                class_args: rhs.take(4).list()?,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // opclass_item: STORAGE Typename
+    |rhs| {
+        Ok(Value::Node(
+            CreateOpClassItem {
+                itemtype: 3,
+                storedtype: record!(rhs.take(2), TypeName),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // CreateOpFamilyStmt: CREATE OPERATOR FAMILY any_name USING name
     |rhs| {
         Ok(Value::Node(
@@ -4268,6 +4334,30 @@ pub(super) const ACTIONS: &[Action] = &[
                 amname: optional_text(rhs.take(6))?,
                 is_drop: true,
                 items: rhs.take(8).list()?,
+            }
+            .into(),
+        ))
+    },
+    // opclass_drop: OPERATOR Iconst '(' type_list ')'
+    |rhs| {
+        Ok(Value::Node(
+            CreateOpClassItem {
+                itemtype: 1,
+                number: rhs.take(2).integer()?,
+                class_args: rhs.take(4).list()?,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // opclass_drop: FUNCTION Iconst '(' type_list ')'
+    |rhs| {
+        Ok(Value::Node(
+            CreateOpClassItem {
+                itemtype: 2,
+                number: rhs.take(2).integer()?,
+                class_args: rhs.take(4).list()?,
+                ..Default::default()
             }
             .into(),
         ))
@@ -5951,6 +6041,45 @@ pub(super) const ACTIONS: &[Action] = &[
             ),
             rhs.location(1),
         )
+    },
+    // CreateCastStmt: CREATE CAST '(' Typename AS Typename ')' WITH FUNCTION function_with_argtypes cast_context
+    |rhs| {
+        Ok(Value::Node(
+            CreateCastStmt {
+                sourcetype: record!(rhs.take(4), TypeName),
+                targettype: record!(rhs.take(6), TypeName),
+                func: record!(rhs.take(10), ObjectWithArgs),
+                context: CoercionContext(rhs.take(11).integer()?),
+                inout: false,
+            }
+            .into(),
+        ))
+    },
+    // CreateCastStmt: CREATE CAST '(' Typename AS Typename ')' WITHOUT FUNCTION cast_context
+    |rhs| {
+        Ok(Value::Node(
+            CreateCastStmt {
+                sourcetype: record!(rhs.take(4), TypeName),
+                targettype: record!(rhs.take(6), TypeName),
+                func: None,
+                context: CoercionContext(rhs.take(10).integer()?),
+                inout: false,
+            }
+            .into(),
+        ))
+    },
+    // CreateCastStmt: CREATE CAST '(' Typename AS Typename ')' WITH INOUT cast_context
+    |rhs| {
+        Ok(Value::Node(
+            CreateCastStmt {
+                sourcetype: record!(rhs.take(4), TypeName),
+                targettype: record!(rhs.take(6), TypeName),
+                func: None,
+                context: CoercionContext(rhs.take(10).integer()?),
+                inout: true,
+            }
+            .into(),
+        ))
     },
     // DropCastStmt: DROP CAST opt_if_exists '(' Typename AS Typename ')' opt_drop_behavior
     |rhs| {
