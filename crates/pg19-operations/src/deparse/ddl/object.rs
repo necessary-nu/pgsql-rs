@@ -80,7 +80,7 @@ pub(super) fn parameter<'a>(v: &'a FunctionParameter, p: &mut Plan<'a>) -> Resul
     }
     p.typename(required(&v.arg_type, "FunctionParameter.argType")?);
     if let Some(value) = v.defexpr.as_deref() {
-        p.text(" DEFAULT ");
+        p.text(" = ");
         p.expr(value)
     }
     Ok(())

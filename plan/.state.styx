@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T19:55:41.054682044Z
+last_sync_at 2026-11-19T20:08:04.451605966Z
 
 rule_versions (
     {id api.native, version 0}
@@ -140,6 +140,7 @@ impl_evidence (
     ), rule_versions_seen (
         {id codec.schema-import, version 0}
     )}
+    {id delivery.native}
     {id operations.deparse, covered_rules (
         deparse.comments
         deparse.pretty
@@ -161,6 +162,8 @@ impl_evidence (
         fingerprint.constants
     ), covered_claims (
         {impl_name rust, rule fingerprint.constants}
+    ), rule_versions_seen (
+        {id fingerprint.constants, version 0}
     )}
     {id operations.fingerprint-tree, covered_rules (
         fingerprint.aliases
@@ -234,6 +237,9 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule utility.classify}
         {impl_name rust, rule utility.sequence}
+    ), rule_versions_seen (
+        {id utility.classify, version 0}
+        {id utility.sequence, version 0}
     )}
     {id parser.diagnostics, covered_rules (
         grammar.diagnostics
@@ -308,6 +314,8 @@ impl_evidence (
         grammar.corpus-parity
     ), covered_claims (
         {impl_name rust, rule grammar.corpus-parity}
+    ), rule_versions_seen (
+        {id grammar.corpus-parity, version 0}
     )}
     {id parser.queries, covered_rules (
         grammar.query-actions
@@ -328,6 +336,12 @@ impl_evidence (
         {impl_name rust, rule grammar.raw-sql}
         {impl_name rust, rule grammar.runtime}
         {impl_name rust, rule grammar.sql-families}
+    ), rule_versions_seen (
+        {id grammar.overlay-differences, version 0}
+        {id grammar.parse-modes, version 0}
+        {id grammar.raw-sql, version 0}
+        {id grammar.runtime, version 0}
+        {id grammar.sql-families, version 0}
     )}
     {id parser.tables, covered_rules (
         grammar.action-inventory

@@ -3,6 +3,7 @@ mod constraints;
 pub(in crate::deparse) mod index;
 mod object;
 mod privileges;
+mod routine;
 mod session;
 mod table;
 use super::query::{named, relation};
@@ -101,6 +102,13 @@ fn lock_mode(mode: i32) -> Result<&'static str> {
 }
 
 pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
+    if general(n, p)? || table::statement(n, p)? {
+        return Ok(true);
+    }
+    routine::statement(n, p)
+}
+
+fn general<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
     match n {
         Node::GrantStmt(s) => privileges::grant(s, p)?,
         Node::IndexStmt(s) => index::index(s, p)?,
@@ -241,7 +249,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
             p.text("RETURN ");
             p.expr(required(&s.returnval, "ReturnStmt.returnval")?)
         }
-        _ => return table::statement(n, p),
+        _ => return Ok(false),
     }
     Ok(true)
 }
