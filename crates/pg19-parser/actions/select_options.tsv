@@ -1,0 +1,8 @@
+# PostgreSQL production, Bison action SHA-256, native operation.
+select_no_parens: select_clause sort_clause	714d7363c25164fd1a4717711727be77a821707ef569031054516e976563482e	Query(Q::Options {with:false,sort:Some(2),locks:None,limit:None})
+select_no_parens: select_clause opt_sort_clause for_locking_clause opt_select_limit	c87959ac0b99b7e7cc70a9e350e6353e85fc3e341c784b165dcbdec40833b87f	Query(Q::Options {with:false,sort:Some(2),locks:Some(3),limit:Some(4)})
+select_no_parens: select_clause opt_sort_clause select_limit opt_for_locking_clause	58ffe95ef92fbbc7553479b406c6300f467d07cd55a720afa4a19d50f08b4d08	Query(Q::Options {with:false,sort:Some(2),locks:Some(4),limit:Some(3)})
+select_no_parens: with_clause select_clause	f213436be32a44da55ab09edae46a6eee46592c69c22718267d57dd40edbd7d2	Query(Q::Options {with:true,sort:None,locks:None,limit:None})
+select_no_parens: with_clause select_clause sort_clause	a7b80c6acdd034bec956feb8694af0e5cb992c0909df57cca611c9d71e406597	Query(Q::Options {with:true,sort:Some(3),locks:None,limit:None})
+select_no_parens: with_clause select_clause opt_sort_clause for_locking_clause opt_select_limit	867d1c25229de23ef76daa32d5366a5939e21de2dfe4344beb26edc6090d801c	Query(Q::Options {with:true,sort:Some(3),locks:Some(4),limit:Some(5)})
+select_no_parens: with_clause select_clause opt_sort_clause select_limit opt_for_locking_clause	c7ab684365f7803d27a5e4cdef0fe3b2eb59ebb3f28b80bd45e99c311ba64af5	Query(Q::Options {with:true,sort:Some(3),locks:Some(5),limit:Some(4)})

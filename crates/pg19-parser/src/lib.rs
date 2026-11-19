@@ -1,9 +1,12 @@
 //! Native semantic actions for the patched PostgreSQL 19 grammar.
 #![forbid(unsafe_code)]
 mod call;
+mod dml;
 mod expr;
 mod from;
 mod limits;
+mod location;
+mod predicate;
 mod query;
 mod records;
 mod types;
@@ -66,6 +69,8 @@ enum Op {
     Limit(limits::Limit),
     Types(types::Types),
     From(from::From),
+    Predicate(predicate::Predicate),
+    Dml(dml::Dml),
     Empty,
     Nil,
     Single,
@@ -104,6 +109,8 @@ impl Actions for Parser<'_> {
                 Op::Types(op) => types::reduce(op, rhs)?,
                 Op::Limit(op) => limits::reduce(op, rhs)?,
                 Op::Call(op) => call::reduce(op, rhs)?,
+                Op::Dml(op) => dml::reduce(op, rhs)?,
+                Op::Predicate(op) => predicate::reduce(op, rhs)?,
                 Op::From(op) => from::reduce(op, rhs)?,
                 Op::Empty => Value::Empty,
                 Op::Nil => Value::List(Vec::new()),
