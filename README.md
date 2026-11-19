@@ -1,6 +1,26 @@
 # libpg_query
 
-C library for accessing the PostgreSQL parser outside of the server.
+This repository provides a standalone PostgreSQL 19 parser in Rust and the PostgreSQL 18 C library.
+
+## PostgreSQL 19 in Rust
+
+Add `pg19-query` as a Cargo path dependency pointing to `crates/pg19-query` in this checkout. The Rust parser returns typed raw statements and runs without a database connection. This example reads the index named in a PostgreSQL 19 `REPACK` statement.
+
+```rust
+use pg19_query::{nodes::Node, parse_statements, Options, ParseError};
+
+fn main() -> Result<(), ParseError> {
+    let statements = parse_statements("REPACK accounts USING INDEX accounts_pkey", Options::default())?;
+    if let Some(Node::RepackStmt(repack)) = statements[0].stmt.as_deref() {
+        assert_eq!(repack.indexname.as_deref(), Some("accounts_pkey"));
+    }
+    Ok(())
+}
+```
+
+Run `cargo test --locked --release -p pg19-query` to exercise the public Rust API. The [PostgreSQL 19 import guide](tools/pg19/README.md) explains how to update the pinned release, regenerate the grammar and compare Rust results with stock and patched PostgreSQL.
+
+## PostgreSQL 18 in C
 
 This library uses the actual PostgreSQL server source to parse SQL queries and return the internal PostgreSQL parse tree.
 
