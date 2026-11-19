@@ -33,6 +33,8 @@ pub(super) enum Utility {
     Transform,
     CreateSchema(bool),
     OfType,
+    SetXmlOption,
+    Unsupported(&'static str, isize),
     PartitionSpec,
     Publication(Option<AlterPublicationAction>, bool),
     PublicationTail(bool),
@@ -115,6 +117,30 @@ pub(super) fn range_name(
 
 pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     match op {
+        Utility::Unsupported(message, slot) => {
+            Err(Failure::At(message.into(), "0A000", rhs.location(slot)))
+        }
+        Utility::SetXmlOption => {
+            let xml = if rhs.take(3).integer()? == XmlOptionType::XMLOPTION_DOCUMENT.0 {
+                "DOCUMENT"
+            } else {
+                "CONTENT"
+            };
+            Ok(Value::Node(
+                VariableSetStmt {
+                    kind: VariableSetKind::VAR_SET_VALUE,
+                    name: Some("xmloption".into()),
+                    args: vec![Node::AConst(AConst {
+                        val: Literal::String(xml.into()),
+                        location: rhs.location(3),
+                    })],
+                    jumble_args: true,
+                    location: Location::UNKNOWN,
+                    ..Default::default()
+                }
+                .into(),
+            ))
+        }
         Utility::OfType => Ok(Value::Node(
             AlterTableCmd {
                 subtype: AlterTableType::AT_AddOf,

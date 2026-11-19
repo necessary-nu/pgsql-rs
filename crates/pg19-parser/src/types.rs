@@ -8,6 +8,7 @@ pub(super) enum Modifiers {
     List(isize),
     Precision(isize),
     IntervalPrecision,
+    TimeZoneInterval,
     DefaultOne,
 }
 
@@ -82,6 +83,27 @@ fn modifiers(which: Modifiers, rhs: &mut Reduction<'_, Value>) -> Result<Vec<Nod
     Ok(match which {
         Modifiers::None => vec![],
         Modifiers::List(i) => rhs.take(i).list()?,
+        Modifiers::TimeZoneInterval => {
+            let fields = rhs.take(3).list()?;
+            if let Some(first) = fields.first() {
+                let Node::AConst(AConst {
+                    val: Literal::Integer(mask),
+                    ..
+                }) = first
+                else {
+                    return Err("expected interval field mask".into());
+                };
+                // datetime.h assigns bits 10 and 11 to HOUR and MINUTE.
+                if mask & !((1 << 10) | (1 << 11)) != 0 {
+                    return Err(Failure::At(
+                        "time zone interval must be HOUR or HOUR TO MINUTE".into(),
+                        "42601",
+                        rhs.location(3),
+                    ));
+                }
+            }
+            fields
+        }
         Modifiers::Precision(i) => vec![int_constant(rhs.take(i).integer()?, rhs.location(i))],
         Modifiers::IntervalPrecision => {
             vec![
