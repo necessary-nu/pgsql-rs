@@ -344,14 +344,16 @@ pub(super) fn alter<'a>(s: &'a AlterTableStmt, p: &mut Plan<'a>) -> Result<()> {
         relation(r, p, false)?
     }
     p.text(" ");
+    p.enter();
     for (i, n) in s.cmds.iter().enumerate() {
         if i > 0 {
-            p.text(", ")
+            p.comma()
         }
         let Node::AlterTableCmd(c) = n else {
             return Err(Error::InvalidField("AlterTableStmt.cmds"));
         };
         command(c, s.objtype == ObjectType::OBJECT_TYPE, p)?;
     }
+    p.leave();
     Ok(())
 }

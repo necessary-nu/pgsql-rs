@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Err(_) => json!({"id":case["id"],"parse_error":true}),
             Ok(tree) => match pg19_operations::deparse::statements(&tree) {
                 Ok(rendered) => json!({"id":case["id"],"sql":sql,"rendered":rendered}),
-                Err(error) => json!({"id":case["id"],"deparse_error":error.to_string()}),
+                Err(error) => json!({"id":case["id"],"sql":sql,"deparse_error":error.to_string()}),
             },
         };
         serde_json::to_writer(&mut out, &result)?;

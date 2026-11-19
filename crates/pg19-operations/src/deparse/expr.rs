@@ -1,5 +1,5 @@
 // Raw expression syntax as emitted by libpg_query's postgres_deparse.c.
-use super::operator::{binary, builtin, operand, precedence, sublink, Prec};
+use super::operator::{b_expr, binary, builtin, operand, precedence, sublink, Prec};
 use super::writer::{names, required, Plan, Role};
 use super::{ident, literal, Error, Result};
 use pg19_nodes::*;
@@ -305,9 +305,9 @@ fn sql_function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
         }
         (Some("position"), [hay, needle]) => {
             p.text("POSITION(");
-            p.wrapped(needle, Role::Expr, precedence(needle) < Prec::Atom);
+            b_expr(needle, p);
             p.text(" IN ");
-            p.wrapped(hay, Role::Expr, precedence(hay) < Prec::Atom);
+            b_expr(hay, p);
             p.text(")");
         }
         (Some("substring"), [arg, from, rest @ ..]) if rest.len() <= 1 => {

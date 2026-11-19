@@ -152,5 +152,49 @@
     ],
     "select 7",
     "SELECT 7"
+  ],
+  [
+    [
+      1,
+      2,
+      80,
+      1,
+      0
+    ],
+    "-- colors\ncreate type s.color as enum ('red', 'blue')",
+    "-- colors\nCREATE TYPE s.color AS ENUM (\n  'red'\n  , 'blue'\n)"
+  ],
+  [
+    [
+      1,
+      2,
+      80,
+      1,
+      0
+    ],
+    "create table t (id int, label text) partition by range (id)",
+    "CREATE TABLE t (\n  id int\n  , label text\n)\nPARTITION BY RANGE (id)"
+  ],
+  [
+    [
+      1,
+      2,
+      80,
+      1,
+      0
+    ],
+    "alter table t drop label, add name text",
+    "ALTER TABLE t\n  DROP label\n  , ADD COLUMN name text"
+  ],
+  [
+    [
+      1,
+      2,
+      80,
+      1,
+      0
+    ],
+    "create type colors as (red int, blue int)",
+    "CREATE TYPE colors AS (\n  red int\n  , blue int\n)"
   ]
 ]

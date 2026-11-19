@@ -131,10 +131,13 @@ PG19_REGRESSION_DIR="$out" PG19_NATIVE_PROBE="$PWD/target/release/examples/pg19-
 Run the compact deparser over default-mode corpus cases and compare reparses with
 the patched PG19 C JSON probe. The report counts unsupported statements and
 native parser errors separately. The command exits with an error if a rendered
-statement changes its PG19 tree or cannot be reparsed.
+statement changes its PG19 tree or cannot be reparsed. Pass `--require-complete`
+to include unrendered cases and their SQL in the mismatch file and fail if any
+are found. During `check-schema`, set `PG19_DEPARSE_PROBE` to the absolute
+path of the native example to compare with the freshly generated PG19 JSON writer.
 
 ```sh
 cargo build -p pg19-operations --example deparse-corpus
 python3 tools/pg19/regress/deparse.py "$out/cases.jsonl" \
-  target/debug/examples/deparse-corpus "$json_probe" "$corpus/deparse-mismatches.jsonl"
+  target/debug/examples/deparse-corpus "$json_probe" "$out/deparse-mismatches.jsonl" --require-complete
 ```

@@ -144,12 +144,13 @@ impl_evidence (
     {id operations.deparse, covered_rules (
         deparse.comments
         deparse.pretty
+        deparse.quoting
+        deparse.round-trip
     ), covered_claims (
         {impl_name rust, rule deparse.comments}
         {impl_name rust, rule deparse.pretty}
-    ), rule_versions_seen (
-        {id deparse.comments, version 0}
-        {id deparse.pretty, version 0}
+        {impl_name rust, rule deparse.quoting}
+        {impl_name rust, rule deparse.round-trip}
     )}
     {id operations.deparse-stream, covered_rules (
         deparse.stream
@@ -396,6 +397,11 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
+    )}
+    {id operations.deparse-protobuf, covered_rules (
+        deparse.protobuf
+    ), covered_claims (
+        {impl_name rust, rule deparse.protobuf}
     )}
 )
 

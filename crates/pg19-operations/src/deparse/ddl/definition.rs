@@ -63,15 +63,17 @@ fn composite<'a>(s: &'a CompositeTypeStmt, p: &mut Plan<'a>) -> Result<()> {
     p.text("CREATE TYPE ");
     super::relation_name(required(&s.typevar, "CompositeTypeStmt.typevar")?, p)?;
     p.text(" AS (");
+    p.enter();
     for (i, n) in s.coldeflist.iter().enumerate() {
         let Node::ColumnDef(c) = n else {
             return Err(Error::InvalidField("composite attributes"));
         };
         if i > 0 {
-            p.text(", ")
+            p.comma()
         }
         table::column(c, p)?;
     }
+    p.leave();
     p.text(")");
     Ok(())
 }

@@ -124,6 +124,7 @@ pub(super) fn precedence(n: &Node) -> Prec {
         }
         Node::FuncCall(f) if f.funcformat == CoercionForm::COERCE_SQL_SYNTAX => match builtin(f) {
             Some("timezone") => Prec::At,
+            Some("overlaps") => Prec::Between,
             Some("is_normalized") => Prec::Is,
             _ => Prec::Atom,
         },
@@ -139,12 +140,6 @@ pub(super) fn restricted(n: &Node) -> bool {
                 | AExprKind::AEXPR_NOT_DISTINCT
                 | AExprKind::AEXPR_NULLIF
         ),
-        Node::FuncCall(f)
-            if f.funcformat == CoercionForm::COERCE_SQL_SYNTAX
-                && builtin(f) == Some("overlaps") =>
-        {
-            true
-        }
         Node::XmlExpr(x) if x.op == XmlExprOp::IS_DOCUMENT => false,
         _ => precedence(n) != Prec::Atom,
     }

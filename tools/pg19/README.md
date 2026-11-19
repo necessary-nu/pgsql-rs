@@ -110,7 +110,10 @@ runner, use `cargo test -p pg19-reference --test reference -- --ignored`. Set `P
 already downloaded archive for an offline run. CI passes the release
 `pg19-native` executable as `PG19_NATIVE_PROBE` to this test. The test then
 captures both references across the full regression corpus, verifies the
-pinned digests and compares every patched outcome with Rust.
+pinned digests and compares every patched outcome with Rust. CI also passes
+the path to the release `deparse-corpus` example as `PG19_DEPARSE_PROBE`.
+The PG19 JSON writer checks that every accepted SQL statement can be rendered
+and reparsed with the same structural tree.
 
 The native Rust scanner uses the Flex transitions from the patched build and
 the release token and keyword catalogs. To verify the checked-in tables and

@@ -49,6 +49,7 @@ fn plain_name(name: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_')
 }
 
+// [spec:pgq:req:deparse.quoting]
 fn ident(name: &str) -> Result<String> {
     if name.is_empty() || name.len() > 63 || name.contains('\0') {
         return Err(Error::InvalidField("identifier"));
@@ -283,6 +284,7 @@ fn render(out: &mut String, node: &Node) -> Result<()> {
 
 /// Render raw statements in compact form. An unsupported node identifies its tag.
 // [spec:pgq:req:deparse.stream]
+// [spec:pgq:req:deparse.round-trip]
 pub fn statements(stmts: &[RawStmt]) -> Result<String> {
     writer::statements(stmts, Options::default(), &[])
 }

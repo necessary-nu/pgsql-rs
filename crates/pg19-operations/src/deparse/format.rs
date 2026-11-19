@@ -145,6 +145,7 @@ pub(super) struct Writer {
     options: Options,
     compact: String,
     levels: Vec<Level>,
+    leading_comments: Option<Group>,
 }
 impl Writer {
     pub fn new(mut options: Options) -> Self {
@@ -158,6 +159,7 @@ impl Writer {
             options,
             compact: String::new(),
             levels: vec![Level::new(0)],
+            leading_comments: None,
         }
     }
     fn level(&mut self) -> &mut Level {
@@ -292,6 +294,9 @@ impl Writer {
             if group.parts.last().is_some_and(|part| part.data.is_empty()) {
                 group.parts.pop();
             }
+            if leading {
+                self.leading_comments = self.level().groups.pop();
+            }
         } else if leading {
             self.compact.push(' ');
         }
@@ -300,11 +305,11 @@ impl Writer {
         if !self.options.pretty_print {
             return Ok(self.compact);
         }
-        let mut lines = self
-            .levels
-            .pop()
-            .expect("balanced tree")
-            .close(self.options.max_line_length);
+        let mut root = self.levels.pop().expect("balanced tree");
+        if let Some(comments) = self.leading_comments {
+            root.groups.insert(0, comments);
+        }
+        let mut lines = root.close(self.options.max_line_length);
         if lines.last().is_some_and(|p| p.data.is_empty()) {
             lines.pop();
         }
@@ -312,6 +317,9 @@ impl Writer {
         for (i, part) in lines.into_iter().enumerate() {
             if i > 0 {
                 sql.push('\n');
+            }
+            if part.data.is_empty() {
+                continue;
             }
             sql.try_reserve(part.indent)
                 .map_err(|_| Error::InvalidField("indent width"))?;

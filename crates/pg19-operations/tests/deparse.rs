@@ -145,3 +145,48 @@ fn native_and_wire_formats_preserve_comments() {
         Err(Error::Protobuf(_))
     ));
 }
+
+fn without_positions(tree: &mut serde_json::Value) {
+    match tree {
+        serde_json::Value::Object(fields) => {
+            fields.retain(|name, _| {
+                !matches!(
+                    name.as_str(),
+                    "location"
+                        | "stmt_len"
+                        | "list_start"
+                        | "list_end"
+                        | "rexpr_list_start"
+                        | "rexpr_list_end"
+                ) && !name.ends_with("_location")
+            });
+            for value in fields.values_mut() {
+                without_positions(value);
+            }
+        }
+        serde_json::Value::Array(values) => values.iter_mut().for_each(without_positions),
+        _ => {}
+    }
+}
+
+fn structure(sql: &str) -> serde_json::Value {
+    let parsed = pg19_parser::parse_statements(sql, Default::default()).unwrap();
+    let mut tree = serde_json::from_str(&pg19_codec::statements_json(&parsed).unwrap()).unwrap();
+    without_positions(&mut tree);
+    tree
+}
+
+// [spec:pgq:req:deparse.quoting/test]
+// [spec:pgq:req:deparse.round-trip/test]
+#[test]
+fn reparse_preserves_identifiers_literals_and_operator_nesting() {
+    for sql in [
+        r#"SELECT 'O''Reilly', "a""b" FROM "Public"."a.b" WHERE (x + y) * z < w - (u - v)"#,
+        "SELECT 1 FROM a LEFT JOIN (b JOIN c ON b.x = c.x) ON a.x = b.x",
+        "(SELECT a FROM t ORDER BY a) UNION (SELECT b FROM s ORDER BY b DESC) ORDER BY 1",
+    ] {
+        let tree = pg19_parser::parse_statements(sql, Default::default()).unwrap();
+        let rendered = statements(&tree).unwrap();
+        assert_eq!(structure(sql), structure(&rendered), "{sql} -> {rendered}");
+    }
+}

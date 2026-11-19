@@ -27,10 +27,11 @@ def tree(executable, sql):
     return structural(json.loads(result.stdout))
 
 
-def verify(native, probe, cases, jobs, mismatches):
+def verify(native, probe, cases, jobs, mismatches, require_complete=False):
     counts = Counter()
     errors = Counter()
     rendered = {}
+    unrendered = []
     with cases.open("rb") as source, tempfile.TemporaryFile(mode="w+t") as rows:
         subprocess.run([native], stdin=source, stdout=rows, check=True)
         rows.seek(0)
@@ -41,6 +42,8 @@ def verify(native, probe, cases, jobs, mismatches):
                 counts["native_parse_errors"] += 1
             elif "deparse_error" in row:
                 errors[row["deparse_error"]] += 1
+                if require_complete:
+                    unrendered.append(row)
             else:
                 counts["rendered"] += 1
                 rendered.setdefault((row["sql"], row["rendered"]), row["id"])
@@ -58,12 +61,14 @@ def verify(native, probe, cases, jobs, mismatches):
 
     counts["distinct_pairs"] = len(rendered)
     with mismatches.open("w") as output, ThreadPoolExecutor(jobs) as pool:
+        for failure in unrendered:
+            output.write(json.dumps(failure) + "\n")
         for failure in pool.map(compare, rendered.items()):
             if failure is not None:
                 counts["mismatches"] += 1
                 output.write(json.dumps(failure) + "\n")
     print(json.dumps({"counts": counts, "unsupported": errors}, sort_keys=True))
-    return counts["mismatches"] == 0 and bool(rendered)
+    return bool(rendered) and counts["mismatches"] == 0 and (not require_complete or not errors)
 
 
 if __name__ == "__main__":
@@ -73,5 +78,8 @@ if __name__ == "__main__":
     args.add_argument("json_probe", type=Path)
     args.add_argument("mismatches", type=Path)
     args.add_argument("--jobs", type=int, default=4)
+    args.add_argument("--require-complete", action="store_true",
+                      help="also fail if a parsed statement cannot be rendered")
     opts = args.parse_args()
-    raise SystemExit(not verify(opts.native, opts.json_probe, opts.cases, opts.jobs, opts.mismatches))
+    raise SystemExit(not verify(opts.native, opts.json_probe, opts.cases, opts.jobs,
+                                opts.mismatches, opts.require_complete))

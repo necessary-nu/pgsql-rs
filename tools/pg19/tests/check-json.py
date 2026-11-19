@@ -1,7 +1,9 @@
 """Link libpg_query's JSON writer to the patched PG19 backend and verify its fixtures."""
 import argparse
+import os
 from pathlib import Path
 import subprocess
+import sys
 
 
 def check(run, work):
@@ -20,7 +22,16 @@ def check(run, work):
         actual = subprocess.check_output([probe, sql.read_text()])
         if actual != sql.with_suffix(".json").read_bytes():
             raise SystemExit(f"PG19 C JSON differs for {sql.name}: {actual!r}")
-    subprocess.run(["python3", repo / "tools/pg19/tests/check-deparse.py", probe], check=True)
+    subprocess.run([sys.executable, repo / "tools/pg19/tests/check-deparse.py", probe], check=True)
+    if native := os.environ.get("PG19_DEPARSE_PROBE"):
+        regress = repo / "tools/pg19/regress"
+        corpus = work / "deparse-regression"
+        subprocess.run([sys.executable, regress / "extract.py", run, corpus], check=True)
+        subprocess.run([
+            sys.executable, regress / "deparse.py", corpus / "cases.jsonl", native, probe,
+            corpus / "deparse-mismatches.jsonl", "--require-complete",
+            "--jobs", os.environ.get("PG19_JOBS", "2"),
+        ], check=True)
 
 
 if __name__ == "__main__":
