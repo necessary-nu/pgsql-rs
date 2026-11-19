@@ -15,6 +15,7 @@ mod types;
 mod utility;
 mod value;
 mod window;
+mod xmltable;
 
 pub use pg19_engine::ParseMode;
 use pg19_engine::{Actions, ParseError, Reduction};

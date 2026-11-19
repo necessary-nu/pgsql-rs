@@ -154,6 +154,9 @@ def generate(run, check):
                 children.append(field_name(cname))
             else:
                 plain.append(field_name(cname))
+            if name == "MultiAssignRef" and cname == "source":
+                # PG shares one RHS expression among all assignment targets.
+                t = "Option<Arc<Node>>"
             if name == "RawStmt" and cname == "stmt_len":
                 t = "i32"  # ParseLoc in C, but this field stores a length.
             if t in enums:

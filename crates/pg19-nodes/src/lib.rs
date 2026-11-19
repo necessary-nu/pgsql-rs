@@ -8,8 +8,11 @@
 //! Build a nested list with `Node::from(vec![child])` or
 //! `Node::List(vec![child].into())`. A [NodeList] supports Vec access,
 //! iteration, and `into_vec()`. Generated record structs remain freely movable.
+//! Multi-column assignments share one immutable source through an `Arc<Node>`.
 //! Cloning also uses a heap worklist. Comparison and debug formatting can recurse.
 #![forbid(unsafe_code)]
+
+use std::sync::Arc;
 
 mod copy;
 mod owned;

@@ -9,6 +9,10 @@ use pg19_nodes::*;
 pub(super) enum Query {
     Statements,
     TypeStart,
+    Cursor,
+    CursorOption(i32),
+    Cycle,
+    GlobalTemp,
     PlStart(Option<i32>),
     PlExpression,
     Assignment,
@@ -196,6 +200,42 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             let row = rhs.take(if more { 4 } else { 3 }).list()?;
             stmt.values_lists.push(Node::from(row));
             Value::Node(stmt.into())
+        }
+        Query::CursorOption(mask) => Value::Integer(rhs.take(1).integer()? | mask),
+        Query::Cursor => Value::Node(
+            DeclareCursorStmt {
+                portalname: Some(rhs.take(2).text()?),
+                options: rhs.take(3).integer()? | rhs.take(5).integer()? | 0x100,
+                query: Some(Box::new(rhs.take(7).node()?)),
+            }
+            .into(),
+        ),
+        Query::Cycle => {
+            let flag = |val| {
+                Some(Box::new(Node::AConst(AConst {
+                    val: Literal::Boolean(val),
+                    location: Location::UNKNOWN,
+                })))
+            };
+            Value::Node(
+                CTECycleClause {
+                    cycle_col_list: rhs.take(2).list()?,
+                    cycle_mark_column: Some(rhs.take(4).text()?),
+                    cycle_mark_value: flag(true),
+                    cycle_mark_default: flag(false),
+                    cycle_path_column: Some(rhs.take(6).text()?),
+                    location: rhs.location(1),
+                    ..Default::default()
+                }
+                .into(),
+            )
+        }
+        Query::GlobalTemp => {
+            let Node::RangeVar(mut relation) = rhs.take(4).node()? else {
+                return Err("expected temporary relation".into());
+            };
+            relation.relpersistence = b't';
+            Value::Node(relation.into())
         }
         Query::TypeStart => Value::List(vec![rhs.take(2).node()?]),
         Query::Statements => {

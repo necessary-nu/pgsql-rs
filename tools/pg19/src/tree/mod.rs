@@ -82,6 +82,7 @@ impl<'a> Writer<'a> {
 
 trait ChildPointer: std::ops::Deref {}
 impl<T> ChildPointer for Box<T> {}
+impl ChildPointer for std::sync::Arc<Node> {}
 impl<T: NodeRecord> ChildPointer for NodeBox<T> {}
 
 impl<P: ChildPointer> Emit for Option<P>

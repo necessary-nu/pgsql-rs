@@ -9,6 +9,7 @@ pub(super) enum Dml {
     RelationAlias(isize),
     Target,
     Assignment,
+    MultiAssignment,
 }
 
 pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
@@ -68,6 +69,26 @@ pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, F
                 }
                 .into(),
             )
+        }
+        Dml::MultiAssignment => {
+            let mut targets = rhs.take(2).list()?;
+            let source = std::sync::Arc::new(rhs.take(5).node()?);
+            let ncolumns =
+                i32::try_from(targets.len()).map_err(|_| "too many assignment targets")?;
+            for (target, colno) in targets.iter_mut().zip(1..=ncolumns) {
+                let Node::ResTarget(target) = target else {
+                    return Err("expected assignment target".into());
+                };
+                target.val = Some(Box::new(
+                    MultiAssignRef {
+                        source: Some(source.clone()),
+                        colno,
+                        ncolumns,
+                    }
+                    .into(),
+                ));
+            }
+            Value::List(targets)
         }
         Dml::Assignment => {
             let Node::ResTarget(mut target) = rhs.take(1).node()? else {

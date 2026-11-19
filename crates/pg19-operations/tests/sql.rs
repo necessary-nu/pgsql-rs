@@ -102,3 +102,39 @@ fn fingerprint_constants_and_parse_errors() {
         err
     );
 }
+
+#[test]
+fn shared_assignments_match_pg19_encodings_and_fingerprint() {
+    let sql = "UPDATE t SET (a, b) = (SELECT r.x, r.y FROM r), c = 1";
+    let statements = parse_statements(sql, Options::default()).unwrap();
+    let Node::UpdateStmt(update) = statements[0].stmt.as_deref().unwrap() else {
+        unreachable!()
+    };
+    let source = |column: usize| {
+        let Node::ResTarget(target) = &update.target_list[column] else {
+            unreachable!()
+        };
+        let Some(Node::MultiAssignRef(assignment)) = target.val.as_deref() else {
+            unreachable!()
+        };
+        assignment.source.as_ref().unwrap()
+    };
+    assert!(std::sync::Arc::ptr_eq(source(0), source(1)));
+    assert_eq!(
+        pg19_codec::statements_json(&statements).unwrap(),
+        include_str!("multi-assign.json").trim_end()
+    );
+    let binary = pg19_codec::protobuf::statements_protobuf(&statements).unwrap();
+    assert_eq!(
+        pg19_codec::protobuf::statements_from_protobuf(&binary).unwrap(),
+        statements
+    );
+    assert_eq!(
+        pg19_operations::fingerprint::fingerprint_statements(
+            &statements,
+            FingerprintOptions::default()
+        )
+        .to_string(),
+        "ed222fbaa1c503de"
+    );
+}

@@ -354,7 +354,7 @@ node_types! {
             location ["location"]: Location,
         }
         MultiAssignRef (82, "MultiAssignRef") {
-            source ["source"]: Option<Box<Node>>,
+            source ["source"]: Option<Arc<Node>>,
             colno ["colno"]: i32,
             ncolumns ["ncolumns"]: i32,
         }
