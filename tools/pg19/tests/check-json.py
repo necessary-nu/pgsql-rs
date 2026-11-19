@@ -20,6 +20,7 @@ def check(run, work):
         actual = subprocess.check_output([probe, sql.read_text()])
         if actual != sql.with_suffix(".json").read_bytes():
             raise SystemExit(f"PG19 C JSON differs for {sql.name}: {actual!r}")
+    subprocess.run(["python3", repo / "tools/pg19/tests/check-deparse.py", probe], check=True)
 
 
 if __name__ == "__main__":

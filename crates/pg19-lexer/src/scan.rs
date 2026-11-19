@@ -1,5 +1,4 @@
 use crate::{
-    catalog,
     dfa::{longest, State},
     truncate_identifier, Error, Kind, Options, Token, Value,
 };
@@ -180,12 +179,9 @@ fn block_comment(sql: &str, start: usize) -> Result<usize, Error> {
 
 // [spec:pgq:req:lex.keywords]
 fn identifier(word: String) -> (Kind, Value, Option<crate::KeywordKind>) {
-    match catalog::KEYWORDS.binary_search_by_key(&word.as_str(), |row| row.0) {
-        Ok(i) => {
-            let (word, kind, category) = catalog::KEYWORDS[i];
-            (kind, Value::Keyword(word), Some(category))
-        }
-        Err(_) => (Kind::IDENT, Value::Text(truncate_identifier(word)), None),
+    match crate::keyword(&word) {
+        Some((word, kind, category)) => (kind, Value::Keyword(word), Some(category)),
+        None => (Kind::IDENT, Value::Text(truncate_identifier(word)), None),
     }
 }
 

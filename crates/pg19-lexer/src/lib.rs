@@ -24,6 +24,14 @@ mod catalog {
     include!("../data/catalog.rs");
 }
 
+/// Look up an already lowercased word in the pinned PostgreSQL keyword catalog.
+pub fn keyword(word: &str) -> Option<(&'static str, Kind, KeywordKind)> {
+    let index = catalog::KEYWORDS
+        .binary_search_by_key(&word, |row| row.0)
+        .ok()?;
+    Some(catalog::KEYWORDS[index])
+}
+
 impl Kind {
     pub fn from_id(id: u16) -> Option<Self> {
         (id < 128 || (id >= 256 && usize::from(id - 256) < catalog::NAMES.len()))

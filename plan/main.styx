@@ -347,13 +347,12 @@ children (
                 implements {
                     rust (
                         [spec:pgq:req:deparse.round-trip]
-                        [spec:pgq:req:deparse.stream]
                         [spec:pgq:req:deparse.quoting]
                         [spec:pgq:req:deparse.pretty]
                         [spec:pgq:req:deparse.comments]
                     )
                 }
-                deps (parser.reduce)
+                deps (parser.reduce operations.deparse-stream)
             }
 
             {
@@ -405,6 +404,23 @@ children (
                 log (
                     {
                         at 2026-11-19T18:15:52.627518944Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
+            }
+
+            {
+                id operations.deparse-stream
+                title "Render an ordered stream of native raw statements"
+                implements {
+                    rust ([spec:pgq:req:deparse.stream])
+                }
+                deps (parser.nodes parser.lexer)
+                log (
+                    {
+                        at 2026-11-19T18:33:22.0534088Z
                         author "brendan@necessary.nu"
                         kind @status
                         text "Todo → Doing (nplan start)"

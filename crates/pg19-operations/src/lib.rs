@@ -1,3 +1,4 @@
+pub mod deparse;
 pub mod fingerprint;
 
 use pg19_lexer::{Error, Scanner};
