@@ -80,11 +80,6 @@ impl<S> Namespace for Compiler<'_, S> {
     }
 }
 
-fn transpose(mut e: Error, source: &str, start: usize) -> Error {
-    e.position = source[..start].chars().count() + e.position.max(1);
-    e
-}
-
 impl<S: EmbeddedSql> Compiler<'_, S> {
     fn datatype(&mut self, input: &mut Input<'_>) -> Result<Reduced, CompileError> {
         let scanner = &mut input.scanner;
@@ -127,7 +122,7 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         let datatype = self
             .sql
             .datatype(type_name)
-            .map_err(|e| transpose(e, source, start))?;
+            .map_err(|e| e.in_body(source, start))?;
         Ok(Reduced::Type(datatype))
     }
 
@@ -141,6 +136,13 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         let Reduced::Type(datatype) = rhs.take(3) else {
             unreachable!("missing declaration type")
         };
+        if let DataType::Pseudo(pseudo) = &datatype {
+            return Err(Error::without_position(
+                format!("variable \"{name}\" has pseudo-type {pseudo}"),
+                "0A000",
+            )
+            .into());
+        }
         let not_null = matches!(rhs.value(5), Reduced::Token(_));
         let default = match rhs.take(6) {
             Reduced::Expression(e) => Some(e),
@@ -183,7 +185,7 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         };
         self.sql
             .validate(&query, mode)
-            .map_err(|e| transpose(e, s.source(), f.span.start + usize::from(perform)))?;
+            .map_err(|e| e.in_body(s.source(), f.span.start + usize::from(perform)))?;
         Ok(Expression { query, mode })
     }
 

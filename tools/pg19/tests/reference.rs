@@ -113,6 +113,11 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         .arg(&run)
         .status()?;
     assert!(schema.success(), "inspect {}", run.display());
+    assert!(Command::new("ruby")
+        .arg(tools.join("plpgsql/import-types.rb"))
+        .arg(&run)
+        .status()?
+        .success());
     for script in ["plpgsql/build.py", "plpgsql/check.py"] {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(script);
         let status = Command::new("python3").arg(path).arg(&run).status()?;

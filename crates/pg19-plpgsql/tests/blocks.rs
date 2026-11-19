@@ -1,6 +1,6 @@
 use pg19_plpgsql::{
-    compile_block, Block, CompileError, CompiledBody, DataType, Datum, EmbeddedSql, Error,
-    Expression, Options, ParseMode, Statement, Variable,
+    compile_block, Block, CompileError, CompiledBody, DataType, Datum, EmbeddedSql, Expression,
+    Options, ParseMode, Statement, Variable,
 };
 use serde_json::{json, Value};
 
@@ -20,7 +20,7 @@ impl pg19_engine::Actions for Sql {
 }
 
 impl EmbeddedSql for Sql {
-    fn datatype(&mut self, src: &str) -> Result<DataType, Error> {
+    fn datatype(&mut self, src: &str) -> Result<DataType, CompileError> {
         self.validate(src, ParseMode::TypeName)?;
         Ok(match src.trim() {
             "integer" => DataType::Scalar("int4".into()),
@@ -30,9 +30,9 @@ impl EmbeddedSql for Sql {
         })
     }
 
-    fn validate(&mut self, src: &str, mode: ParseMode) -> Result<(), Error> {
+    fn validate(&mut self, src: &str, mode: ParseMode) -> Result<(), CompileError> {
         pg19_engine::parse(src, mode, Options::default(), self).map_err(|error| match error {
-            pg19_engine::ParseError::Diagnostic(e) => e,
+            pg19_engine::ParseError::Diagnostic(e) => e.into(),
             pg19_engine::ParseError::Action(never) => match never {},
         })
     }
@@ -84,6 +84,7 @@ fn datum(d: &Datum, id: usize) -> Value {
                     v["datatype"] = json!({"PLpgSQL_type":{"typname":name}});
                     json!({"PLpgSQL_var":v})
                 }
+                DataType::Pseudo(_) => panic!("pseudo-variable in compiled tree"),
                 DataType::Record => {
                     if id > 0 {
                         v["dno"] = json!(id);

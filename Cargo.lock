@@ -103,6 +103,8 @@ version = "0.1.0"
 dependencies = [
  "pg19-engine",
  "pg19-lexer",
+ "pg19-nodes",
+ "pg19-parser",
  "pg19-tables",
  "serde_json",
 ]
