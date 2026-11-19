@@ -5,6 +5,8 @@ use pg19_operations::{
 };
 use pg19_parser::{parse_statements, Error, Options, ParseMode};
 
+// [spec:pgq:req:split.parser/test]
+// [spec:pgq:req:split.boundaries/test]
 #[test]
 fn split_parsed_sql_using_raw_statement_boundaries() {
     assert_eq!(split_with_parser("").unwrap(), []);
@@ -22,10 +24,33 @@ fn split_parsed_sql_using_raw_statement_boundaries() {
     assert!(matches!(diagnostic, Error::Diagnostic(_)));
     assert_eq!(split_with_parser(invalid).unwrap_err(), diagnostic);
     assert_eq!(utility_statements(invalid).unwrap_err(), diagnostic);
+    let sql = "CREATE RULE x AS ON SELECT TO tbl DO (; SELECT 1; SELECT 2;); SELECT ';' /* ; */";
+    let semi = sql.find(");").unwrap() + 1;
+    assert_eq!(
+        split_with_parser(sql).unwrap(),
+        [0..semi, semi + 2..sql.len()]
+    );
+    assert_eq!(
+        split_with_scanner(sql).unwrap(),
+        [0..semi, semi + 1..sql.len()]
+    );
+    let stmts = parse_statements(sql, Options::default()).unwrap();
+    let Some(Node::RuleStmt(rule)) = stmts[0].stmt.as_deref() else {
+        panic!("missing RuleStmt")
+    };
+    assert_eq!(rule.actions.len(), 2);
+    assert!(rule
+        .actions
+        .iter()
+        .all(|n| matches!(n, Node::SelectStmt(_))));
 }
 
 #[test]
 fn classify_each_statement_by_its_outer_tag() {
+    assert_eq!(
+        utility_statements("SELECT 1; SHOW fsync").unwrap(),
+        [false, true]
+    );
     assert_eq!(
         utility_statements("; SELECT 1; ; SELECT 'SHOW';").unwrap(),
         [false, false]

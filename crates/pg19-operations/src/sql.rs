@@ -2,6 +2,8 @@ use pg19_nodes::Node;
 use pg19_parser::{parse_statements, Error, Options};
 use std::ops::Range;
 
+// [spec:pgq:req:split.parser]
+// [spec:pgq:req:split.boundaries]
 pub fn split_with_parser(sql: &str) -> Result<Vec<Range<usize>>, Error> {
     let sql = sql.split_once('\0').map_or(sql, |(prefix, _)| prefix);
     parse_statements(sql, Options::default())?

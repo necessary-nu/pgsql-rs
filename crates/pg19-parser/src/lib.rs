@@ -66,6 +66,7 @@ enum Op {
     Nil,
     Single,
     Append(isize),
+    RuleActions { first: bool },
     Utility(utility::Utility),
     Expr(expr::Expr),
     Query(query::Query),
@@ -101,6 +102,17 @@ impl Actions for Parser<'_> {
                 Op::Empty => Value::Empty,
                 Op::Nil => Value::List(Vec::new()),
                 Op::Single => Value::List(vec![rhs.take(1).node()?]),
+                Op::RuleActions { first } => {
+                    let (mut list, next) = if first {
+                        (Vec::new(), rhs.take(1))
+                    } else {
+                        (rhs.take(1).list()?, rhs.take(3))
+                    };
+                    if let Some(stmt) = next.optional()? {
+                        list.push(*stmt);
+                    }
+                    Value::List(list)
+                }
                 Op::Append(i) => {
                     let mut items = rhs.take(1).list()?;
                     items.push(rhs.take(i).node()?);
