@@ -6,6 +6,7 @@ mod definition;
 mod foreign;
 pub(in crate::deparse) mod index;
 mod object;
+mod ownership;
 mod policy;
 mod privileges;
 mod routine;

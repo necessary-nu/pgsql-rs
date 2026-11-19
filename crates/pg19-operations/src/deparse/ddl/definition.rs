@@ -158,7 +158,7 @@ pub(super) fn statement<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<bool> {
         Node::CreateTableAsStmt(s) => create_as(s, p)?,
         Node::CreateSeqStmt(s) => super::sequence::create(s, p)?,
         Node::AlterSeqStmt(s) => super::sequence::alter(s, p)?,
-        _ => return Ok(false),
+        _ => return super::ownership::statement(n, p),
     }
     Ok(true)
 }
