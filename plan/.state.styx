@@ -265,7 +265,11 @@ impl_evidence (
         {id tree.node-locations, version 0}
         {id tree.statement-spans, version 0}
     )}
-    {id parser.parity}
+    {id parser.parity, covered_rules (
+        grammar.corpus-parity
+    ), covered_claims (
+        {impl_name rust, rule grammar.corpus-parity}
+    )}
     {id parser.queries, covered_rules (
         grammar.query-actions
     ), covered_claims (

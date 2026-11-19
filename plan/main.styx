@@ -147,6 +147,13 @@ children (
                         kind @note
                         text "The merged SQL implementation at 333e9f2 exactly matches 50,352 of the 54,471 PG19 regression cases. The remaining 4,119 stop at 129 distinct first unported actions. No completed SQL tree, diagnostic or scan differs."
                     }
+
+                    {
+                        at 2026-11-19T19:53:49.648421942Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Rust 1.100.0 release build at d6942c9 reproduced all 54,471 pinned PostgreSQL 19.0 outcomes, including 54,280 accepted raw trees, 191 errors, scanner records and six start modes. No first missing actions or mismatches. The independent ignored corpus test also verifies oracle hashes. Rebuilding stock and compatibility PostgreSQL from the pinned archive and running the clean reference suite passed in 224.94 seconds."
+                    }
                 )
             }
 

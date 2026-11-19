@@ -116,3 +116,12 @@ every case, including cases that reach an unmapped action. For completed
 parses it also compares the complete tree or diagnostic. Exit status 0 means
 all outcomes matched, 1 reports differences and 2 reports incomplete action
 coverage. To inspect one case, pass its SQL and probe flags to the example.
+
+To verify the saved source and outcome digests as well as the native parser
+in one test, run this from the repository root after building the release
+example. Both environment variables accept absolute paths.
+
+```sh
+PG19_REGRESSION_DIR="$out" PG19_NATIVE_PROBE="$PWD/target/release/examples/pg19-native" \
+  cargo test --offline --locked -p pg19-parser --test corpus -- --ignored
+```
