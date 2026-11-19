@@ -13,6 +13,7 @@ pub(super) enum Role {
     Sort,
     Group,
     Cte,
+    JsonColumn,
 }
 
 pub(super) enum Step<'a> {
