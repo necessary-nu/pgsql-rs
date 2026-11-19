@@ -22,6 +22,29 @@ retain `gram.y`, `scan.l`, the parser lookahead code, and node and keyword
 headers. The patched tree uses the [PG19 compatibility series](patches/README.md).
 The C library at the repository root continues to build against its 18.6 snapshot.
 
+### How upstream changes reach this repository
+
+The original C workflow updates PostgreSQL through maintainer commits. Its
+Makefile pins both the archive version and the numeric release. The
+`tmp/postgres` target downloads that release into a fixed directory, applies
+14 project patches, configures PostgreSQL and invokes its generators.
+`make extract_source` replaces `src/postgres` with the C dependency closure
+selected by the Ruby/libclang extractor and copies the upstream regression SQL.
+The recipe assumes Apple's libclang location and BSD `sed`. C builds and CI
+consume the committed snapshot. The repository history shows a major upgrade
+in `bd17fe2` and a point release in `e087c65`. [Legacy extraction recipe](../../Makefile)
+
+For the Rust port, the release archive and the reviewed patch series are the
+source of truth. The scanner imports Flex's transitions and the keyword
+catalog. The parser imports Bison's resolved tables and inventories each
+production and semantic action. The raw node generator reads the patched
+headers with Clang. A release update therefore has reviewable diffs for
+syntax, actions and data layout. The stock and patched probes establish
+whether a behavioral change came from PostgreSQL or from the overlay.
+[Parser table regeneration](../../crates/pg19-tables/README.md)
+
+### Comparing parser behavior
+
 Set `run` to the path printed by the importer to inspect a default-mode SQL
 input or recheck an existing build.
 

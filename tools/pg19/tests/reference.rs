@@ -55,27 +55,37 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
     for flavor in ["stock", "patched"] {
         check_probe_options(&run.join(flavor).join("probe"))?;
     }
-    let importer = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("import-lexer.py");
-    assert!(Command::new("python3")
-        .arg(importer)
-        .arg("--check")
-        .arg(&run)
-        .status()?
-        .success());
-    assert!(Command::new(env!("CARGO"))
-        .args([
-            "test",
-            "--locked",
-            "-p",
-            "pg19-lexer",
-            "--test",
-            "scan",
-            "--",
-            "--ignored"
-        ])
-        .env("PG19_REFERENCE_DIR", &run)
-        .status()?
-        .success());
+    let tools = Path::new(env!("CARGO_MANIFEST_DIR"));
+    for generator in ["import-lexer.py", "../../crates/pg19-nodes/generate.py"] {
+        assert!(
+            Command::new("python3")
+                .arg(tools.join(generator))
+                .arg("--check")
+                .arg(&run)
+                .status()?
+                .success(),
+            "{generator}"
+        );
+    }
+    for (krate, test) in [("pg19-lexer", "scan"), ("pg19-engine", "diagnostics")] {
+        assert!(
+            Command::new(env!("CARGO"))
+                .args([
+                    "test",
+                    "--locked",
+                    "-p",
+                    krate,
+                    "--test",
+                    test,
+                    "--",
+                    "--ignored"
+                ])
+                .env("PG19_REFERENCE_DIR", &run)
+                .status()?
+                .success(),
+            "{krate} {test}"
+        );
+    }
     let generator = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("generate-tables.py");
     let generation = Command::new("python3")
         .arg(generator)

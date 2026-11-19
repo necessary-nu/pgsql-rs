@@ -30,7 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install reference and schema build dependencies
-        run: sudo apt-get update && sudo apt-get install -y bison flex ruby ruby-bundler protobuf-compiler python3-protobuf
+        run: sudo apt-get update && sudo apt-get install -y bison flex clang ruby ruby-bundler protobuf-compiler python3-protobuf
       - run: python3 tools/pg19/tests/check-fixtures.py
       - run: /usr/bin/python3 tools/pg19/tests/check-schema.py
       - run: cargo test --locked --workspace
