@@ -164,7 +164,7 @@ pub(super) fn index_elem<'a>(i: &'a IndexElem, p: &mut Plan<'a>) -> Result<()> {
         p.text(names(&i.opclass, ".")?);
     }
     if !i.opclassopts.is_empty() {
-        return Err(Error::UnsupportedStatement(Some(NodeTag::IndexElem)));
+        super::ddl::index::reloptions(&i.opclassopts, p)?;
     }
     p.text(match i.ordering {
         SortByDir::SORTBY_DEFAULT => "",
