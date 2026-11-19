@@ -428,6 +428,23 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // generic_set: var_name TO NULL_P
+    |rhs| {
+        Ok(Value::Node(
+            VariableSetStmt {
+                kind: VariableSetKind::VAR_SET_VALUE,
+                name: optional_text(rhs.take(1))?,
+                args: vec![Value::Node(Node::AConst(AConst {
+                    val: Literal::Null,
+                    location: rhs.location(3),
+                }))
+                .cell()?],
+                location: rhs.location(3),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // generic_set: var_name TO DEFAULT
     |rhs| {
         Ok(Value::Node(
@@ -721,6 +738,15 @@ pub(super) const ACTIONS: &[Action] = &[
             ConstraintsSetStmt {
                 constraints: rhs.take(3).list()?,
                 deferred: rhs.take(4).integer()? != 0,
+            }
+            .into(),
+        ))
+    },
+    // CheckPointStmt: CHECKPOINT opt_utility_option_list
+    |rhs| {
+        Ok(Value::Node(
+            CheckPointStmt {
+                options: rhs.take(2).list()?,
             }
             .into(),
         ))
@@ -1791,6 +1817,46 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // replica_identity: NOTHING
+    |_| {
+        Ok(Value::Node(
+            ReplicaIdentityStmt {
+                identity_type: 110,
+                name: None,
+            }
+            .into(),
+        ))
+    },
+    // replica_identity: FULL
+    |_| {
+        Ok(Value::Node(
+            ReplicaIdentityStmt {
+                identity_type: 102,
+                name: None,
+            }
+            .into(),
+        ))
+    },
+    // replica_identity: DEFAULT
+    |_| {
+        Ok(Value::Node(
+            ReplicaIdentityStmt {
+                identity_type: 100,
+                name: None,
+            }
+            .into(),
+        ))
+    },
+    // replica_identity: USING INDEX name
+    |rhs| {
+        Ok(Value::Node(
+            ReplicaIdentityStmt {
+                identity_type: 105,
+                name: optional_text(rhs.take(3))?,
+            }
+            .into(),
+        ))
+    },
     // reloption_elem: ColLabel '=' def_arg
     |rhs| {
         Ok(Value::Node(
@@ -2601,6 +2667,24 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // TableLikeOption: COMPRESSION
+    |_| Ok(Value::Integer(2)),
+    // TableLikeOption: CONSTRAINTS
+    |_| Ok(Value::Integer(4)),
+    // TableLikeOption: DEFAULTS
+    |_| Ok(Value::Integer(8)),
+    // TableLikeOption: IDENTITY_P
+    |_| Ok(Value::Integer(32)),
+    // TableLikeOption: GENERATED
+    |_| Ok(Value::Integer(16)),
+    // TableLikeOption: INDEXES
+    |_| Ok(Value::Integer(64)),
+    // TableLikeOption: STATISTICS
+    |_| Ok(Value::Integer(128)),
+    // TableLikeOption: STORAGE
+    |_| Ok(Value::Integer(256)),
+    // TableLikeOption: ALL
+    |_| Ok(Value::Integer(2147483647)),
     // ConstraintElem: CHECK '(' a_expr ')' ConstraintAttributeSpec
     |rhs| {
         Ok({
@@ -3876,6 +3960,10 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // am_type: INDEX
+    |_| Ok(Value::Integer(105)),
+    // am_type: TABLE
+    |_| Ok(Value::Integer(116)),
     // TriggerTransition: TransitionOldOrNew TransitionRowOrTable opt_as TransitionRelName
     |rhs| {
         Ok(Value::Node(
@@ -3935,6 +4023,14 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // enable_trigger: ENABLE_P
+    |_| Ok(Value::Integer(79)),
+    // enable_trigger: ENABLE_P REPLICA
+    |_| Ok(Value::Integer(82)),
+    // enable_trigger: ENABLE_P ALWAYS
+    |_| Ok(Value::Integer(65)),
+    // enable_trigger: DISABLE_P
+    |_| Ok(Value::Integer(68)),
     // DefineStmt: CREATE opt_or_replace AGGREGATE func_name aggr_args definition
     |rhs| {
         Ok(Value::Node(
@@ -4977,6 +5073,20 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // fetch_args: ALL opt_from_in cursor_name
+    |rhs| {
+        Ok(Value::Node(
+            FetchStmt {
+                portalname: optional_text(rhs.take(3))?,
+                direction: FetchDirection::FETCH_FORWARD,
+                how_many: i64::MAX >> (i64::BITS - core::ffi::c_long::BITS),
+                location: Location::UNKNOWN,
+                direction_keyword: FetchDirectionKeywords::FETCH_KEYWORD_ALL,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // fetch_args: FORWARD opt_from_in cursor_name
     |rhs| {
         Ok(Value::Node(
@@ -5005,6 +5115,20 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // fetch_args: FORWARD ALL opt_from_in cursor_name
+    |rhs| {
+        Ok(Value::Node(
+            FetchStmt {
+                portalname: optional_text(rhs.take(4))?,
+                direction: FetchDirection::FETCH_FORWARD,
+                how_many: i64::MAX >> (i64::BITS - core::ffi::c_long::BITS),
+                location: Location::UNKNOWN,
+                direction_keyword: FetchDirectionKeywords::FETCH_KEYWORD_FORWARD_ALL,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // fetch_args: BACKWARD opt_from_in cursor_name
     |rhs| {
         Ok(Value::Node(
@@ -5028,6 +5152,20 @@ pub(super) const ACTIONS: &[Action] = &[
                 how_many: (rhs.take(2).integer()?) as i64,
                 location: rhs.location(2),
                 direction_keyword: FetchDirectionKeywords::FETCH_KEYWORD_BACKWARD,
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // fetch_args: BACKWARD ALL opt_from_in cursor_name
+    |rhs| {
+        Ok(Value::Node(
+            FetchStmt {
+                portalname: optional_text(rhs.take(4))?,
+                direction: FetchDirection::FETCH_BACKWARD,
+                how_many: i64::MAX >> (i64::BITS - core::ffi::c_long::BITS),
+                location: Location::UNKNOWN,
+                direction_keyword: FetchDirectionKeywords::FETCH_KEYWORD_BACKWARD_ALL,
                 ..Default::default()
             }
             .into(),
@@ -8940,14 +9078,8 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
-    // opt_lock: %empty
-    |_| Ok(Value::Integer(8)),
-    // lock_type: ROW SHARE
-    |_| Ok(Value::Integer(2)),
     // lock_type: ROW EXCLUSIVE
     |_| Ok(Value::Integer(3)),
-    // lock_type: SHARE UPDATE EXCLUSIVE
-    |_| Ok(Value::Integer(4)),
     // lock_type: SHARE
     |_| Ok(Value::Integer(5)),
     // lock_type: SHARE ROW EXCLUSIVE
@@ -9253,6 +9385,13 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // select_limit_value: ALL
+    |rhs| {
+        Ok(Value::Node(Node::AConst(AConst {
+            val: Literal::Null,
+            location: rhs.location(1),
+        })))
     },
     // for_locking_item: for_locking_strength locked_rels_list opt_nowait_or_skip
     |rhs| {
@@ -10162,6 +10301,13 @@ pub(super) const ACTIONS: &[Action] = &[
             }
             .into(),
         ))
+    },
+    // xml_root_version: VERSION_P NO VALUE_P
+    |_| {
+        Ok(Value::Node(Node::AConst(AConst {
+            val: Literal::Null,
+            location: Location::UNKNOWN,
+        })))
     },
     // labeled_expr: a_expr
     |rhs| {
