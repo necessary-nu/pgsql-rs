@@ -83,7 +83,7 @@ fn constants_preserve_variants_and_compatibility_spelling() {
 fn depth_error_leaves_later_conversions_usable() {
     let mut node = Node::String("bottom".into());
     for _ in 0..160 {
-        node = Node::List(vec![node]);
+        node = Node::from(vec![node]);
     }
     assert_eq!(node_json(&node), Err(EncodeError::DepthLimit));
     assert_eq!(
@@ -94,7 +94,7 @@ fn depth_error_leaves_later_conversions_usable() {
 
 #[test]
 fn lists_and_unknown_locations_preserve_json_representation() {
-    let root = Node::List(vec![
+    let root = Node::from(vec![
         Node::Null,
         Node::Integer(0),
         Node::IntList(vec![1, -1]),

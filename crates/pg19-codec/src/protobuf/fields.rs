@@ -82,12 +82,20 @@ impl Wire for Option<String> {
     }
 }
 
-impl<T: Record> Wire for Option<Box<T>> {
+trait ChildPointer: std::ops::Deref {}
+impl<T> ChildPointer for Box<T> {}
+impl<T: NodeRecord> ChildPointer for NodeBox<T> {}
+
+impl<P> Wire for Option<P>
+where
+    P: ChildPointer + From<Box<P::Target>>,
+    P::Target: Record,
+{
     fn pack(&self, _: &FieldDescriptor, d: Depth) -> Result<Option<Value>> {
         self.as_deref().map(|x| x.to_message(d)).transpose()
     }
     fn unpack(v: Value, _: &FieldDescriptor, d: Depth) -> Result<Self> {
-        Ok(Some(Box::new(T::from_message(v, d)?)))
+        Ok(Some(Box::new(P::Target::from_message(v, d)?).into()))
     }
 }
 

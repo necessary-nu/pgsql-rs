@@ -121,7 +121,7 @@ fn typed_raw_trees_match_pg19_bytes() {
 #[test]
 fn empty_lists_scalar_lists_and_token_escaping() {
     assert_eq!(nodes_text(&[]).unwrap(), "<>");
-    let node = Node::List(vec![
+    let node = Node::from(vec![
         Node::Null,
         Node::Integer(-3),
         Node::String("-0".into()),
@@ -167,7 +167,7 @@ fn deep_lists_use_the_explicit_stack() {
         .spawn(|| {
             let mut n = Node::Integer(1);
             for _ in 0..2000 {
-                n = Node::List(vec![n]);
+                n = Node::from(vec![n]);
             }
             let tree = node_text(&n).unwrap();
             assert_eq!(tree, format!("{}1{}", "(".repeat(2000), ")".repeat(2000)));

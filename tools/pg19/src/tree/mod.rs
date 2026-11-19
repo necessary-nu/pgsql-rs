@@ -80,7 +80,14 @@ impl<'a> Writer<'a> {
     }
 }
 
-impl<T: Emit> Emit for Option<Box<T>> {
+trait ChildPointer: std::ops::Deref {}
+impl<T> ChildPointer for Box<T> {}
+impl<T: NodeRecord> ChildPointer for NodeBox<T> {}
+
+impl<P: ChildPointer> Emit for Option<P>
+where
+    P::Target: Emit + Sized,
+{
     fn expand<'a>(&'a self, w: &mut Writer<'a>) -> Result<()> {
         match self.as_deref() {
             Some(value) => w.field("", value),

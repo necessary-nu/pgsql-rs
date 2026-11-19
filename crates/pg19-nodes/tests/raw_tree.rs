@@ -110,7 +110,7 @@ fn distinguishes_empty_and_null_list_entries_and_constants() {
     assert!(select.distinct_clause.is_empty());
     select.distinct_clause.push(Node::Null);
     assert_eq!(select.distinct_clause[0].tag(), None);
-    select.values_lists = vec![Node::List(vec![Node::Integer(0), Node::Boolean(false)])];
+    select.values_lists = vec![Node::from(vec![Node::Integer(0), Node::Boolean(false)])];
     assert_eq!(select.values_lists[0].tag(), Some(NodeTag::List));
     assert_ne!(Literal::Null, Literal::String(String::new()));
     assert_ne!(Literal::Integer(0), Literal::Boolean(false));

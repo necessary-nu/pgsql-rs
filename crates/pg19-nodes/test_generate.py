@@ -1,6 +1,6 @@
 import unittest
 
-from generate import emit_enum, field_name, rust_type
+from generate import cyclic_edges, emit_enum, field_name, rust_type
 
 
 class DeclarationsTest(unittest.TestCase):
@@ -19,6 +19,19 @@ class DeclarationsTest(unittest.TestCase):
             with self.subTest(ctype=ctype):
                 field = {"type": {"qualType": ctype}, "name": "child"}
                 self.assertEqual(rust_type(field, {}, records), output)
+
+    def test_typed_cycles_include_embedded_record_edges(self):
+        records = {
+            name: {"inner": [{"kind": "FieldDecl", "type": {"qualType": ty}}
+                             for ty in fields]}
+            for name, fields in {
+                "Root": ["Cycle *", "Leaf *"], "Cycle": ["Embedded"],
+                "Embedded": ["Cycle *", "Node *"], "Leaf": ["List *"],
+            }.items()
+        }
+        self.assertEqual(cyclic_edges(records, records), {
+            ("Cycle", "Embedded"), ("Embedded", "Cycle"),
+        })
 
     def test_unmapped_field_requires_review(self):
         field = {"type": {"qualType": "UpstreamAddition *"}, "name": "value"}

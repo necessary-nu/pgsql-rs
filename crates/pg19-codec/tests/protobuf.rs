@@ -96,12 +96,12 @@ fn qualified_setop() -> Node {
     SelectStmt {
         op: SetOperation::SETOP_UNION,
         distinct_clause: vec![Node::Null],
-        larg: Some(Box::new(SelectStmt {
+        larg: Some(NodeBox::from(SelectStmt {
             target_list: vec![Node::Integer(-1), Node::String("é".into())],
             ..Default::default()
         })),
-        rarg: Some(Box::new(SelectStmt {
-            values_lists: vec![Node::List(vec![
+        rarg: Some(NodeBox::from(SelectStmt {
+            values_lists: vec![Node::from(vec![
                 Node::IntList(vec![0, 4, -3]),
                 Node::OidList(vec![u32::MAX, 9]),
             ])],
@@ -159,7 +159,7 @@ fn deep_trees_and_bad_input_return_errors() {
     let mut native = Node::Boolean(false);
     let mut wire = node_protobuf(&native).unwrap();
     for _ in 0..180 {
-        native = Node::List(vec![native]);
+        native = Node::from(vec![native]);
         wire = msg(270, &msg(1, &wire));
     }
     assert_eq!(node_protobuf(&native), Err(ProtobufError::DepthLimit));
@@ -205,7 +205,7 @@ fn concrete_pointers_obey_depth_limits() {
     let mut select = SelectStmt::default();
     for _ in 0..28 {
         select = SelectStmt {
-            larg: Some(Box::new(select)),
+            larg: Some(NodeBox::from(select)),
             ..Default::default()
         };
     }
@@ -214,7 +214,7 @@ fn concrete_pointers_obey_depth_limits() {
     assert_eq!(node_from_protobuf(&bytes).unwrap(), node);
     let mut node = Node::Integer(1);
     for _ in 0..38 {
-        node = Node::List(vec![node]);
+        node = Node::from(vec![node]);
     }
     let bytes = node_protobuf(&node).unwrap();
     assert_eq!(node_from_protobuf(&bytes).unwrap(), node);
@@ -269,7 +269,7 @@ fn special_fields_follow_the_descriptor() {
         servername: Some("s".into()),
         ..Default::default()
     };
-    let n = Node::List(vec![ddl.into(), table.into(), stmt.into()]);
+    let n = Node::from(vec![ddl.into(), table.into(), stmt.into()]);
     assert_eq!(node_from_protobuf(&node_protobuf(&n).unwrap()).unwrap(), n);
     let unknown = SelectStmt {
         op: SetOperation(99),

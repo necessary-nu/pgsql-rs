@@ -122,9 +122,12 @@ impl Writer {
         Ok(())
     }
 
-    fn write_pointer<T: Object>(&mut self, key: &str, value: &Option<Box<T>>) -> Result {
-        if let Some(node) = value {
-            self.write_specific_node(key, node.as_ref())?;
+    fn write_pointer<P: std::ops::Deref>(&mut self, key: &str, value: &Option<P>) -> Result
+    where
+        P::Target: Object + Sized,
+    {
+        if let Some(node) = value.as_deref() {
+            self.write_specific_node(key, node)?;
         }
         Ok(())
     }
