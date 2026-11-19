@@ -77,7 +77,7 @@ fn compile_blocks_against_reference_trees() {
                 let top = &mut action["PLpgSQL_stmt_block"];
                 let stmts = top["body"].as_array_mut().unwrap();
                 assert_eq!(stmts.pop(), Some(json!({"PLpgSQL_stmt_return":{}})));
-                if body.block.label.is_some() {
+                if body.block.label.is_some() || !body.block.exceptions.is_empty() {
                     action = stmts.pop().unwrap();
                 } else if stmts.is_empty() {
                     top.as_object_mut().unwrap().remove("body");
@@ -151,11 +151,11 @@ fn trigger_fields_preserve_parent_and_assignment_references() {
 
 #[test]
 fn unported_actions_are_explicit() {
-    let result = compile("BEGIN RAISE NOTICE 'hi'; END;");
+    let result = compile("DECLARE x integer; BEGIN GET DIAGNOSTICS x = ROW_COUNT; END;");
     assert_eq!(
         result,
         Err(CompileError::Unsupported {
-            production: "stmt_raise: K_RAISE"
+            production: "getdiag_area_opt: %empty"
         })
     );
 }

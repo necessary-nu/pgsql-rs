@@ -184,10 +184,11 @@ fn finish(
         .map_err(|(e, line)| RoutineError::in_function(e, name, line))?;
     let mut block = result.block;
     if setup.returns != Returns::Value {
-        if block.label.is_some() {
+        if block.label.is_some() || !block.exceptions.is_empty() {
             block = Block {
                 lineno: 0,
                 label: None,
+                exceptions: Vec::new(),
                 body: vec![Statement::Block(block)],
             };
         }

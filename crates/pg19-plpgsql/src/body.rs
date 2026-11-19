@@ -45,6 +45,13 @@ pub struct Block {
     pub lineno: usize,
     pub label: Option<String>,
     pub body: Vec<Statement>,
+    pub exceptions: Vec<ExceptionHandler>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExceptionHandler {
+    pub conditions: Vec<String>,
+    pub action: Vec<Statement>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -114,6 +121,14 @@ pub enum Statement {
         is_exit: bool,
         label: Option<String>,
         condition: Option<Expression>,
+    },
+    Raise {
+        lineno: usize,
+        level: u8,
+        condition: Option<String>,
+        message: Option<String>,
+        params: Vec<Expression>,
+        options: Vec<(u8, Expression)>,
     },
     Assert {
         lineno: usize,

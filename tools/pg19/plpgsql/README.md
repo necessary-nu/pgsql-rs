@@ -87,7 +87,9 @@ the new datum numbers and assignment in the existing reference fixture.
 The standalone type catalog contains the 197 rows in PG19.0
 `postgres.bki`, including the `oid8` and `_oid8` OIDs. Run
 `ruby tools/pg19/plpgsql/import-types.rb "$run"` to verify it. The
-generator reuses the library's `extract_pg_types` reader. `NativeSql`
+generator reuses the library's `extract_pg_types` reader and PG19's
+`generate-plerrcodes.pl` script to derive exception condition names,
+including duplicate labels for different SQLSTATEs. `NativeSql`
 uses the PG19 Rust parser for type-name and embedded SQL start modes
 and propagates the identity of an unimplemented SQL action.
 

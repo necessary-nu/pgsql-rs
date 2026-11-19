@@ -3,6 +3,7 @@
 
 require_relative '../../../scripts/extract_pg_types'
 require 'optparse'
+require 'open3'
 
 write = false
 OptionParser.new { |opts| opts.on('--write') { write = true } }.parse!
@@ -18,9 +19,18 @@ output = rows.map do |r|
   %(    Builtin { oid: #{r[:oid]}, name: "#{r[:typname]}", kind: b'#{r[:typtype]}', array_oid: #{r[:typarray]}, collatable: #{r[:typcollation].to_i != 0} },)
 end
 content = "&[\n#{output.join("\n")}\n]\n"
-dest = File.expand_path('../../../crates/pg19-plpgsql/data/types.in', __dir__)
-if write
-  File.write(dest, content)
-elsif File.read(dest) != content
-  abort "PG19 pg_type differs from #{dest}"
+source = File.join(ARGV[0], 'patched-source/src')
+plerrcodes, status = Open3.capture2('perl', File.join(source, 'pl/plpgsql/src/generate-plerrcodes.pl'),
+                                    File.join(source, 'backend/utils/errcodes.txt'))
+abort 'could not generate PG19 PL/pgSQL error conditions' unless status.success?
+conditions = plerrcodes.scan(/"([a-z_0-9]+)", ERRCODE_/).flatten.sort
+abort 'missing condition names' unless conditions.size == plerrcodes.scan(/ERRCODE_/).size && !conditions.empty?
+files = { 'types.in' => content, 'conditions.in' => "&[\n#{conditions.map { |name| %(    "#{name}",) }.join("\n")}\n]\n" }
+files.each do |name, generated|
+  dest = File.expand_path("../../../crates/pg19-plpgsql/data/#{name}", __dir__)
+  if write
+    File.write(dest, generated)
+  elsif File.read(dest) != generated
+    abort "PG19 catalog differs from #{dest}"
+  end
 end
