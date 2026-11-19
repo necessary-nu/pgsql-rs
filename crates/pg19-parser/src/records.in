@@ -7077,7 +7077,7 @@ pub(super) const ACTIONS: &[Action] = &[
             AlterObjectDependsStmt {
                 object_type: ObjectType::OBJECT_FUNCTION,
                 object: optional_node(rhs.take(3))?,
-                extname: optional_text(Value::Node(Node::String(rhs.take(8).text()?)))?,
+                extname: Some(rhs.take(8).text()?),
                 remove: rhs.take(4).integer()? != 0,
                 ..Default::default()
             }
@@ -7090,7 +7090,7 @@ pub(super) const ACTIONS: &[Action] = &[
             AlterObjectDependsStmt {
                 object_type: ObjectType::OBJECT_PROCEDURE,
                 object: optional_node(rhs.take(3))?,
-                extname: optional_text(Value::Node(Node::String(rhs.take(8).text()?)))?,
+                extname: Some(rhs.take(8).text()?),
                 remove: rhs.take(4).integer()? != 0,
                 ..Default::default()
             }
@@ -7103,7 +7103,7 @@ pub(super) const ACTIONS: &[Action] = &[
             AlterObjectDependsStmt {
                 object_type: ObjectType::OBJECT_ROUTINE,
                 object: optional_node(rhs.take(3))?,
-                extname: optional_text(Value::Node(Node::String(rhs.take(8).text()?)))?,
+                extname: Some(rhs.take(8).text()?),
                 remove: rhs.take(4).integer()? != 0,
                 ..Default::default()
             }
@@ -7117,7 +7117,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 object_type: ObjectType::OBJECT_TRIGGER,
                 relation: record!(rhs.take(5), RangeVar),
                 object: optional_node(Value::List(vec![Node::String(rhs.take(3).text()?)]))?,
-                extname: optional_text(Value::Node(Node::String(rhs.take(10).text()?)))?,
+                extname: Some(rhs.take(10).text()?),
                 remove: rhs.take(6).integer()? != 0,
             }
             .into(),
@@ -7129,7 +7129,7 @@ pub(super) const ACTIONS: &[Action] = &[
             AlterObjectDependsStmt {
                 object_type: ObjectType::OBJECT_MATVIEW,
                 relation: record!(rhs.take(4), RangeVar),
-                extname: optional_text(Value::Node(Node::String(rhs.take(9).text()?)))?,
+                extname: Some(rhs.take(9).text()?),
                 remove: rhs.take(5).integer()? != 0,
                 ..Default::default()
             }
@@ -7142,7 +7142,7 @@ pub(super) const ACTIONS: &[Action] = &[
             AlterObjectDependsStmt {
                 object_type: ObjectType::OBJECT_INDEX,
                 relation: record!(rhs.take(3), RangeVar),
-                extname: optional_text(Value::Node(Node::String(rhs.take(8).text()?)))?,
+                extname: Some(rhs.take(8).text()?),
                 remove: rhs.take(4).integer()? != 0,
                 ..Default::default()
             }
