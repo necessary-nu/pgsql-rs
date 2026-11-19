@@ -7,10 +7,32 @@ macro_rules! child {
             $visit(RawRef::List(&$field));
         }
     };
+    (shared, $visit:expr, $field:expr) => {
+        child!(ptr, $visit, $field)
+    };
     (ptr, $visit:expr, $field:expr) => {
         if let Some(n) = $field.as_deref() {
             $visit(n.into());
         }
+    };
+}
+
+macro_rules! mutable_child {
+    (list, $field:expr) => {
+        if $field.is_empty() {
+            None
+        } else {
+            Some(RawMut::List(&mut $field))
+        }
+    };
+    (ptr, $field:expr) => {
+        $field.as_deref_mut().map(RawMut::from)
+    };
+    (shared, $field:expr) => {
+        $field
+            .as_mut()
+            .map(std::sync::Arc::make_mut)
+            .map(RawMut::from)
     };
 }
 
@@ -35,6 +57,46 @@ macro_rules! raw_records {
                     Node::AConst(v) => Self::Constant(v),
                     $(Node::$record(v) => Self::$record(v),)*
                     _ => Self::Leaf,
+                }
+            }
+        }
+
+        pub(crate) enum RawMut<'a> {
+            List(&'a mut [Node]),
+            Leaf,
+            $($record(&'a mut $record),)*
+        }
+
+        $(impl<'a> From<&'a mut $record> for RawMut<'a> {
+            fn from(n: &'a mut $record) -> Self { Self::$record(n) }
+        })*
+
+        impl<'a> From<&'a mut Node> for RawMut<'a> {
+            fn from(n: &'a mut Node) -> Self {
+                match n {
+                    Node::List(v) => Self::List(v),
+                    $(Node::$record(v) => Self::$record(v),)*
+                    _ => Self::Leaf,
+                }
+            }
+        }
+
+        impl<'a> RawMut<'a> {
+            pub(crate) fn child_at(self, index: usize) -> Option<Self> {
+                match self {
+                    Self::List(items) => items.get_mut(index).map(Self::from),
+                    $(Self::$record(n) => {
+                        let _ = &n;
+                        #[allow(unused_mut, unused_variables)]
+                        let mut next=0;
+                        $(if let Some(child)=mutable_child!($kind,n.$field) {
+                            if next==index {return Some(child);}
+                            next+=1;
+                        })*
+                        let _ = next;
+                        None
+                    },)*
+                    Self::Leaf => None
                 }
             }
         }
@@ -66,6 +128,12 @@ include!("raw_walk.in");
 
 impl<'a> From<&'a Query> for RawRef<'a> {
     fn from(_: &'a Query) -> Self {
+        Self::Leaf
+    }
+}
+
+impl<'a> From<&'a mut Query> for RawMut<'a> {
+    fn from(_: &'a mut Query) -> Self {
         Self::Leaf
     }
 }

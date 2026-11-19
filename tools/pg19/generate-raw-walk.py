@@ -61,7 +61,9 @@ def generate(source):
             key, ty = members[field]
             if ty == "Vec<Node>":
                 children.append(f"list {key}")
-            elif re.fullmatch(r"Option<(Arc|NodeBox|Box)<\w+>>", ty):
+            elif ty == "Option<Arc<Node>>":
+                children.append(f"shared {key}")
+            elif re.fullmatch(r"Option<(NodeBox|Box)<\w+>>", ty):
                 children.append(f"ptr {key}")
             else:
                 raise ValueError(f"unsupported {pg}.{field} type {ty}")

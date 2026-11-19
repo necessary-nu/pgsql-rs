@@ -143,7 +143,7 @@ raw_records! {
     MergeSupportFunc {  }
     MergeWhenClause { ptr condition, list target_list, list values }
     MinMaxExpr { list args }
-    MultiAssignRef { ptr source }
+    MultiAssignRef { shared source }
     NamedArgExpr { ptr arg }
     NotifyStmt {  }
     NullTest { ptr arg }

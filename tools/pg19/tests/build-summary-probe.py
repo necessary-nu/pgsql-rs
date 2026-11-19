@@ -26,6 +26,8 @@ def build(run, work):
             raise ValueError(f"PG19 lacks a summary statement handler's tag: {tag}")
     unused = re.sub(r"^\s*case T_(\w+):$", lambda m: m[0] if m[1] in tags else "", unused, flags=re.M)
     (work / "statements.c").write_text(handler + "All the cases below here" + unused)
+    subprocess.run(["patch", "--silent", "-o", str(work / "deparse.c"),
+                    str(ROOT / "src/postgres_deparse.c"), str(HERE / "summary-deparse-pg19.patch")], check=True)
     subprocess.run(["make", "-s", "-j4", "-C", build / "backend", "-f", "Makefile", "-f",
                     HERE / "summary-probe.mk", f"repo={ROOT}", f"work={work}", work / "summary-probe"], check=True)
 

@@ -13,5 +13,9 @@ $(work)/mini.o: $(repo)/protobuf/pg_query.upb_minitable.c
 	$(COMPILE.c) $(summary_flags) $< -o $@
 $(work)/utf8.o: $(repo)/vendor/upb/third_party/utf8_range/utf8_range.c
 	$(COMPILE.c) $(summary_flags) $< -o $@
-$(work)/summary-probe: $(OBJS) $(work)/probe.o $(work)/statements.o $(work)/supports.o $(work)/upb.o $(work)/mini.o $(work)/utf8.o
+$(work)/deparse.o: $(work)/deparse.c
+	$(COMPILE.c) $(summary_flags) -Wno-shadow -Wno-unused-variable -Wno-switch $< -o $@
+$(work)/truncate.o: $(repo)/src/pg_query_summary_truncate.c
+	$(COMPILE.c) $(summary_flags) $< -o $@
+$(work)/summary-probe: $(OBJS) $(work)/probe.o $(work)/statements.o $(work)/supports.o $(work)/upb.o $(work)/mini.o $(work)/utf8.o $(work)/truncate.o $(work)/deparse.o
 	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) -Wl,--wrap=main,--gc-sections $(LIBS) -o $@
