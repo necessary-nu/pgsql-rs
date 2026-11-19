@@ -47,10 +47,10 @@ fn agrees_with_reference_snapshots() -> Result<(), Box<dyn Error>> {
         let mut fields = row.split_ascii_whitespace();
         let name = fields.next().ok_or("empty fixture name")?;
         let args: Vec<_> = fields.collect();
+        let (flags, trailing) = args.as_chunks::<2>();
+        assert!(trailing.is_empty(), "incomplete fixture flags for {name}");
         let options = Options {
-            disable_backslash_quote: args
-                .chunks_exact(2)
-                .any(|pair| pair == ["--backslash-quote", "off"]),
+            disable_backslash_quote: flags.contains(&["--backslash-quote", "off"]),
         };
         let sql = fs::read_to_string(dir.join(format!("{name}.sql")))?;
         let expected =

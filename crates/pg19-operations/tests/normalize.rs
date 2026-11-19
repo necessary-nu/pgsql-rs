@@ -31,15 +31,19 @@ fn original_c_normalization_vectors() {
             .filter(|s| s.starts_with('"'))
             .map(|s| serde_json::from_str(s.trim_end_matches(',')).unwrap())
             .collect();
-        assert_eq!(strings.len() % 2, 0);
-        for pair in strings.chunks_exact(2) {
+        let (pairs, trailing) = strings.as_chunks::<2>();
+        assert!(
+            trailing.is_empty(),
+            "normalization fixture needs an expected result"
+        );
+        for [input, expected] in pairs {
             let got = if utility {
-                normalize_utility(&pair[0])
+                normalize_utility(input)
             } else {
-                normalize(&pair[0])
+                normalize(input)
             };
-            if got.as_ref().ok() != Some(&pair[1]) {
-                failures.push(format!("{}: {got:?} vs {:?}", pair[0], pair[1]));
+            if got.as_ref().ok() != Some(expected) {
+                failures.push(format!("{input}: {got:?} vs {expected:?}"));
             }
         }
     }
