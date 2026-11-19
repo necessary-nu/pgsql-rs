@@ -1,4 +1,8 @@
 //! PostgreSQL utility grammar actions and their shared relation-name reductions.
+pub(crate) mod access;
+mod copy;
+mod partition;
+
 use super::{value::Value, Failure};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
@@ -10,6 +14,15 @@ pub(super) enum Utility {
     VacuumLegacy,
     ExplainAnalyze,
     NegativeFloat,
+    PartitionSpec,
+    HashBound,
+    AlterPartition(AlterTableType, bool),
+    Reindex { relation: bool, schema: bool },
+    AllColumns(isize),
+    Copy(bool),
+    Grant(bool, bool),
+    Target(GrantTargetType, ObjectType, isize),
+    RoleOption,
     NamedRole,
     RoleId,
     Qualified(bool),
@@ -168,6 +181,47 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             };
             Err(Failure::At(message, "42939", rhs.location(1)))
         }
+        Utility::Target(kind, object_type, index) => {
+            Ok(Value::PrivilegeTarget(access::PrivilegeTarget {
+                kind,
+                object_type,
+                objects: rhs.take(index).list()?,
+            }))
+        }
+        Utility::Grant(grant, for_option) => access::grant(rhs, grant, for_option),
+        Utility::RoleOption => access::role_option(rhs),
+        Utility::Reindex { relation, schema } => {
+            let kind = if schema {
+                ReindexObjectType::REINDEX_OBJECT_SCHEMA
+            } else {
+                ReindexObjectType(rhs.take(3).integer()?)
+            };
+            let (relation, name) = if relation {
+                (record!(rhs.take(5), RangeVar), None)
+            } else {
+                (None, optional_text(rhs.take(5))?)
+            };
+            let mut params = rhs.take(2).list()?;
+            params.extend(flag_options(rhs, &[(4, "concurrently")])?);
+            Ok(Value::Node(
+                ReindexStmt {
+                    kind,
+                    relation,
+                    name,
+                    params,
+                }
+                .into(),
+            ))
+        }
+        Utility::AllColumns(index) => Ok(Value::List(vec![AccessPriv {
+            priv_name: None,
+            cols: rhs.take(index).list()?,
+        }
+        .into()])),
+        Utility::PartitionSpec => partition::spec(rhs),
+        Utility::HashBound => partition::hash_bound(rhs),
+        Utility::AlterPartition(subtype, bound) => partition::alter(rhs, subtype, bound),
+        Utility::Copy(query) => copy::copy(rhs, query),
         Utility::NegativeFloat => {
             let text = rhs.take(2).text()?;
             let digits = text.strip_prefix('+').unwrap_or(&text);

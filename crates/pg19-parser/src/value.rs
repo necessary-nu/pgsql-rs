@@ -9,6 +9,7 @@ pub(crate) enum Value {
     Node(Node),
     List(Vec<Node>),
     Statements(StatementList),
+    PrivilegeTarget(crate::utility::access::PrivilegeTarget),
     Quantifier(Quantifier),
     Group(Vec<Node>, bool),
 }
