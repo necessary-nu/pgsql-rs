@@ -116,3 +116,15 @@ every case, including cases that reach an unmapped action. For completed
 parses it also compares the complete tree or diagnostic. Exit status 0 means
 all outcomes matched, 1 reports differences and 2 reports incomplete action
 coverage. To inspect one case, pass its SQL and probe flags to the example.
+
+
+Run the compact deparser over default-mode corpus cases and compare reparses with
+the patched PG19 C JSON probe. The report counts unsupported statements and
+native parser errors separately. The command exits with an error if a rendered
+statement changes its PG19 tree or cannot be reparsed.
+
+```sh
+cargo build -p pg19-operations --example deparse-corpus
+python3 tools/pg19/regress/deparse.py "$corpus/cases.jsonl" \
+  target/debug/examples/deparse-corpus "$json_probe" "$corpus/deparse-mismatches.jsonl"
+```
