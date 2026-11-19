@@ -206,9 +206,11 @@ fn one(
             Step::Statement(Node::DeleteStmt(s)) => super::dml::delete(s, &mut plan)?,
             Step::Statement(Node::MergeStmt(s)) => super::dml::merge(s, &mut plan)?,
             Step::Statement(n) => {
-                let mut sql = String::new();
-                super::render(&mut sql, n)?;
-                out.text(&sql);
+                if !super::ddl::statement(n, &mut plan)? {
+                    let mut sql = String::new();
+                    super::render(&mut sql, n)?;
+                    out.text(&sql);
+                }
             }
         }
         pending.extend(plan.0.drain(..).rev());

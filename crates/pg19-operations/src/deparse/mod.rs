@@ -1,5 +1,6 @@
 //! SQL rendering for PostgreSQL 19 raw statement trees.
 mod comments;
+mod ddl;
 mod dml;
 mod expr;
 mod format;
