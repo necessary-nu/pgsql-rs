@@ -50,5 +50,19 @@ when a production or its upstream C action changes.
 runs the Rust tests. `python3 tools/pg19/tests/check-fixtures.py` checks
 stored outcomes and token boundaries without building the probes. CI also
 rebuilds both references when their inputs change. To run the full build through Cargo's test
-runner, use `cargo test --workspace -- --ignored`. Set `PG19_ARCHIVE` to an
+runner, use `cargo test -p pg19-reference --test reference -- --ignored`. Set `PG19_ARCHIVE` to an
 already downloaded archive for an offline run.
+
+The native Rust scanner uses the Flex transitions from the patched build and
+the release token and keyword catalogs. To verify the checked-in tables and
+compare token IDs, byte spans and diagnostics across UTF-8 regression SQL
+files, reuse a completed import.
+
+```sh
+python3 tools/pg19/import-lexer.py --check "$run"
+PG19_REFERENCE_DIR="$run" cargo test -p pg19-lexer --test scan -- --ignored
+```
+
+Omit `--check` to regenerate the scanner data. The importer pins the hashes of
+`scan.l` and `parser.c` so a change to lexical actions or grammar lookahead
+requires reviewing their Rust implementations alongside the generated data.

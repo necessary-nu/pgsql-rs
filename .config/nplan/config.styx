@@ -25,3 +25,8 @@ platforms (
 )
 commit {type-prefix "required"}
 adoption {scope "porting"}
+quality {
+    // Cargo integration tests in tests/ cover the library in src/.
+    test-footprint {scope "crate"}
+    exempt-paths ("crates/pg19-lexer/data/catalog.rs")
+}
