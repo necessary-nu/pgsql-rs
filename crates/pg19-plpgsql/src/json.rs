@@ -1,4 +1,4 @@
-use crate::{Block, DataType, Datum, Expression, ForSource, ParseMode, Statement};
+use crate::{Block, CursorQuery, DataType, Datum, Expression, ForSource, ParseMode, Statement};
 use serde_json::{json, Value};
 
 fn expression(e: &Expression) -> Value {
@@ -43,6 +43,22 @@ pub fn datum(d: &Datum, id: usize) -> Value {
                     json!({"PLpgSQL_rec":v})
                 }
             }
+        }
+        Datum::Cursor {
+            variable,
+            query,
+            args,
+            options,
+        } => {
+            let mut v = datum(&Datum::Variable(variable.clone()), id);
+            let cursor = &mut v["PLpgSQL_var"];
+            cursor["cursor_explicit_expr"] = expression(query);
+            let arg = args.map_or(-1, |id| id as i32);
+            if arg != 0 {
+                cursor["cursor_explicit_argrow"] = json!(arg);
+            }
+            cursor["cursor_options"] = json!(options);
+            v
         }
         Datum::Promise { variable, promise } => {
             let mut v = datum(&Datum::Variable(variable.clone()), id);
@@ -113,8 +129,39 @@ fn optional_expr(v: &mut Value, name: &str, e: &Option<Expression>) {
     }
 }
 
+fn open_cursor(lineno: usize, cursor: usize, options: i32, query: &CursorQuery) -> Value {
+    let mut v = json!({"lineno":lineno,"cursor_options":options});
+    if cursor > 0 {
+        v["curvar"] = json!(cursor);
+    }
+    match query {
+        CursorQuery::Bound(arg) => optional_expr(&mut v, "argquery", arg),
+        CursorQuery::Static(query) => v["query"] = expression(query),
+        CursorQuery::Dynamic(query, params) => {
+            v["dynquery"] = expression(query);
+            if !params.is_empty() {
+                v["params"] = params.iter().map(expression).collect();
+            }
+        }
+    }
+    json!({"PLpgSQL_stmt_open":v})
+}
+
 fn statement(s: &Statement) -> Value {
     match s {
+        Statement::Close { lineno, cursor } => {
+            let mut v = json!({"lineno":lineno});
+            if *cursor > 0 {
+                v["curvar"] = json!(cursor);
+            }
+            json!({"PLpgSQL_stmt_close":v})
+        }
+        Statement::Open {
+            lineno,
+            cursor,
+            options,
+            query,
+        } => open_cursor(*lineno, *cursor, *options, query),
         Statement::If {
             lineno,
             condition,
