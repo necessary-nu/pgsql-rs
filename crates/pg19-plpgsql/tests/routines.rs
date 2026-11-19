@@ -216,3 +216,14 @@ fn native_entrypoint_matches_upstream_routines() {
     let reference = std::path::PathBuf::from(std::env::var_os("PG19_REFERENCE_DIR").unwrap());
     check_native_routine_cases(Some(&reference.join("patched-source")));
 }
+
+#[test]
+fn native_entrypoint_matches_the_complete_project_sample() {
+    let expected: Vec<Value> =
+        serde_json::from_str(include_str!("../../../test/plpgsql_samples.expected.json")).unwrap();
+    let sql = include_str!("../../../test/plpgsql_samples.sql");
+    assert_eq!(
+        outcome(parse_routines(sql, Options::default())),
+        json!({"functions":expected,"error":null})
+    );
+}

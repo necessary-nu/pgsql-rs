@@ -22,7 +22,7 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         );
         let target = if !record && s.peek_raw(0)?.id == 44 {
             s.push_back(t.clone());
-            Some(Box::new(self.read_into_target(s)?))
+            Some(Box::new(self.read_into_target(s, false)?))
         } else {
             None
         };
@@ -233,7 +233,7 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         loop {
             match end {
                 token::K_INTO if target.is_none() => {
-                    target = Some(Box::new(self.read_into_target(s)?));
+                    target = Some(Box::new(self.read_into_target(s, true)?));
                     end = s.next_token(self)?.id;
                 }
                 token::K_USING if params.is_empty() => loop {

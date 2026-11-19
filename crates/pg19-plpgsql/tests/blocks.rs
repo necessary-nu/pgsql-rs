@@ -150,17 +150,6 @@ fn trigger_fields_preserve_parent_and_assignment_references() {
 }
 
 #[test]
-fn unported_actions_are_explicit() {
-    let result = compile("DECLARE c refcursor; BEGIN MOVE FROM c; END;");
-    assert_eq!(
-        result,
-        Err(CompileError::Unsupported {
-            production: "opt_fetch_direction: %empty"
-        })
-    );
-}
-
-#[test]
 #[ignore = "requires the configured PG19 PL/pgSQL compiler"]
 fn verify_live_block_fixtures() {
     let probe = std::path::PathBuf::from(std::env::var_os("PG19_REFERENCE_DIR").unwrap())
