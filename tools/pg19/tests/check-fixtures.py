@@ -38,6 +38,22 @@ def check_fixture(path, flavor):
         assert parse_error["position"] == sql.index(")") + 1
         assert result["scan_error"] is None
 
+    if path.stem in ("assign1", "assign2", "assign3"):
+        assert "{PLASSIGNSTMT :name v " in result["tree"]
+        assert f" :nnames {path.stem[-1]} " in result["tree"]
+    if path.stem == "expr":
+        assert "{NULLTEST :arg {COLUMNREF" in result["tree"]
+    if path.stem == "type-name":
+        assert result["tree"].startswith('({TYPENAME :names ("pg_catalog" "varchar")')
+        assert ":typmods ({A_CONST :val 32 " in result["tree"]
+    if path.stem == "quote-off":
+        assert result["scan_error"] == parse_error
+        assert parse_error["sqlstate"] == "22P06"
+        assert parse_error["position"] == sql.index("E'") + 1
+    if path.stem in ("quote-on", "quote-safe"):
+        assert parse_error is None and result["scan_error"] is None
+        assert "{A_CONST :val \"it's\"" in result["tree"]
+
 
 if __name__ == "__main__":
     fixtures = Path(__file__).resolve().parents[1] / "fixtures"

@@ -28,8 +28,18 @@ input or recheck an existing build.
 ```sh
 "$run/stock/probe" 'SET ROLE $1;'
 "$run/patched/probe" 'SET ROLE $1;'
+"$run/patched/probe" 'character varying(32)' --mode type-name
+"$run/stock/probe" 'v.x := 1' --mode plpgsql-assign2 --backslash-quote off
 cargo run -p pg19-reference -- compare "$run"
 ```
+
+Pass the SQL as the first argument, including when it starts with a dash.
+The optional `--mode` selects `default`, `type-name`, `plpgsql-expr`,
+`plpgsql-assign1`, `plpgsql-assign2` or `plpgsql-assign3`. Assignment
+modes specify how many dotted name components form the target. The optional
+`--backslash-quote` selects `off`, `on` or `safe_encoding` (also `safe`) for
+both parsing and scanning. Each invocation runs in its own process. The
+defaults are ordinary SQL mode and `safe_encoding` with UTF-8 input.
 
 Each probe emits JSON. The tree is PostgreSQL's raw node serialization with
 locations. Tokens include the build-specific numeric ID, symbolic name and
@@ -38,7 +48,8 @@ carry SQLSTATE, message and PostgreSQL's character-based cursor position.
 The probes run parsing and scanning independently, so a parse error can
 still have a complete token stream.
 
-The sorted inventory in `fixtures/cases.txt` names the required inputs.
+The sorted inventory in `fixtures/cases.txt` lists each input name followed
+by the optional probe arguments for that case.
 Each `fixtures/*.sql` has a checked-in `.stock.json` and `.patched.json`.
 The checker passes the file contents, including the final newline, to each
 probe. When upgrading, change the release and digest, rebase the overlay,

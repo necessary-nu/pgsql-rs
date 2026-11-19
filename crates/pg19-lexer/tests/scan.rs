@@ -1,12 +1,12 @@
 use std::{error::Error, fs, path::Path, process::Command};
 
-use pg19_lexer::{KeywordKind, Kind, Scanner, Value};
+use pg19_lexer::{KeywordKind, Kind, Options, Scanner, Value};
 use serde_json::{json, Value as Json};
 
-fn check_tokens(sql: &str, expected: &Json) {
+fn check_tokens(sql: &str, expected: &Json, options: Options) {
     let mut observed = Vec::new();
     let mut err = Json::Null;
-    for token in Scanner::new(sql) {
+    for token in Scanner::with_options(sql, options) {
         match token {
             Ok(t) => observed.push(
                 json!({"id":t.kind.id(), "name":t.kind.name(), "start":t.start, "end":t.end}),
@@ -43,11 +43,19 @@ fn grammar(sql: &str) -> Vec<pg19_lexer::Token> {
 #[test]
 fn agrees_with_reference_snapshots() -> Result<(), Box<dyn Error>> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/pg19/fixtures");
-    for name in fs::read_to_string(dir.join("cases.txt"))?.lines() {
+    for row in fs::read_to_string(dir.join("cases.txt"))?.lines() {
+        let mut fields = row.split_ascii_whitespace();
+        let name = fields.next().ok_or("empty fixture name")?;
+        let args: Vec<_> = fields.collect();
+        let options = Options {
+            disable_backslash_quote: args
+                .chunks_exact(2)
+                .any(|pair| pair == ["--backslash-quote", "off"]),
+        };
         let sql = fs::read_to_string(dir.join(format!("{name}.sql")))?;
         let expected =
             serde_json::from_slice(&fs::read(dir.join(format!("{name}.patched.json")))?)?;
-        check_tokens(&sql, &expected);
+        check_tokens(&sql, &expected, options);
     }
     Ok(())
 }
@@ -188,7 +196,7 @@ fn matches_regression_sql_token_streams() -> Result<(), Box<dyn Error>> {
             );
             let expected = serde_json::from_slice(&out.stdout)?;
             eprintln!("{} byte {start}", path.display());
-            check_tokens(chunk, &expected);
+            check_tokens(chunk, &expected, Options::default());
             checked += 1;
             start = end;
         }

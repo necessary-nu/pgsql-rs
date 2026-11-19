@@ -36,12 +36,12 @@ append_error(StringInfo out)
 }
 
 static void
-append_parse_result(StringInfo out, const char *sql)
+append_parse_result(StringInfo out, const char *sql, RawParseMode mode)
 {
 	appendStringInfoString(out, "\"tree\":");
 	PG_TRY();
 	{
-		List	   *tree = raw_parser(sql, RAW_PARSE_DEFAULT);
+		List	   *tree = raw_parser(sql, mode);
 
 		escape_json(out, nodeToStringWithLocations(tree));
 		appendStringInfoString(out, ",\"parse_error\":null");
@@ -92,6 +92,49 @@ append_tokens(StringInfo out, const char *sql)
 	scanner_finish(scanner);
 }
 
+/* Each invocation owns its backend globals. Both scanner_init calls copy
+ * backslash_quote, including the scanner created inside raw_parser. */
+static bool
+read_options(int argc, char **argv, RawParseMode *mode)
+{
+	static const struct
+	{
+		const char *option;
+		const char *name;
+		int			value;
+	} choices[] = {
+		{"--mode", "default", RAW_PARSE_DEFAULT},
+		{"--mode", "type-name", RAW_PARSE_TYPE_NAME},
+		{"--mode", "plpgsql-expr", RAW_PARSE_PLPGSQL_EXPR},
+		{"--mode", "plpgsql-assign1", RAW_PARSE_PLPGSQL_ASSIGN1},
+		{"--mode", "plpgsql-assign2", RAW_PARSE_PLPGSQL_ASSIGN2},
+		{"--mode", "plpgsql-assign3", RAW_PARSE_PLPGSQL_ASSIGN3},
+		{"--backslash-quote", "off", BACKSLASH_QUOTE_OFF},
+		{"--backslash-quote", "on", BACKSLASH_QUOTE_ON},
+		{"--backslash-quote", "safe_encoding", BACKSLASH_QUOTE_SAFE_ENCODING},
+		{"--backslash-quote", "safe", BACKSLASH_QUOTE_SAFE_ENCODING},
+	};
+
+	if (argc < 2 || argc % 2 != 0)
+		return false;
+	for (int i = 2; i < argc; i += 2)
+	{
+		size_t		j;
+
+		for (j = 0; j < lengthof(choices); j++)
+			if (strcmp(argv[i], choices[j].option) == 0 &&
+				strcmp(argv[i + 1], choices[j].name) == 0)
+				break;
+		if (j == lengthof(choices))
+			return false;
+		if (strcmp(argv[i], "--mode") == 0)
+			*mode = (RawParseMode) choices[j].value;
+		else
+			backslash_quote = choices[j].value;
+	}
+	return true;
+}
+
 /* The Linux linker redirects the backend entry point to this probe. */
 int __wrap_main(int argc, char **argv);
 
@@ -99,10 +142,11 @@ int
 __wrap_main(int argc, char **argv)
 {
 	StringInfo	out;
+	RawParseMode mode = RAW_PARSE_DEFAULT;
 
-	if (argc != 2)
+	if (!read_options(argc, argv, &mode))
 	{
-		fprintf(stderr, "usage: %s 'SQL'\n", argv[0]);
+		fprintf(stderr, "usage: %s 'SQL' [--mode MODE] [--backslash-quote POLICY]\n", argv[0]);
 		return 2;
 	}
 
@@ -116,7 +160,7 @@ __wrap_main(int argc, char **argv)
 	}
 	out = makeStringInfo();
 	appendStringInfoChar(out, '{');
-	append_parse_result(out, argv[1]);
+	append_parse_result(out, argv[1], mode);
 	appendStringInfoString(out, ",\"tokens\":[");
 	PG_TRY();
 	{

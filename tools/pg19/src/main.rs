@@ -132,18 +132,28 @@ fn build_probe(dir: &Path, archive: &Path, flavor: &str) -> Result<()> {
         .arg(dir.join(flavor)))
 }
 
-fn corpus_inputs() -> Result<Vec<PathBuf>> {
+struct CorpusCase {
+    input: PathBuf,
+    options: Vec<String>,
+}
+
+fn corpus_inputs() -> Result<Vec<CorpusCase>> {
     let dir = Path::new(TOOLS).join("fixtures");
-    let inputs = files_with_extension(&dir, "sql")?;
     let manifest = fs::read_to_string(dir.join("cases.txt"))?;
-    let expected: Vec<_> = manifest
-        .lines()
-        .map(|case| dir.join(format!("{case}.sql")))
-        .collect();
-    if inputs != expected {
+    let mut cases = Vec::new();
+    for line in manifest.lines() {
+        let mut fields = line.split_ascii_whitespace();
+        let name = fields.next().ok_or("empty fixture name in cases.txt")?;
+        cases.push(CorpusCase {
+            input: dir.join(format!("{name}.sql")),
+            options: fields.map(str::to_owned).collect(),
+        });
+    }
+    let inputs = files_with_extension(&dir, "sql")?;
+    if !inputs.iter().eq(cases.iter().map(|case| &case.input)) {
         return Err("SQL fixtures differ from the sorted inventory in fixtures/cases.txt".into());
     }
-    Ok(inputs)
+    Ok(cases)
 }
 
 // [spec:pgq:req:corpus.compare]
@@ -151,11 +161,12 @@ fn compare(dir: &Path) -> Result<()> {
     let inputs = corpus_inputs()?;
     for flavor in FLAVORS {
         let probe = dir.join(flavor).join("probe");
-        for input in &inputs {
-            let expected = input.with_extension(format!("{flavor}.json"));
-            let sql = fs::read_to_string(input)?;
+        for case in &inputs {
+            let expected = case.input.with_extension(format!("{flavor}.json"));
+            let sql = fs::read_to_string(&case.input)?;
             let output = Command::new(&probe)
                 .arg(sql)
+                .args(&case.options)
                 .env("LC_ALL", "C")
                 .stderr(Stdio::inherit())
                 .output()?;
@@ -163,7 +174,7 @@ fn compare(dir: &Path) -> Result<()> {
                 return Err(format!(
                     "{flavor} probe exited with {} on {}",
                     output.status,
-                    input.display()
+                    case.input.display()
                 )
                 .into());
             }
@@ -218,9 +229,12 @@ mod tests {
 
     #[test]
     fn all_registered_inputs_have_both_snapshots() -> Result<()> {
-        for path in corpus_inputs()? {
+        for case in corpus_inputs()? {
             for flavor in FLAVORS {
-                assert!(path.with_extension(format!("{flavor}.json")).is_file());
+                assert!(case
+                    .input
+                    .with_extension(format!("{flavor}.json"))
+                    .is_file());
             }
         }
         Ok(())

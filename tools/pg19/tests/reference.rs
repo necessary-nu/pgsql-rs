@@ -1,10 +1,34 @@
 use std::env;
 use std::error::Error;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+fn check_probe_options(probe: &Path) -> Result<()> {
+    let sql = r"SELECT E'it\'s'";
+    let default = Command::new(probe).arg(sql).output()?;
+    assert!(default.status.success());
+    for policy in ["safe", "safe_encoding", "on"] {
+        let explicit = Command::new(probe)
+            .args([sql, "--backslash-quote", policy, "--mode", "default"])
+            .output()?;
+        assert!(explicit.status.success());
+        assert_eq!(default.stdout, explicit.stdout);
+    }
+    for flags in [
+        &["--mode"][..],
+        &["--mode", "unknown"],
+        &["--backslash-quote", "unknown"],
+        &["--unknown", "off"],
+    ] {
+        let invalid = Command::new(probe).arg(sql).args(flags).output()?;
+        assert_eq!(invalid.status.code(), Some(2));
+        assert!(invalid.stdout.is_empty());
+    }
+    Ok(())
+}
 
 // [spec:pgq:req:import.release/test]
 // [spec:pgq:req:reference.overlay/test]
@@ -28,6 +52,9 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
     let status = command.status()?;
     assert!(status.success(), "inspect {}", parent.display());
     let run = fs::read_dir(&parent)?.next().expect("one import")?.path();
+    for flavor in ["stock", "patched"] {
+        check_probe_options(&run.join(flavor).join("probe"))?;
+    }
     let importer = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("import-lexer.py");
     assert!(Command::new("python3")
         .arg(importer)
