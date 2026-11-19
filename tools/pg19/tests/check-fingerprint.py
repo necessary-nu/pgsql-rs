@@ -15,7 +15,9 @@ def check(run, work):
     probe = work / "fingerprint-probe"
     subprocess.run(["make", "-s", "-C", run.resolve() / "patched/src/backend",
                     "-f", "Makefile", "-f", ROOT / "tools/pg19/tests/fingerprint-probe.mk",
-                    f"work={work}", f"repo={ROOT}", probe], check=True)
+                    f"work={work}", f"repo={ROOT}", probe, work / "normalize-probe"], check=True)
+    subprocess.run(["python3", ROOT / "tools/pg19/tests/check-normalize.py",
+                    work / "normalize-probe"], check=True)
     rows = (ROOT / "crates/pg19-operations/tests/fingerprint-v3.jsonl").read_text().splitlines()
     if not rows:
         raise ValueError("missing fingerprint vectors")

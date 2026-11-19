@@ -1,0 +1,98 @@
+// Generated from PostgreSQL nodeFuncs.c by tools/pg19/generate-raw-walk.py.
+raw_records! {
+    AArrayExpr { list elements }
+    AExpr { ptr lexpr, ptr rexpr }
+    AIndices { ptr lidx, ptr uidx }
+    AIndirection { ptr arg, list indirection }
+    AStar {  }
+    Alias {  }
+    AlterRoleStmt {  }
+    AlterSubscriptionStmt {  }
+    AlterUserMappingStmt {  }
+    BoolExpr { list args }
+    BooleanTest { ptr arg }
+    CallStmt {  }
+    CaseExpr { ptr arg, list args, ptr defresult }
+    CaseWhen { ptr expr, ptr result }
+    CoalesceExpr { list args }
+    CollateClause { ptr arg }
+    ColumnDef { ptr type_name, ptr raw_default, ptr coll_clause }
+    ColumnRef {  }
+    CommonTableExpr { ptr ctequery }
+    CopyStmt {  }
+    CreateFunctionStmt {  }
+    CreateRoleStmt {  }
+    CreateSubscriptionStmt {  }
+    CreateUserMappingStmt {  }
+    CurrentOfExpr {  }
+    DeclareCursorStmt {  }
+    DefElem {  }
+    DeleteStmt { ptr relation, list using_clause, ptr where_clause, ptr returning_clause, ptr with_clause }
+    DoStmt {  }
+    ExplainStmt {  }
+    FuncCall { list args, list agg_order, ptr agg_filter, ptr over }
+    GroupingFunc { list args }
+    GroupingSet { list content }
+    IndexElem { ptr expr }
+    InferClause { list index_elems, ptr where_clause }
+    InsertStmt { ptr relation, list cols, ptr select_stmt, ptr on_conflict_clause, ptr returning_clause, ptr with_clause }
+    IntoClause { ptr rel, ptr view_query }
+    JoinExpr { ptr larg, ptr rarg, ptr quals, ptr alias }
+    JsonAggConstructor { ptr output, list agg_order, ptr agg_filter, ptr over }
+    JsonArgument { ptr val }
+    JsonArrayAgg { ptr constructor, ptr arg }
+    JsonArrayConstructor { ptr output, list exprs }
+    JsonArrayQueryConstructor { ptr output, ptr query }
+    JsonBehavior { ptr expr }
+    JsonFormat {  }
+    JsonFuncExpr { ptr context_item, ptr pathspec, list passing, ptr output, ptr on_empty, ptr on_error }
+    JsonIsPredicate { ptr expr }
+    JsonKeyValue { ptr key, ptr value }
+    JsonObjectAgg { ptr constructor, ptr arg }
+    JsonObjectConstructor { ptr output, list exprs }
+    JsonOutput { ptr type_name, ptr returning }
+    JsonParseExpr { ptr expr, ptr output }
+    JsonReturning { ptr format }
+    JsonScalarExpr { ptr expr, ptr output }
+    JsonSerializeExpr { ptr expr, ptr output }
+    JsonTable { ptr context_item, ptr pathspec, list passing, list columns, ptr on_error }
+    JsonTableColumn { ptr type_name, ptr on_empty, ptr on_error, list columns }
+    JsonTablePathSpec { ptr string }
+    JsonValueExpr { ptr raw_expr, ptr formatted_expr, ptr format }
+    LockingClause { list locked_rels }
+    MergeStmt { ptr relation, ptr source_relation, ptr join_condition, list merge_when_clauses, ptr returning_clause, ptr with_clause }
+    MergeSupportFunc {  }
+    MergeWhenClause { ptr condition, list target_list, list values }
+    MinMaxExpr { list args }
+    MultiAssignRef { ptr source }
+    NamedArgExpr { ptr arg }
+    NotifyStmt {  }
+    NullTest { ptr arg }
+    OnConflictClause { ptr infer, list target_list, ptr where_clause }
+    PLAssignStmt { list indirection, ptr val }
+    ParamRef {  }
+    RangeFunction { list functions, ptr alias, list coldeflist }
+    RangeSubselect { ptr subquery, ptr alias }
+    RangeTableFunc { ptr docexpr, ptr rowexpr, list namespaces, list columns, ptr alias }
+    RangeTableFuncCol { ptr colexpr, ptr coldefexpr }
+    RangeTableSample { ptr relation, list args, ptr repeatable }
+    RangeVar { ptr alias }
+    RawStmt {  }
+    ResTarget { list indirection, ptr val }
+    ReturningClause { list options, list exprs }
+    ReturningOption {  }
+    RowExpr { list args }
+    SQLValueFunction {  }
+    SelectStmt { list distinct_clause, ptr into_clause, list target_list, list from_clause, ptr where_clause, list group_clause, ptr having_clause, list window_clause, list values_lists, list sort_clause, ptr limit_offset, ptr limit_count, list locking_clause, ptr with_clause, ptr larg, ptr rarg }
+    SetToDefault {  }
+    SortBy { ptr node }
+    SubLink { ptr testexpr, ptr subselect }
+    TypeCast { ptr arg, ptr type_name }
+    TypeName { list typmods, list array_bounds }
+    UpdateStmt { ptr relation, list target_list, ptr where_clause, list from_clause, ptr returning_clause, ptr with_clause }
+    VariableSetStmt {  }
+    WindowDef { list partition_clause, list order_clause, ptr start_offset, ptr end_offset }
+    WithClause { list ctes }
+    XmlExpr { list named_args, list args }
+    XmlSerialize { ptr expr, ptr type_name }
+}

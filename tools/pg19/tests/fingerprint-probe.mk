@@ -7,3 +7,12 @@ $(work)/xxhash.o: $(repo)/vendor/xxhash/xxhash.c $(repo)/vendor/xxhash/xxhash.h
 
 $(work)/fingerprint-probe: $(OBJS) $(work)/fingerprint-probe.o $(work)/xxhash.o
 	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) -Wl,--wrap=main,--gc-sections $(LIBS) -o $@
+
+$(work)/normalize-probe.o: $(repo)/tools/pg19/tests/normalize-probe.c $(repo)/src/pg_query_normalize.c
+	$(COMPILE.c) -fvisibility=hidden -ffunction-sections $(pgq_fingerprint_includes) $< -o $@
+
+$(work)/normalize-fingerprint.o: $(repo)/src/pg_query_fingerprint.c $(work)/src/include/pg_query_fingerprint_defs.c $(work)/src/include/pg_query_fingerprint_conds.c $(work)/src/include/pg_query_enum_defs.c
+	$(COMPILE.c) -fvisibility=hidden -ffunction-sections -Wno-unused-function $(pgq_fingerprint_includes) $< -o $@
+
+$(work)/normalize-probe: $(OBJS) $(work)/normalize-probe.o $(work)/normalize-fingerprint.o $(work)/xxhash.o
+	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) -Wl,--wrap=main,--gc-sections $(LIBS) -o $@

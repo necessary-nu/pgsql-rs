@@ -309,6 +309,12 @@ pub fn fingerprint_nodes(nodes: &[Node], options: FingerprintOptions) -> Fingerp
     Fingerprint(xxh3_64_with_seed(&w.stream, FINGERPRINT_VERSION))
 }
 
+pub(crate) fn fingerprint_node(node: &Node) -> u64 {
+    let mut w = Writer::new(FingerprintOptions::default());
+    node.emit(&mut w, Site::default());
+    xxh3_64_with_seed(&w.stream, FINGERPRINT_VERSION)
+}
+
 pub fn fingerprint_sql(
     sql: &str,
     mode: pg19_parser::ParseMode,

@@ -63,6 +63,7 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         .success());
     for generator in [
         "import-lexer.py",
+        "generate-raw-walk.py",
         "generate-tree-output.py",
         "../../crates/pg19-nodes/generate.py",
     ] {

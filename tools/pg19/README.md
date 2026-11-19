@@ -143,6 +143,13 @@ fixtures in `crates/pg19-operations/tests/fingerprint-v3.jsonl`. To inspect a
 digest, pipe SQL into `"$schema_dir/../fingerprint-probe" 0 0`.
 The arguments are the fingerprint option bits and PostgreSQL raw parse mode.
 
+Normalization uses the patched raw expression walker's field order. After an
+upstream update, run `python3 tools/pg19/generate-raw-walk.py "$run"` and
+review the ordered child fields alongside `src/pg_query_normalize.c`.
+The clean reference test runs the full and utility normalization fixtures
+against the C operation linked to PG19. The Rust tests exercise the same
+inputs through the native SQL parser.
+
 ## Comparing native Rust trees
 
 The reference tool's Rust library exposes `pg19_reference::node_text(&Node)`,
