@@ -233,7 +233,15 @@ children (
                         [spec:pgq:req:codec.errors-and-depth]
                     )
                 }
-                deps (parser.reduce codec.schema)
+                deps (parser.nodes parser.lexer codec.schema)
+                log (
+                    {
+                        at 2026-11-19T18:07:13.706820348Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
 
             {

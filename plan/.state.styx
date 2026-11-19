@@ -188,6 +188,17 @@ impl_evidence (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
     )}
+    {id codec.protobuf, covered_rules (
+        codec.errors-and-depth
+        codec.protobuf-schema
+        lex.token-results
+        tree.literal-variants
+    ), covered_claims (
+        {impl_name rust, rule codec.errors-and-depth}
+        {impl_name rust, rule codec.protobuf-schema}
+        {impl_name rust, rule lex.token-results}
+        {impl_name rust, rule tree.literal-variants}
+    )}
 )
 
 onboarding {kind @adopt, phase 11}
