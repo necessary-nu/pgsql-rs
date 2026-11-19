@@ -122,6 +122,10 @@ pub(super) fn statements(raw: &[RawStmt]) -> Result<String> {
             Step::Node(n, Role::Expr | Role::Restricted) => expr::expression(n, &mut plan)?,
             Step::Node(n, role) => query::item(n, role, &mut plan)?,
             Step::Statement(Node::SelectStmt(s)) => query::select(s, false, &mut plan)?,
+            Step::Statement(Node::InsertStmt(s)) => super::dml::insert(s, &mut plan)?,
+            Step::Statement(Node::UpdateStmt(s)) => super::dml::update(s, &mut plan)?,
+            Step::Statement(Node::DeleteStmt(s)) => super::dml::delete(s, &mut plan)?,
+            Step::Statement(Node::MergeStmt(s)) => super::dml::merge(s, &mut plan)?,
             Step::Statement(n) => super::render(&mut out, n)?,
         }
         pending.extend(plan.0.drain(..).rev());

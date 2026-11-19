@@ -19,7 +19,7 @@ pub(super) fn alias(a: &Alias) -> Result<String> {
     }
     Ok(s)
 }
-pub(super) fn relation(r: &RangeVar, p: &mut Plan<'_>) -> Result<()> {
+pub(super) fn relation(r: &RangeVar, p: &mut Plan<'_>, insert: bool) -> Result<()> {
     p.mark(r.location);
     if !r.inh {
         p.text("ONLY ");
@@ -30,7 +30,7 @@ pub(super) fn relation(r: &RangeVar, p: &mut Plan<'_>) -> Result<()> {
     }
     p.text(named(&r.relname, "RangeVar.relname")?);
     if let Some(a) = &r.alias {
-        p.text(" ");
+        p.text(if insert { " AS " } else { " " });
         p.text(alias(a)?);
     }
     Ok(())
@@ -86,7 +86,7 @@ fn join<'a>(j: &'a JoinExpr, p: &mut Plan<'a>) -> Result<()> {
 }
 fn from<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
     match n {
-        Node::RangeVar(r) => return relation(r, p),
+        Node::RangeVar(r) => return relation(r, p, false),
         Node::JoinExpr(j) => return join(j, p),
         Node::RangeSubselect(s) => {
             if s.lateral {
@@ -343,13 +343,7 @@ fn select_tail<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
         let Node::LockingClause(l) = lock else {
             return Err(Error::InvalidField("SelectStmt.lockingClause"));
         };
-        p.clause(match l.strength {
-            LockClauseStrength::LCS_FORUPDATE => "FOR UPDATE",
-            LockClauseStrength::LCS_FORNOKEYUPDATE => "FOR NO KEY UPDATE",
-            LockClauseStrength::LCS_FORSHARE => "FOR SHARE",
-            LockClauseStrength::LCS_FORKEYSHARE => "FOR KEY SHARE",
-            _ => return Err(Error::InvalidField("LockingClause.strength")),
-        });
+        p.clause(super::dml::lock_strength(l.strength)?);
         if !l.locked_rels.is_empty() {
             p.text(" OF ");
             p.list(&l.locked_rels, Role::From);

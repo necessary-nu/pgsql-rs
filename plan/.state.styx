@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T19:06:28.877090384Z
+last_sync_at 2026-11-19T19:37:12.361873316Z
 
 rule_versions (
     {id api.native, version 0}
@@ -140,6 +140,7 @@ impl_evidence (
     ), rule_versions_seen (
         {id codec.schema-import, version 0}
     )}
+    {id operations.deparse}
     {id operations.deparse-stream, covered_rules (
         deparse.stream
     ), covered_claims (
@@ -208,6 +209,8 @@ impl_evidence (
         grammar.expression-binding
     ), covered_claims (
         {impl_name rust, rule grammar.expression-binding}
+    ), rule_versions_seen (
+        {id grammar.expression-binding, version 0}
     )}
     {id parser.lexer, covered_rules (
         lex.byte-spans
