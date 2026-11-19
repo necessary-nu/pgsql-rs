@@ -1,0 +1,131 @@
+//! Function calls, aggregate clauses and sort items from PG19 gram.y.
+use super::{value::Value, Failure};
+use pg19_engine::Reduction;
+use pg19_nodes::*;
+
+pub(super) enum Call {
+    Name(bool),
+    Apply {
+        args: Option<isize>,
+        variadic: Option<isize>,
+        order: Option<isize>,
+        distinct: bool,
+        star: bool,
+    },
+    NamedArgument,
+    Aggregate,
+    Sort,
+    UsingSort,
+    NamedWindow,
+}
+
+fn function_name(qualified: bool, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    let mut names = vec![Node::String(rhs.take(1).text()?)];
+    if qualified {
+        let tail = rhs.take(2).list()?;
+        if tail.iter().any(|n| !matches!(n, Node::String(_))) {
+            return Err(Failure::Syntax("syntax error"));
+        }
+        names.extend(tail);
+    }
+    Ok(Value::List(names))
+}
+
+fn aggregate(rhs: &mut Reduction<'_, Value>) -> Result<Node, Failure> {
+    let Node::FuncCall(mut call) = rhs.take(1).node()? else {
+        return Err("expected FuncCall".into());
+    };
+    let within = rhs.take(2).list()?;
+    if !within.is_empty() {
+        let error = if !call.agg_order.is_empty() {
+            Some("cannot use multiple ORDER BY clauses with WITHIN GROUP")
+        } else if call.agg_distinct {
+            Some("cannot use DISTINCT with WITHIN GROUP")
+        } else if call.func_variadic {
+            Some("cannot use VARIADIC with WITHIN GROUP")
+        } else {
+            None
+        };
+        if let Some(message) = error {
+            return Err(Failure::At(message.into(), "42601", rhs.location(2)));
+        }
+        call.agg_order = within;
+        call.agg_within_group = true;
+    }
+    call.agg_filter = rhs.take(3).optional()?;
+    call.ignore_nulls = rhs.take(4).integer()?;
+    call.over = match rhs.take(5) {
+        Value::Empty => None,
+        Value::Node(Node::WindowDef(w)) => Some(w.into_box()),
+        _ => return Err("expected window definition".into()),
+    };
+    Ok(call.into())
+}
+
+pub(super) fn reduce(op: Call, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
+    let node = match op {
+        Call::Name(qualified) => return function_name(qualified, rhs),
+        Call::Apply {
+            args,
+            variadic,
+            order,
+            distinct,
+            star,
+        } => {
+            let mut args = args
+                .map(|n| rhs.take(n).list())
+                .transpose()?
+                .unwrap_or_default();
+            if let Some(n) = variadic {
+                args.push(rhs.take(n).node()?);
+            }
+            FuncCall {
+                funcname: rhs.take(1).list()?,
+                args,
+                agg_order: order
+                    .map(|n| rhs.take(n).list())
+                    .transpose()?
+                    .unwrap_or_default(),
+                agg_distinct: distinct,
+                agg_star: star,
+                func_variadic: variadic.is_some(),
+                funcformat: CoercionForm::COERCE_EXPLICIT_CALL,
+                location: rhs.location(1),
+                ..Default::default()
+            }
+            .into()
+        }
+        Call::NamedArgument => NamedArgExpr {
+            name: Some(rhs.take(1).text()?),
+            arg: Some(Box::new(rhs.take(3).node()?)),
+            argnumber: -1,
+            location: rhs.location(1),
+        }
+        .into(),
+        Call::Aggregate => aggregate(rhs)?,
+        Call::Sort => SortBy {
+            node: Some(Box::new(rhs.take(1).node()?)),
+            sortby_dir: SortByDir(rhs.take(2).integer()?),
+            sortby_nulls: SortByNulls(rhs.take(3).integer()?),
+            location: Location::UNKNOWN,
+            ..Default::default()
+        }
+        .into(),
+        Call::UsingSort => SortBy {
+            node: Some(Box::new(rhs.take(1).node()?)),
+            sortby_dir: SortByDir::SORTBY_USING,
+            sortby_nulls: SortByNulls(rhs.take(4).integer()?),
+            use_op: rhs.take(3).list()?,
+            location: rhs.location(3),
+        }
+        .into(),
+        Call::NamedWindow => WindowDef {
+            name: Some(rhs.take(2).text()?),
+            frame_options: 0x2 | 0x20 | 0x400,
+            location: rhs.location(2),
+            ..Default::default()
+        }
+        .into(),
+    };
+    Ok(Value::Node(node))
+}

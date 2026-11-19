@@ -29,7 +29,12 @@ fn expression_trees_match_patched_postgres() {
 
 #[test]
 fn unsupported_actions_report_the_upstream_rule() {
-    let error = parse("SELECT count(*)", ParseMode::Sql, Options::default()).unwrap_err();
+    let error = parse(
+        "SELECT CASE WHEN x THEN y END",
+        ParseMode::Sql,
+        Options::default(),
+    )
+    .unwrap_err();
     let Error::Unmapped(rule) = error else {
         panic!("{error}")
     };

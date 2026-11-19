@@ -1,6 +1,8 @@
 //! Native semantic actions for the patched PostgreSQL 19 grammar.
 #![forbid(unsafe_code)]
+mod call;
 mod expr;
+mod from;
 mod query;
 mod utility;
 mod value;
@@ -52,6 +54,9 @@ impl From<&'static str> for Failure {
 enum Op {
     Generated(fn(&mut Reduction<'_, Value>) -> Result<Value, Failure>),
     Take(isize),
+    Integer(i32),
+    Call(call::Call),
+    From(from::From),
     Empty,
     Nil,
     Single,
@@ -85,6 +90,9 @@ impl Actions for Parser<'_> {
             Ok(match op {
                 Op::Generated(handler) => handler(rhs)?,
                 Op::Take(i) => rhs.take(i),
+                Op::Integer(v) => Value::Integer(v),
+                Op::Call(op) => call::reduce(op, rhs)?,
+                Op::From(op) => from::reduce(op, rhs)?,
                 Op::Empty => Value::Empty,
                 Op::Nil => Value::List(Vec::new()),
                 Op::Single => Value::List(vec![rhs.take(1).node()?]),
