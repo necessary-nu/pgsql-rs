@@ -8948,6 +8948,28 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // TableFuncElement: ColId Typename opt_collate_clause
+    |rhs| {
+        Ok(Value::Node(
+            ColumnDef {
+                colname: optional_text(rhs.take(1))?,
+                type_name: record!(rhs.take(2), TypeName),
+                inhcount: 0,
+                is_local: true,
+                is_not_null: false,
+                is_from_type: false,
+                storage: 0,
+                raw_default: None,
+                cooked_default: None,
+                coll_clause: record!(rhs.take(3), CollateClause),
+                coll_oid: 0,
+                constraints: Vec::new(),
+                location: rhs.location(1),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // xmltable: XMLTABLE '(' c_expr xmlexists_argument COLUMNS xmltable_column_list ')'
     |rhs| {
         Ok(Value::Node(
@@ -9199,6 +9221,96 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // a_expr: a_expr IS NULL_P %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            NullTest {
+                arg: optional_node(rhs.take(1))?,
+                nulltesttype: NullTestType::IS_NULL,
+                location: rhs.location(2),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // a_expr: a_expr IS NOT NULL_P %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            NullTest {
+                arg: optional_node(rhs.take(1))?,
+                nulltesttype: NullTestType::IS_NOT_NULL,
+                location: rhs.location(2),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // a_expr: a_expr IS TRUE_P %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            BooleanTest {
+                arg: optional_node(rhs.take(1))?,
+                booltesttype: BoolTestType::IS_TRUE,
+                location: rhs.location(2),
+            }
+            .into(),
+        ))
+    },
+    // a_expr: a_expr IS NOT TRUE_P %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            BooleanTest {
+                arg: optional_node(rhs.take(1))?,
+                booltesttype: BoolTestType::IS_NOT_TRUE,
+                location: rhs.location(2),
+            }
+            .into(),
+        ))
+    },
+    // a_expr: a_expr IS FALSE_P %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            BooleanTest {
+                arg: optional_node(rhs.take(1))?,
+                booltesttype: BoolTestType::IS_FALSE,
+                location: rhs.location(2),
+            }
+            .into(),
+        ))
+    },
+    // a_expr: a_expr IS NOT FALSE_P %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            BooleanTest {
+                arg: optional_node(rhs.take(1))?,
+                booltesttype: BoolTestType::IS_NOT_FALSE,
+                location: rhs.location(2),
+            }
+            .into(),
+        ))
+    },
+    // a_expr: a_expr IS UNKNOWN %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            BooleanTest {
+                arg: optional_node(rhs.take(1))?,
+                booltesttype: BoolTestType::IS_UNKNOWN,
+                location: rhs.location(2),
+            }
+            .into(),
+        ))
+    },
+    // a_expr: a_expr IS NOT UNKNOWN %prec IS
+    |rhs| {
+        Ok(Value::Node(
+            BooleanTest {
+                arg: optional_node(rhs.take(1))?,
+                booltesttype: BoolTestType::IS_NOT_UNKNOWN,
+                location: rhs.location(2),
+            }
+            .into(),
+        ))
+    },
     // a_expr: a_expr IN_P select_with_parens
     |rhs| {
         Ok(Value::Node(
@@ -9364,6 +9476,119 @@ pub(super) const ACTIONS: &[Action] = &[
             .into(),
         ))
     },
+    // func_expr_common_subexpr: JSON_OBJECT '(' json_name_and_value_list json_object_constructor_null_clause_opt json_key_uniqueness_constraint_opt json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonObjectConstructor {
+                exprs: rhs.take(3).list()?,
+                absent_on_null: rhs.take(4).integer()? != 0,
+                unique: rhs.take(5).integer()? != 0,
+                output: record!(rhs.take(6), JsonOutput),
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON_OBJECT '(' json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonObjectConstructor {
+                exprs: Vec::new(),
+                absent_on_null: false,
+                unique: false,
+                output: record!(rhs.take(3), JsonOutput),
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON_ARRAY '(' json_value_expr_list json_array_constructor_null_clause_opt json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonArrayConstructor {
+                exprs: rhs.take(3).list()?,
+                absent_on_null: rhs.take(4).integer()? != 0,
+                output: record!(rhs.take(5), JsonOutput),
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON_ARRAY '(' select_no_parens json_format_clause_opt json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonArrayQueryConstructor {
+                query: optional_node(rhs.take(3))?,
+                format: record!(rhs.take(4), JsonFormat),
+                absent_on_null: true,
+                output: record!(rhs.take(5), JsonOutput),
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON_ARRAY '(' json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonArrayConstructor {
+                exprs: Vec::new(),
+                absent_on_null: true,
+                output: record!(rhs.take(3), JsonOutput),
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON '(' json_value_expr json_key_uniqueness_constraint_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonParseExpr {
+                expr: record!(rhs.take(3), JsonValueExpr),
+                unique_keys: rhs.take(4).integer()? != 0,
+                output: None,
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON_SCALAR '(' a_expr ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonScalarExpr {
+                expr: optional_node(rhs.take(3))?,
+                output: None,
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON_SERIALIZE '(' json_value_expr json_returning_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonSerializeExpr {
+                expr: record!(rhs.take(3), JsonValueExpr),
+                output: record!(rhs.take(4), JsonOutput),
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
+    // func_expr_common_subexpr: JSON_EXISTS '(' json_value_expr ',' a_expr json_passing_clause_opt json_on_error_clause_opt ')'
+    |rhs| {
+        Ok(Value::Node(
+            JsonFuncExpr {
+                op: JsonExprOp::JSON_EXISTS_OP,
+                context_item: record!(rhs.take(3), JsonValueExpr),
+                pathspec: optional_node(rhs.take(5))?,
+                passing: rhs.take(6).list()?,
+                output: None,
+                on_error: record!(rhs.take(7), JsonBehavior),
+                location: rhs.location(1),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
     // labeled_expr: a_expr
     |rhs| {
         Ok(Value::Node(
@@ -9397,6 +9622,18 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::Node(Node::WindowDef(node))
         })
     },
+    // func_arg_expr: param_name COLON_EQUALS a_expr
+    |rhs| {
+        Ok(Value::Node(
+            NamedArgExpr {
+                name: optional_text(rhs.take(1))?,
+                arg: optional_node(rhs.take(3))?,
+                argnumber: -1,
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
+    },
     // extract_list: PARAM FROM a_expr
     |rhs| {
         Ok(Value::List(vec![
@@ -9410,6 +9647,31 @@ pub(super) const ACTIONS: &[Action] = &[
             .cell()?,
             rhs.take(3).cell()?,
         ]))
+    },
+    // case_expr: CASE case_arg when_clause_list case_default END_P
+    |rhs| {
+        Ok(Value::Node(
+            CaseExpr {
+                casetype: 0,
+                arg: optional_node(rhs.take(2))?,
+                args: rhs.take(3).list()?,
+                defresult: optional_node(rhs.take(4))?,
+                location: rhs.location(1),
+                ..Default::default()
+            }
+            .into(),
+        ))
+    },
+    // when_clause: WHEN a_expr THEN a_expr
+    |rhs| {
+        Ok(Value::Node(
+            CaseWhen {
+                expr: optional_node(rhs.take(2))?,
+                result: optional_node(rhs.take(4))?,
+                location: rhs.location(1),
+            }
+            .into(),
+        ))
     },
     // indirection_el: '[' a_expr ']'
     |rhs| {
@@ -9429,6 +9691,16 @@ pub(super) const ACTIONS: &[Action] = &[
                 is_slice: true,
                 lidx: optional_node(rhs.take(2))?,
                 uidx: optional_node(rhs.take(4))?,
+            }
+            .into(),
+        ))
+    },
+    // json_argument: json_value_expr AS ColLabel
+    |rhs| {
+        Ok(Value::Node(
+            JsonArgument {
+                val: record!(rhs.take(1), JsonValueExpr),
+                name: optional_text(rhs.take(3))?,
             }
             .into(),
         ))

@@ -44,22 +44,6 @@ fn expression_trees_match_patched_postgres() {
 }
 
 #[test]
-fn unsupported_actions_report_the_upstream_rule() {
-    let error = parse(
-        "SELECT CASE WHEN x THEN y END",
-        ParseMode::Sql,
-        Options::default(),
-    )
-    .unwrap_err();
-    let Error::Unmapped(rule) = error else {
-        panic!("{error}")
-    };
-    assert!(rule.action.is_some());
-    assert!(rule.line > 0);
-    assert!(rule.production.contains(':'));
-}
-
-#[test]
 #[ignore = "set PG19_REFERENCE_DIR to a built patched PostgreSQL oracle"]
 fn verify_expression_snapshots() {
     let probe = std::path::PathBuf::from(std::env::var_os("PG19_REFERENCE_DIR").unwrap())

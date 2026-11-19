@@ -77,6 +77,10 @@ enum Op {
 }
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 
+fn native_action(rule: Production) -> Result<Op, Error> {
+    action(rule.number()).ok_or_else(|| Error::Unmapped(rule.info()))
+}
+
 struct Parser<'a> {
     sql: &'a str,
 }
@@ -95,7 +99,7 @@ impl Actions for Parser<'_> {
     }
 
     fn reduce(&mut self, rule: Production, rhs: &mut Reduction<'_, Value>) -> Result<Value, Error> {
-        let op = action(rule.number()).ok_or_else(|| Error::Unmapped(rule.info()))?;
+        let op = native_action(rule)?;
         let result = (|| {
             Ok(match op {
                 Op::Generated(handler) => handler(rhs)?,
@@ -171,4 +175,20 @@ pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Err
             )),
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unmapped_actions_identify_the_upstream_reduction() {
+        for rule in pg19_tables::productions().filter(|rule| rule.info().action.is_some()) {
+            if action(rule.number()).is_none() {
+                assert!(
+                    matches!(native_action(rule), Err(Error::Unmapped(info)) if info == rule.info())
+                );
+            }
+        }
+    }
 }
