@@ -62,8 +62,40 @@ pub struct Target {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ForSource {
+    Integer {
+        lower: Expression,
+        upper: Expression,
+        step: Option<Expression>,
+        reverse: bool,
+    },
+    Query {
+        query: Expression,
+        dynamic: bool,
+        params: Vec<Expression>,
+    },
+    Cursor {
+        cursor: usize,
+        argquery: Option<Expression>,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
     Block(Block),
+    For {
+        lineno: usize,
+        label: Option<String>,
+        target: Box<Target>,
+        source: Box<ForSource>,
+        body: Vec<Statement>,
+    },
+    Execute {
+        lineno: usize,
+        query: Expression,
+        target: Option<Box<Target>>,
+        params: Vec<Expression>,
+    },
     If {
         lineno: usize,
         condition: Expression,

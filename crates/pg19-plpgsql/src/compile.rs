@@ -1,5 +1,6 @@
 mod control;
 mod execsql;
+mod loops;
 mod target;
 use crate::body::Returns;
 use crate::scope::Environment;
@@ -60,6 +61,8 @@ enum Reduced {
     Statement(Statement),
     List(Vec<Statement>),
     Datum(usize),
+    LoopVariable(Token, Option<Box<crate::Target>>),
+    For(Box<crate::Target>, Box<crate::ForSource>),
     Elsifs(Vec<crate::Elsif>),
     LoopBody {
         body: Vec<Statement>,
@@ -455,6 +458,10 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 }
                 Ok(Reduced::List(list))
             }
+            "for_variable" => self.for_variable(rhs.take(1).token(), s),
+            "for_control" => self.for_control(rhs, s),
+            "stmt_for" => self.finish_for(rhs, s),
+            "stmt_dynexecute" => self.dynamic_execute(rhs.location(1), s),
             "stmt_return" => self.return_stmt(rhs.location(1), s),
             "stmt_assign" => self.assignment(rhs.take(1).token(), s),
             "stmt_execsql" => self.execsql(rhs.take(1).token(), s),
