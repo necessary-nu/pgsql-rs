@@ -1,9 +1,11 @@
 //! Native semantic actions for the patched PostgreSQL 19 grammar.
 #![forbid(unsafe_code)]
+mod builtin;
 mod call;
 mod dml;
 mod expr;
 mod from;
+mod json;
 mod limits;
 mod location;
 mod predicate;
@@ -12,6 +14,7 @@ mod records;
 mod types;
 mod utility;
 mod value;
+mod window;
 
 pub use pg19_engine::ParseMode;
 use pg19_engine::{Actions, ParseError, Reduction};
@@ -69,6 +72,9 @@ enum Op {
     Limit(limits::Limit),
     Types(types::Types),
     From(from::From),
+    Json(json::Json),
+    Builtin(builtin::Builtin),
+    Window(window::Window),
     Predicate(predicate::Predicate),
     Dml(dml::Dml),
     Empty,
@@ -81,6 +87,14 @@ enum Op {
     Query(query::Query),
 }
 include!(concat!(env!("OUT_DIR"), "/actions.rs"));
+
+impl TryFrom<Production> for Op {
+    type Error = Error;
+
+    fn try_from(rule: Production) -> Result<Self, Self::Error> {
+        action(rule.number()).ok_or_else(|| Error::Unmapped(rule.info()))
+    }
+}
 
 struct Parser<'a> {
     sql: &'a str,
@@ -100,7 +114,7 @@ impl Actions for Parser<'_> {
     }
 
     fn reduce(&mut self, rule: Production, rhs: &mut Reduction<'_, Value>) -> Result<Value, Error> {
-        let op = action(rule.number()).ok_or_else(|| Error::Unmapped(rule.info()))?;
+        let op = Op::try_from(rule)?;
         let result = (|| {
             Ok(match op {
                 Op::Generated(handler) => handler(rhs)?,
@@ -111,6 +125,9 @@ impl Actions for Parser<'_> {
                 Op::Call(op) => call::reduce(op, rhs)?,
                 Op::Dml(op) => dml::reduce(op, rhs)?,
                 Op::Predicate(op) => predicate::reduce(op, rhs)?,
+                Op::Window(op) => window::reduce(op, rhs)?,
+                Op::Builtin(op) => builtin::reduce(op, rhs)?,
+                Op::Json(op) => json::reduce(op, rhs)?,
                 Op::From(op) => from::reduce(op, rhs)?,
                 Op::Empty => Value::Empty,
                 Op::Nil => Value::List(Vec::new()),
@@ -178,4 +195,25 @@ pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Err
             )),
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn each_unported_action_reports_its_pinned_identity() {
+        for rule in pg19_tables::productions() {
+            let info = rule.info();
+            if info.action.is_none() || action(rule.number()).is_some() {
+                continue;
+            }
+            let Err(error @ Error::Unmapped(_)) = Op::try_from(rule) else {
+                panic!("wrong error for {}", info.production)
+            };
+            assert_eq!(error, Error::Unmapped(info));
+            assert!(error.to_string().contains(info.production));
+            assert!(error.to_string().contains(&format!("gram.y:{}", info.line)));
+        }
+    }
 }
