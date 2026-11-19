@@ -90,3 +90,23 @@ The standalone type catalog contains the 197 rows in PG19.0
 generator reuses the library's `extract_pg_types` reader. `NativeSql`
 uses the PG19 Rust parser for type-name and embedded SQL start modes
 and propagates the identity of an unimplemented SQL action.
+
+`parse_routines(source, options)` parses the outer SQL with
+`pg19-parser`. `compile_routines(statements, options, sql)` also
+accepts an existing list of native `RawStmt` nodes. Both select routine
+and DO definitions in source order. Routine setup builds positional
+and named parameter bindings, OUT rows, PL/pgSQL trigger promises and
+the implicit FOUND variable. Function bodies retain scalar/record
+returns and the routine compiler's implicit returns. The live fixture
+check in `tests/routines.rs` compares the PG19 oracle to checked typed
+inputs while upstream SQL action coverage advances.
+
+```sh
+cargo build --locked -p pg19-plpgsql --example routines
+target/debug/examples/routines 'SELECT 1' 'DO $$ BEGIN NULL; END $$'
+python3 tools/pg19/plpgsql/check.py "$run" --candidate "$PWD/target/debug/examples/routines"
+```
+
+The example emits the oracle's result and diagnostic fields for
+supported inputs. It reports an `unsupported` record for unimplemented
+SQL or PL/pgSQL actions, with the production identity when available.

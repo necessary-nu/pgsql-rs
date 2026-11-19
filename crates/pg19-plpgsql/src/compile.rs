@@ -1,8 +1,9 @@
+use crate::body::Returns;
 use crate::scope::Environment;
 use crate::{
-    parse_body, token, Actions, Block, BodyScanner, CompileError, CompiledBody, DataType,
-    EmbeddedSql, Error, Expression, Input, Lookup, Namespace, Options, ParseMode, Production,
-    Reduction, Resolved, Statement, Token, Variable,
+    token, Actions, Block, BodyScanner, CompileError, CompiledBody, DataType, EmbeddedSql, Error,
+    Expression, Input, Lookup, Namespace, Options, ParseMode, Production, Reduction, Resolved,
+    Statement, Token, Variable,
 };
 
 /// Compile the grammar block before the routine compiler adds any implicit RETURN.
@@ -19,8 +20,23 @@ pub fn compile_block(
     for v in initial {
         env.declare(v);
     }
-    let mut compiler = Compiler { env, sql };
-    let value = parse_body(source, options, &mut compiler)?;
+    compile_in(source, options, env, Returns::Value, sql).map_err(|(e, _)| e)
+}
+
+pub(crate) fn compile_in(
+    source: &str,
+    options: Options,
+    env: Environment,
+    returns: Returns,
+    sql: &mut impl EmbeddedSql,
+) -> Result<CompiledBody, (CompileError, usize)> {
+    let mut compiler = Compiler { env, returns, sql };
+    let mut input = Input {
+        scanner: BodyScanner::new(source, options),
+        lookahead: None,
+    };
+    let value = crate::driver::drive(&mut input, &mut compiler)
+        .map_err(|e| (e, input.scanner.latest_line()))?;
     let Reduced::Statement(Statement::Block(block)) = value else {
         unreachable!("pl_function returns its pl_block")
     };
@@ -71,6 +87,7 @@ impl Reduced {
 
 struct Compiler<'a, S> {
     env: Environment,
+    returns: Returns,
     sql: &'a mut S,
 }
 
@@ -189,6 +206,76 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
         Ok(Expression { query, mode })
     }
 
+    fn return_stmt(
+        &mut self,
+        location: usize,
+        s: &mut BodyScanner,
+    ) -> Result<Reduced, CompileError> {
+        let first = s.next_token(self)?;
+        if first.id == 0 {
+            return Err(s.error("unexpected end of function definition").into());
+        }
+        if matches!(first.id, token::K_NEXT | token::K_QUERY) {
+            return Err(CompileError::Unsupported {
+                production: if first.id == token::K_NEXT {
+                    "RETURN NEXT"
+                } else {
+                    "RETURN QUERY"
+                },
+            });
+        }
+        let lineno = s.line(location);
+        let mut datum = None;
+        let mut expression = None;
+        match self.returns {
+            Returns::Value => {
+                if let Some(id) = first
+                    .datum
+                    .filter(|id| !matches!(self.env.datums[*id], crate::Datum::RecordField { .. }))
+                {
+                    if s.peek_raw(0)?.id == 59 {
+                        datum = Some(id);
+                        s.next_token(self)?;
+                    }
+                }
+                if datum.is_none() {
+                    s.push_back(first);
+                    expression = Some(self.expression(s, ParseMode::PlPgSqlExpr, false)?);
+                }
+            }
+            mode => {
+                if first.id != 59 {
+                    let (message, state) = match mode {
+                        Returns::Void { procedure: true } => {
+                            ("RETURN cannot have a parameter in a procedure", "42601")
+                        }
+                        Returns::Void { procedure: false } => (
+                            "RETURN cannot have a parameter in function returning void",
+                            "42804",
+                        ),
+                        Returns::Out(_) => (
+                            "RETURN cannot have a parameter in function with OUT parameters",
+                            "42804",
+                        ),
+                        _ => (
+                            "RETURN cannot have a parameter in function returning set",
+                            "42804",
+                        ),
+                    };
+                    return Err(Error::at(s.source(), first.span.start, message, state).into());
+                }
+                if let Returns::Out(id) = mode {
+                    datum = Some(id);
+                }
+            }
+        }
+        Ok(Reduced::Statement(Statement::Return {
+            lineno,
+            datum,
+            expression,
+        }))
+    }
+
     fn assignment(&mut self, t: Token, s: &mut BodyScanner) -> Result<Reduced, CompileError> {
         let id = t.datum.unwrap();
         let var = self.env.variable(id);
@@ -278,6 +365,7 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 Ok(Reduced::None)
             }
             "decl_varname" => {
+                s.line(rhs.location(1));
                 let t = rhs.take(1).token();
                 if self.env.local(&t.names[0]) {
                     return Err(s.error("duplicate declaration").into());
@@ -302,6 +390,7 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 }
                 Ok(Reduced::List(list))
             }
+            "stmt_return" => self.return_stmt(rhs.location(1), s),
             "stmt_assign" => self.assignment(rhs.take(1).token(), s),
             "stmt_execsql" if matches!(production, "T_WORD" | "T_CWORD") => {
                 let t = rhs.take(1).token();

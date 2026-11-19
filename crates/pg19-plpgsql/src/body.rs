@@ -26,6 +26,8 @@ pub struct Variable {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Datum {
     Variable(Variable),
+    Promise { variable: Variable, promise: u8 },
+    Row { fields: Vec<(String, usize)> },
     RecordField { name: String, parent: usize },
 }
 
@@ -39,6 +41,11 @@ pub struct Block {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Statement {
     Block(Block),
+    Return {
+        lineno: usize,
+        datum: Option<usize>,
+        expression: Option<Expression>,
+    },
     Assign {
         lineno: usize,
         datum: usize,
@@ -93,6 +100,27 @@ impl From<pg19_parser::Error> for CompileError {
         match e {
             pg19_parser::Error::Diagnostic(diagnostic) => Self::Diagnostic(diagnostic),
             other => Self::SqlAction(other),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Returns {
+    Value,
+    Void { procedure: bool },
+    Out(usize),
+    Set { out: Option<usize> },
+}
+
+impl Variable {
+    pub fn implicit(name: impl Into<String>, datatype: DataType) -> Self {
+        Self {
+            name: name.into(),
+            datatype,
+            lineno: 0,
+            constant: false,
+            not_null: false,
+            default: None,
         }
     }
 }

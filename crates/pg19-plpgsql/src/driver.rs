@@ -70,6 +70,10 @@ pub fn parse_body<A: Actions>(
         scanner: BodyScanner::new(source, options),
         lookahead: None,
     };
+    drive(&mut input, actions)
+}
+
+pub(crate) fn drive<A: Actions>(input: &mut Input, actions: &mut A) -> Result<A::Value, A::Error> {
     let mut stack = vec![Frame {
         state: INITIAL_STATE,
         location: 0,
@@ -102,7 +106,7 @@ pub fn parse_body<A: Actions>(
                     location,
                 };
                 let value = if rule.info().action.is_some() {
-                    actions.reduce(rule, &mut rhs, &mut input)?
+                    actions.reduce(rule, &mut rhs, input)?
                 } else {
                     rhs.default_value()
                 };
