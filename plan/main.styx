@@ -133,6 +133,13 @@ children (
                         kind @note
                         text "At 6df1fad the checked-in first-party Rust parser matched 32,974 of the 54,471 PG19 corpus cases in all measured fields. The remaining 21,497 reported a first unported action (231 distinct productions). All token streams and scanner errors matched, including those cases. The corpus runner reported no incorrect completed outcomes. Reproduce with the coverage command in tools/pg19/regress/README.md."
                     }
+
+                    {
+                        at 2026-11-19T19:08:45.499611606Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "At 3e13dee the first-party Rust parser matches 47,619 of 54,471 PostgreSQL 19 regression cases on raw trees or diagnostics and scanner output. The other 6,852 stop at 192 distinct first unported actions. All completed cases agree with the patched PG19 reference."
+                    }
                 )
             }
 

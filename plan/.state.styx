@@ -1,6 +1,6 @@
 schema_version 7
 
-last_sync_at 2026-11-19T19:01:16.095563559Z
+last_sync_at 2026-11-19T19:06:28.877090384Z
 
 rule_versions (
     {id api.native, version 0}
@@ -200,6 +200,7 @@ impl_evidence (
         {id grammar.diagnostics, version 0}
         {id grammar.string-settings, version 0}
     )}
+    {id parser.dml}
     {id parser.engine, covered_rules (
         grammar.reductions
     ), covered_claims (
