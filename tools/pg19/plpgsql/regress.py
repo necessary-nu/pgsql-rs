@@ -1,5 +1,6 @@
 """Compare complete Rust and C PL/pgSQL entry points on upstream PL regression SQL."""
 import argparse
+import gzip
 import hashlib
 import json
 import subprocess
@@ -20,6 +21,22 @@ def extract(run, boundaries):
         for kind, start, end in source_spans(boundaries, raw):
             yield {"id": f"{path.relative_to(source)}:{start}-{end}", "kind": kind,
                    "sql": raw[start:end].decode() if kind == "sql" else None}
+
+
+def core_routines(corpus):
+    manifest = json.loads((corpus / "inventory.json").read_bytes())
+    inputs = corpus / "cases.jsonl"
+    if manifest["archive_sha256"] != ARCHIVE_SHA256 or digest(inputs.read_bytes()) != manifest["cases_sha256"]:
+        raise ValueError("core corpus archive or SQL inputs differ from the extraction manifest")
+    with inputs.open(encoding="utf-8") as rows, gzip.open(corpus / "outcomes.jsonl.gz", "rt", encoding="utf-8") as outcomes:
+        for row, outcome in zip(map(json.loads, rows), map(json.loads, outcomes), strict=True):
+            if row["id"] != outcome["id"]:
+                raise ValueError("core corpus case and outcome IDs differ")
+            if row["family"] != "postgres":
+                continue
+            tree = outcome["patched"]["tree"] or ""
+            if "{RAWSTMT :stmt {CREATEFUNCTIONSTMT" in tree or "{RAWSTMT :stmt {DOSTMT" in tree:
+                yield row
 
 
 def invoke(program, sql):
@@ -57,7 +74,7 @@ def compare(case, oracle, rust):
     return {"id": case["id"], "kind": kind, "sql": sql, "reference": reference, "native": native}
 
 
-def run_suite(run, native, out, jobs, boundaries):
+def run_suite(run, native, out, jobs, boundaries, core):
     out.mkdir(parents=True, exist_ok=True)
     if digest((run / (RELEASE + ".tar.bz2")).read_bytes()) != ARCHIVE_SHA256:
         raise ValueError("unexpected PostgreSQL source archive")
@@ -66,6 +83,11 @@ def run_suite(run, native, out, jobs, boundaries):
         subprocess.run(["sh", HERE.parent / "regress/build-boundaries.sh", run, boundaries], check=True)
     regions = list(extract(run, boundaries))
     cases = [r for r in regions if r["kind"] == "sql"]
+    core_count = 0
+    if core:
+        extra = list(core_routines(core))
+        cases.extend(extra)
+        core_count = len(extra)
     if not cases:
         raise ValueError("no PL regression cases")
     counts = Counter()
@@ -77,7 +99,7 @@ def run_suite(run, native, out, jobs, boundaries):
             if not record["kind"].startswith("matched-"):
                 details.write(line(record))
     result = {"upstream_release": RELEASE, "archive_sha256": ARCHIVE_SHA256,
-              "reference_results_sha256": witness.hexdigest(), "queries": len(cases),
+              "reference_results_sha256": witness.hexdigest(), "queries": len(cases), "core_routine_queries": core_count,
               "regions": dict(sorted(Counter(r["kind"] for r in regions).items())),
               "outcomes": dict(sorted(counts.items()))}
     payload = json.dumps(result, indent=2) + "\n"
@@ -92,9 +114,10 @@ if __name__ == "__main__":
     parser.add_argument("native", type=Path)
     parser.add_argument("out", type=Path)
     parser.add_argument("--boundaries", type=Path, help="existing helper from regress/build-boundaries.sh")
+    parser.add_argument("--core-corpus", type=Path, help="also compare routine-bearing SQL from an existing core regress capture")
     parser.add_argument("--jobs", type=int, default=4)
     parser.add_argument("--require-parity", action="store_true")
     args = parser.parse_args()
     exact = run_suite(args.run.resolve(), args.native.resolve(), args.out.resolve(), args.jobs,
-                      args.boundaries.resolve() if args.boundaries else None)
+                      args.boundaries.resolve() if args.boundaries else None, args.core_corpus)
     sys.exit(1 if args.require_parity and not exact else 0)

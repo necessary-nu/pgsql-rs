@@ -145,3 +145,7 @@ python3 -B tools/pg19/plpgsql/regress.py "$run" target/debug/examples/routines /
 Pass `--require-parity` to return a failure status for any mismatch,
 unsupported production, or process failure. The `--boundaries` option
 reuses the psql boundary helper from the core regression corpus.
+
+Pass `--core-corpus "$corpus"` with the outputs from `regress/extract.py`
+and `regress/probes.py` to include PG19 core regression inputs whose
+patched C raw tree contains a function, procedure or DO statement.
