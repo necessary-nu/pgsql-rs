@@ -2,9 +2,13 @@ use super::*;
 use crate::{Datum, Target};
 
 impl<S: EmbeddedSql> Compiler<'_, S> {
-    pub(super) fn read_into_target(&mut self, s: &mut BodyScanner) -> Result<Target, CompileError> {
+    pub(super) fn read_into_target(
+        &mut self,
+        s: &mut BodyScanner,
+        allow_strict: bool,
+    ) -> Result<Target, CompileError> {
         let mut t = s.next_token(self)?;
-        let strict = t.is_keyword(token::K_STRICT, "strict");
+        let strict = allow_strict && t.is_keyword(token::K_STRICT, "strict");
         if strict {
             t = s.next_token(self)?;
         }

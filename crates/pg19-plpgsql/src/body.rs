@@ -94,6 +94,14 @@ pub enum ForSource {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FetchDirection {
+    pub direction: u8,
+    pub count: i64,
+    pub expression: Option<Expression>,
+    pub multiple: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DiagnosticItem {
     pub name: &'static str,
     pub target: usize,
@@ -127,6 +135,12 @@ pub enum Statement {
         lineno: usize,
         stacked: bool,
         items: Vec<DiagnosticItem>,
+    },
+    Fetch {
+        lineno: usize,
+        cursor: usize,
+        target: Option<Box<Target>>,
+        direction: FetchDirection,
     },
     Open {
         lineno: usize,

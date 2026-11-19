@@ -3,6 +3,7 @@ mod control;
 mod cursor;
 mod exception;
 mod execsql;
+mod fetch;
 mod getdiag;
 mod loops;
 mod target;
@@ -71,6 +72,7 @@ enum Reduced {
     For(Box<crate::Target>, Box<crate::ForSource>),
     Handlers(Vec<crate::ExceptionHandler>),
     Conditions(Vec<String>),
+    Fetch(crate::FetchDirection),
     Diags(Vec<crate::DiagnosticItem>),
     Elsifs(Vec<crate::Elsif>),
     LoopBody {
@@ -508,6 +510,8 @@ impl<S: EmbeddedSql> Actions for Compiler<'_, S> {
                 "42601",
             )
             .into()),
+            "opt_fetch_direction" => self.fetch_direction(s).map(Reduced::Fetch),
+            "stmt_fetch" | "stmt_move" => self.fetch(lhs, rhs, s),
             "for_variable" => self.for_variable(rhs.take(1).token(), s),
             "for_control" => self.for_control(rhs, s),
             "stmt_for" => self.finish_for(rhs, s),

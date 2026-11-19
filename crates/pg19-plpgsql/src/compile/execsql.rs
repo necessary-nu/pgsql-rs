@@ -94,7 +94,7 @@ impl<S: EmbeddedSql> Compiler<'_, S> {
                         return Err(s.error("INTO specified more than once").into());
                     }
                     s.lookup = Lookup::Normal;
-                    target = Some(Box::new(self.read_into_target(s)?));
+                    target = Some(Box::new(self.read_into_target(s, true)?));
                     s.lookup = Lookup::Expression;
                     redaction = Some((t.span.start, s.peek_raw(0)?.span.start));
                 }

@@ -267,6 +267,28 @@ fn for_loop(
     json!({(key):v})
 }
 
+fn fetch(
+    lineno: usize,
+    cursor: usize,
+    target: &Option<Box<crate::Target>>,
+    dir: &crate::FetchDirection,
+) -> Value {
+    let mut v = json!({"lineno":lineno,"direction":dir.direction,"how_many":dir.count});
+    if cursor > 0 {
+        v["curvar"] = json!(cursor);
+    }
+    if let Some(t) = target {
+        v["target"] = datum(&t.variable, t.id);
+    } else {
+        v["is_move"] = json!(true);
+    }
+    if dir.multiple {
+        v["returns_multiple_rows"] = json!(true);
+    }
+    optional_expr(&mut v, "expr", &dir.expression);
+    json!({"PLpgSQL_stmt_fetch":v})
+}
+
 fn statement(s: &Statement) -> Value {
     match s {
         Statement::GetDiagnostics {
@@ -289,6 +311,12 @@ fn statement(s: &Statement) -> Value {
             expression,
             body,
         } => foreach(*lineno, label, *datum, *slice, expression, body),
+        Statement::Fetch {
+            lineno,
+            cursor,
+            target,
+            direction,
+        } => fetch(*lineno, *cursor, target, direction),
         Statement::Close { lineno, cursor } => {
             let mut v = json!({"lineno":lineno});
             if *cursor > 0 {
