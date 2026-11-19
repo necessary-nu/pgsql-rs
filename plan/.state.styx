@@ -105,10 +105,22 @@ derived_priorities (
 )
 
 impl_evidence (
+    {id codec.json, covered_rules (
+        codec.json-envelope
+        codec.json-fields
+    ), covered_claims (
+        {impl_name rust, rule codec.json-envelope}
+        {impl_name rust, rule codec.json-fields}
+    )}
     {id codec.schema, covered_rules (
         codec.schema-import
     ), covered_claims (
         {impl_name rust, rule codec.schema-import}
+    )}
+    {id operations.split-scanner, covered_rules (
+        split.scanner
+    ), covered_claims (
+        {impl_name rust, rule split.scanner}
     )}
     {id parser.lexer, covered_rules (
         lex.byte-spans
@@ -163,13 +175,6 @@ impl_evidence (
     ), covered_claims (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
-    )}
-    {id codec.json, covered_rules (
-        codec.json-envelope
-        codec.json-fields
-    ), covered_claims (
-        {impl_name rust, rule codec.json-envelope}
-        {impl_name rust, rule codec.json-fields}
     )}
 )
 

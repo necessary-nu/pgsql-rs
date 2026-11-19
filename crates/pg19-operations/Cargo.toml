@@ -1,0 +1,11 @@
+[package]
+name = "pg19-operations"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+pg19-lexer = { path = "../pg19-lexer" }
+
+[dev-dependencies]
+serde_json = "1"
