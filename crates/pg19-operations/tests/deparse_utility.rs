@@ -5,6 +5,8 @@ fn utilities_retain_compact_sql_from_the_c_deparser() {
     for line in include_str!("deparse-utility.jsonl")
         .lines()
         .chain(include_str!("deparse-objects.jsonl").lines())
+        .chain(include_str!("deparse-access.jsonl").lines())
+        .chain(include_str!("deparse-foreign.jsonl").lines())
         .chain(include_str!("deparse-table.jsonl").lines())
         .chain(include_str!("deparse-alter.jsonl").lines())
         .chain(include_str!("deparse-privileges-index.jsonl").lines())
