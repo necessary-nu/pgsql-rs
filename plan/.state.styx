@@ -283,6 +283,17 @@ impl_evidence (
         {impl_name rust, rule reference.build}
         {impl_name rust, rule reference.overlay}
     )}
+    {id operations.normalize, covered_rules (
+        normalize.grouping
+        normalize.literal-spans
+        normalize.substitutions
+        normalize.utility
+    ), covered_claims (
+        {impl_name rust, rule normalize.grouping}
+        {impl_name rust, rule normalize.literal-spans}
+        {impl_name rust, rule normalize.substitutions}
+        {impl_name rust, rule normalize.utility}
+    )}
 )
 
 onboarding {kind @adopt, phase 11}

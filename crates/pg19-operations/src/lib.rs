@@ -1,5 +1,8 @@
 pub mod deparse;
 pub mod fingerprint;
+mod normalize;
+pub use normalize::{normalize, normalize_utility};
+mod raw_walk;
 mod sql;
 pub use sql::{is_utility_statement, split_with_parser, utility_statements};
 
