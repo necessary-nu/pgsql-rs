@@ -1,0 +1,70 @@
+--- postgres_deparse.c
++++ postgres_deparse.c
+@@ -10979 +10979,8 @@
+-		case ALTER_SUBSCRIPTION_REFRESH:
++		case ALTER_SUBSCRIPTION_SERVER:
++			deparseAppendStringInfoString(state, "SERVER ");
++			deparseAppendStringInfoString(state, quote_identifier(alter_subscription_stmt->servername));
++			break;
++		case ALTER_SUBSCRIPTION_REFRESH_SEQUENCES:
++			deparseAppendStringInfoString(state, "REFRESH SEQUENCES");
++			break;
++		case ALTER_SUBSCRIPTION_REFRESH_PUBLICATION:
+@@ -12092 +12099 @@
+-static void deparseClusterStmt(DeparseState *state, ClusterStmt *cluster_stmt)
++static void deparseRepackStmt(DeparseState *state, RepackStmt *stmt)
+@@ -12094,3 +12101,6 @@
+-	deparseAppendStringInfoString(state, "CLUSTER ");
+-
+-        deparseUtilityOptionList(state, cluster_stmt->params);
++	if (stmt->command == REPACK_COMMAND_CLUSTER)
++		deparseAppendStringInfoString(state, "CLUSTER ");
++	else if (stmt->command == REPACK_COMMAND_REPACK)
++		deparseAppendStringInfoString(state, "REPACK ");
++	else
++		elog(ERROR, "unexpected raw RepackStmt command %d", stmt->command);
+@@ -12098 +12108,2 @@
+-	if (cluster_stmt->relation != NULL)
++	deparseUtilityOptionList(state, stmt->params);
++	if (stmt->relation)
+@@ -12100 +12111,7 @@
+-		deparseRangeVar(state, cluster_stmt->relation, DEPARSE_NODE_CONTEXT_NONE);
++		deparseRangeVar(state, stmt->relation->relation, DEPARSE_NODE_CONTEXT_NONE);
++		if (stmt->relation->va_cols)
++		{
++			deparseAppendStringInfoString(state, " (");
++			deparseColumnList(state, stmt->relation->va_cols);
++			deparseAppendStringInfoChar(state, ')');
++		}
+@@ -12102,0 +12120,8 @@
++	if (stmt->command == REPACK_COMMAND_REPACK && stmt->usingindex)
++		deparseAppendStringInfoString(state, "USING INDEX ");
++	else if (stmt->command == REPACK_COMMAND_CLUSTER && stmt->indexname)
++		deparseAppendStringInfoString(state, "USING ");
++	if (stmt->indexname)
++		deparseAppendStringInfoString(state, quote_identifier(stmt->indexname));
++	removeTrailingSpace(state);
++}
+@@ -12104 +12129,5 @@
+-	if (cluster_stmt->indexname != NULL)
++static void deparseWaitStmt(DeparseState *state, WaitStmt *stmt)
++{
++	deparseAppendStringInfoString(state, "WAIT FOR LSN ");
++	deparseStringLiteral(state, stmt->lsn_literal);
++	if (stmt->options)
+@@ -12106,3 +12135,2 @@
+-		deparseAppendStringInfoString(state, "USING ");
+-		deparseAppendStringInfoString(state, quote_identifier(cluster_stmt->indexname));
+-		deparseAppendStringInfoChar(state, ' ');
++		deparseAppendStringInfoString(state, " WITH ");
++		deparseUtilityOptionList(state, stmt->options);
+@@ -12110 +12137,0 @@
+-
+@@ -12438,2 +12465,5 @@
+-		case T_ClusterStmt:
+-			deparseClusterStmt(state, castNode(ClusterStmt, node));
++		case T_WaitStmt:
++			deparseWaitStmt(state, castNode(WaitStmt, node));
++			break;
++		case T_RepackStmt:
++			deparseRepackStmt(state, castNode(RepackStmt, node));

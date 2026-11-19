@@ -221,6 +221,8 @@ def lower(s, ty="Value"):
             rec = f"RoleSpec {{ roletype: {lower(args[0], 'RoleSpecType')}, rolename: None, location: {loc} }}"
         value = f"Value::Node({rec}.into())"
     elif name in ("makeString", "makeInteger", "makeFloat", "makeBoolean") and len(args) == 1:
+        if name == "makeString" and ty == "Option<String>":
+            return f"Some({lower(args[0], 'String')})"
         variant, argtype = {"makeString": ("String", "String"), "makeInteger": ("Integer", "i32"),
                             "makeFloat": ("Float", "String"), "makeBoolean": ("Boolean", "bool")}[name]
         node = f"Node::{variant}({lower(args[0], argtype)})"

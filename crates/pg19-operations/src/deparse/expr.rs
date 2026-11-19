@@ -15,15 +15,54 @@ fn constant(v: &Literal) -> Result<String> {
             let Some((kind, bits)) = s.split_at_checked(1) else {
                 return Err(Error::InvalidField("bit string"));
             };
-            if (kind == "b" && bits.bytes().all(|b| matches!(b, b'0' | b'1')))
-                || (kind == "x" && bits.bytes().all(|b| b.is_ascii_hexdigit()))
-            {
+            // The raw scanner accepts the contents before the bit type's input function runs.
+            if matches!(kind, "b" | "x") && !bits.contains(['\0', '\'']) {
                 Ok(format!("{kind}'{bits}'"))
             } else {
                 Err(Error::InvalidField("bit string"))
             }
         }
     }
+}
+fn interval_mods(args: &[Node], p: &mut Plan<'_>) -> Result<()> {
+    // datetime.h assigns these field masks by token number, not ordinal position.
+    let [Node::AConst(AConst {
+        val: Literal::Integer(mask),
+        ..
+    }), rest @ ..] = args
+    else {
+        return Err(Error::InvalidField("INTERVAL fields"));
+    };
+    p.text(match *mask {
+        4 => " year",
+        2 => " month",
+        8 => " day",
+        1024 => " hour",
+        2048 => " minute",
+        4096 => " second",
+        6 => " year to month",
+        1032 => " day to hour",
+        3080 => " day to minute",
+        7176 => " day to second",
+        3072 => " hour to minute",
+        7168 => " hour to second",
+        6144 => " minute to second",
+        32767 => "",
+        _ => return Err(Error::InvalidField("INTERVAL fields")),
+    });
+    match rest {
+        [] => {}
+        [Node::AConst(AConst {
+            val: Literal::Integer(precision),
+            ..
+        })] => {
+            if *precision != 65535 {
+                p.text(format!("({precision})"));
+            }
+        }
+        _ => return Err(Error::InvalidField("INTERVAL precision")),
+    }
+    Ok(())
 }
 pub(super) fn typename<'a>(t: &'a TypeName, p: &mut Plan<'a>) -> Result<()> {
     if t.names.is_empty() {
@@ -33,6 +72,7 @@ pub(super) fn typename<'a>(t: &'a TypeName, p: &mut Plan<'a>) -> Result<()> {
         p.text("SETOF ");
     }
     let mut zone = false;
+    let mut interval = false;
     if let [Node::String(schema), Node::String(name)] = t.names.as_slice() {
         if schema == "pg_catalog" {
             let spelling = match name.as_str() {
@@ -48,7 +88,10 @@ pub(super) fn typename<'a>(t: &'a TypeName, p: &mut Plan<'a>) -> Result<()> {
                 "time" => "time",
                 "timestamp" => "timestamp",
                 "interval" if t.typmods.is_empty() => "interval",
-                "interval" => return Err(Error::UnsupportedStatement(Some(NodeTag::TypeName))),
+                "interval" => {
+                    interval = true;
+                    "interval"
+                }
                 "timetz" => {
                     zone = true;
                     "time"
@@ -60,7 +103,12 @@ pub(super) fn typename<'a>(t: &'a TypeName, p: &mut Plan<'a>) -> Result<()> {
                 _ => "",
             };
             if spelling.is_empty() {
-                p.text(names(&t.names, ".")?);
+                p.text("pg_catalog.");
+                if super::plain_name(name) {
+                    p.text(name.as_str());
+                } else {
+                    p.text(ident(name)?);
+                }
             } else {
                 p.text(spelling);
             }
@@ -70,7 +118,9 @@ pub(super) fn typename<'a>(t: &'a TypeName, p: &mut Plan<'a>) -> Result<()> {
     } else {
         p.text(names(&t.names, ".")?);
     }
-    if !t.typmods.is_empty() {
+    if interval {
+        interval_mods(&t.typmods, p)?;
+    } else if !t.typmods.is_empty() {
         p.text(if zone { " (" } else { "(" });
         p.list(&t.typmods, Role::Expr);
         p.text(")");
@@ -128,7 +178,12 @@ fn boolean<'a>(b: &'a BoolExpr, p: &mut Plan<'a>) -> Result<()> {
     };
     for (i, n) in b.args.iter().enumerate() {
         if i > 0 {
-            p.text(word);
+            if b.boolop == BoolExprType::AND_EXPR {
+                p.cut();
+                p.text("AND ");
+            } else {
+                p.text(word);
+            }
         }
         p.wrapped(n,Role::Expr,matches!(n,Node::BoolExpr(n) if matches!(n.boolop,BoolExprType::AND_EXPR|BoolExprType::OR_EXPR)));
     }
@@ -137,6 +192,20 @@ fn boolean<'a>(b: &'a BoolExpr, p: &mut Plan<'a>) -> Result<()> {
 fn cast<'a>(t: &'a TypeCast, p: &mut Plan<'a>) -> Result<()> {
     let arg = required(&t.arg, "TypeCast.arg")?;
     let ty = required(&t.type_name, "TypeCast.typeName")?;
+    if matches!(&ty.names[..],[Node::String(schema),Node::String(name)] if schema=="pg_catalog" && name=="bpchar")
+        && ty.typmods.is_empty()
+        && matches!(
+            arg,
+            Node::AConst(AConst {
+                val: Literal::String(_),
+                ..
+            })
+        )
+    {
+        p.text("char ");
+        p.expr(arg);
+        return Ok(());
+    }
     let negative = matches!(arg,Node::AConst(AConst{val:Literal::Integer(i),..}) if *i<0)
         || matches!(
             arg,
@@ -150,17 +219,13 @@ fn cast<'a>(t: &'a TypeCast, p: &mut Plan<'a>) -> Result<()> {
     p.typename(ty);
     Ok(())
 }
-fn function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
+pub(super) fn function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
     if f.funcformat == CoercionForm::COERCE_SQL_SYNTAX {
         return sql_function(f, p);
     }
     if f.funcname.is_empty() {
         return Err(Error::InvalidField("FuncCall.funcname"));
     }
-    if f.over.is_some() || f.ignore_nulls != 0 {
-        return Err(Error::UnsupportedStatement(Some(NodeTag::FuncCall)));
-    }
-    p.mark(f.location);
     p.text(names(&f.funcname, ".")?);
     p.text("(");
     if f.agg_distinct {
@@ -192,6 +257,38 @@ fn function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
         p.text(" FILTER (WHERE ");
         p.expr(filter);
         p.text(")");
+    }
+    match f.ignore_nulls {
+        0 => {}
+        1 => p.text(" IGNORE NULLS"),
+        2 => p.text(" RESPECT NULLS"),
+        _ => return Err(Error::InvalidField("FuncCall.ignore_nulls")),
+    }
+    if let Some(w) = &f.over {
+        super::window::over(w, p)?;
+    }
+    Ok(())
+}
+fn normal_form(form: &Node) -> Result<&str> {
+    match form {
+        Node::AConst(AConst {
+            val: Literal::String(form),
+            ..
+        }) if matches!(form.as_str(), "NFC" | "NFD" | "NFKC" | "NFKD") => Ok(form),
+        _ => Err(Error::InvalidField("normalization form")),
+    }
+}
+pub(super) fn typed_constant<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
+    if let Node::TypeCast(t) = n {
+        let ty = required(&t.type_name, "TypeCast.typeName")?;
+        if matches!(&ty.names[..],[Node::String(name)] if name=="point") {
+            p.text(" ");
+        }
+        p.typename(ty);
+        p.text(" ");
+        p.expr(required(&t.arg, "TypeCast.arg")?);
+    } else {
+        p.expr(n);
     }
     Ok(())
 }
@@ -229,6 +326,75 @@ fn sql_function<'a>(f: &'a FuncCall, p: &mut Plan<'a>) -> Result<()> {
             p.expr(field);
             p.text(" FROM ");
             p.expr(arg);
+            p.text(")");
+        }
+        (Some("overlay"), [arg, placing, from]) => {
+            p.text("overlay(");
+            p.expr(arg);
+            p.text(" placing ");
+            p.expr(placing);
+            p.text(" from ");
+            p.expr(from);
+            p.text(")");
+        }
+        (Some("overlay"), [arg, placing, from, length]) => {
+            p.text("OVERLAY(");
+            p.expr(arg);
+            p.text(" PLACING ");
+            p.expr(placing);
+            p.text(" FROM ");
+            p.expr(from);
+            p.text(" FOR ");
+            p.expr(length);
+            p.text(")");
+        }
+        (Some("overlaps"), [a, b, c, d]) => {
+            p.text("(");
+            p.expr(a);
+            p.text(", ");
+            p.expr(b);
+            p.text(") OVERLAPS (");
+            p.expr(c);
+            p.text(", ");
+            p.expr(d);
+            p.text(")");
+        }
+        (Some(op @ ("ltrim" | "btrim" | "rtrim")), [arg, rest @ ..]) if rest.len() <= 1 => {
+            p.text(match op {
+                "ltrim" => "TRIM (LEADING ",
+                "rtrim" => "TRIM (TRAILING ",
+                _ => "TRIM (BOTH ",
+            });
+            if let [what] = rest {
+                p.expr(what);
+            }
+            p.text(" FROM ");
+            p.expr(arg);
+            p.text(")");
+        }
+        (Some("normalize"), [arg, rest @ ..]) if rest.len() <= 1 => {
+            p.text("NORMALIZE(");
+            p.expr(arg);
+            if let [form] = rest {
+                p.text(", ");
+                p.text(normal_form(form)?);
+            }
+            p.text(")");
+        }
+        (Some("is_normalized"), [arg, rest @ ..]) if rest.len() <= 1 => {
+            operand(p, arg, Prec::Is, false);
+            p.text(" IS ");
+            if let [form] = rest {
+                p.text(normal_form(form)?);
+                p.text(" ");
+            }
+            p.text("NORMALIZED");
+        }
+        (Some("xmlexists"), [path, doc]) => {
+            p.text("xmlexists (");
+            p.wrapped(path, Role::Expr, precedence(path) < Prec::Atom);
+            p.text(" PASSING ");
+            p.wrapped(doc, Role::Expr, precedence(doc) < Prec::Atom);
             p.text(")");
         }
         (Some("system_user"), []) => p.text("SYSTEM_USER"),
@@ -278,10 +444,11 @@ pub(super) fn expression<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
             }
         }
         Node::ParamRef(v) => {
-            p.mark(v.location);
             p.text(format!("${}", v.number));
         }
         Node::AExpr(a) => return binary(a, p, false),
+        Node::XmlExpr(x) => return super::xml::expression(x, p),
+        Node::XmlSerialize(x) => return super::xml::serialize(x, p),
         Node::BoolExpr(b) => return boolean(b, p),
         Node::TypeCast(t) => return cast(t, p),
         Node::SubLink(s) => return sublink(s, p),
@@ -345,19 +512,21 @@ pub(super) fn expression<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
                 p.text(" ");
                 p.expr(arg);
             }
+            p.enter();
             for when in &c.args {
                 let Node::CaseWhen(w) = when else {
                     return Err(Error::InvalidField("CaseExpr.args"));
                 };
-                p.text(" WHEN ");
+                p.clause("WHEN ");
                 p.expr(required(&w.expr, "CaseWhen.expr")?);
                 p.text(" THEN ");
                 p.expr(required(&w.result, "CaseWhen.result")?);
             }
             if let Some(other) = &c.defresult {
-                p.text(" ELSE ");
+                p.clause("ELSE ");
                 p.expr(other);
             }
+            p.leave();
             p.text(" END");
         }
         Node::NamedArgExpr(a) => {
@@ -378,7 +547,7 @@ pub(super) fn expression<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
             p.wrapped(arg, Role::Expr, !direct);
             indirection(&i.indirection, p)?;
         }
-        _ => return Err(Error::UnsupportedStatement(n.tag())),
+        _ => return super::json::expression(n, p),
     }
     Ok(())
 }

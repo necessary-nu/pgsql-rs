@@ -1,0 +1,156 @@
+[
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "select 1,2,3 from t join p on t.a=p.a where t.a>b and c",
+    "SELECT 1, 2, 3\nFROM\n    t\n    JOIN p ON t.a = p.a\nWHERE\n    t.a > b\n    AND c"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "-- leading\nselect x /*middle*/, -- between\n y from t;\n/* next */ select 7; --end",
+    "-- leading\nSELECT\n    x,\n    /*middle*/-- between\n    y\nFROM t;\n/* next */\nSELECT 7\n--end"
+  ],
+  [
+    [
+      0,
+      4,
+      80,
+      0,
+      0
+    ],
+    "-- leading\nselect x /*middle*/, -- between\n y from t;\n/* next */ select 7; --end",
+    "-- leading\n SELECT x, /*middle*/-- between\ny FROM t; \n/* next */ SELECT 7 --end"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "select /*A*/ x, /*B*/ 3 from t --end",
+    "SELECT\n    /*A*/x,\n    /*B*/3\nFROM t\n--end"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "select 1; /* middle */ select 2; -- final",
+    "SELECT 1; /* middle */\nSELECT 2\n-- final"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "select 1 --first\n; select 2",
+    "SELECT 1\n--first\n; SELECT 2"
+  ],
+  [
+    [
+      1,
+      2,
+      14,
+      0,
+      1
+    ],
+    "select a, b, c, d, e, f, g from t group by a,b,c,d,e,f,g having count(*)>4 order by a,b,c,d,e,f,g",
+    "SELECT\n  a, b, c, d,\n  e, f, g\nFROM t\nGROUP BY\n  a, b, c, d,\n  e, f, g\nHAVING count(*) > 4\nORDER BY\n  a, b, c, d,\n  e, f, g\n"
+  ],
+  [
+    [
+      1,
+      2,
+      12,
+      1,
+      0
+    ],
+    "select aa,bb,cc,dd,ee,ff,gg,hh from t",
+    "SELECT\n  aa , bb\n  , cc , dd\n  , ee , ff\n  , gg , hh\nFROM t"
+  ],
+  [
+    [
+      1,
+      2,
+      16,
+      1,
+      1
+    ],
+    "select * from (values('five',2),('seven',3),('eight',4)) as r(value,n)",
+    "SELECT *\nFROM\n  (\n    VALUES\n      ('five', 2)\n      , ('seven', 3)\n      , ('eight', 4)\n  ) r(value, n)\n"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "with x as (select 1 a) select (select a from x) as z from x",
+    "WITH x AS (\n    SELECT 1 AS a\n)\nSELECT\n    (\n        SELECT a\n        FROM x\n    ) AS z\nFROM x"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "select case when a then x else y end from t",
+    "SELECT\n    CASE\n        WHEN a THEN x\n        ELSE y\n    END\nFROM t"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      0
+    ],
+    "insert into t(a,b) values(1,2),(3,4) returning a,b",
+    "INSERT INTO t (a, b)\nVALUES (1, 2), (3, 4)\nRETURNING a, b"
+  ],
+  [
+    [
+      1,
+      4,
+      80,
+      0,
+      1
+    ],
+    "select 4; select 9",
+    "SELECT 4\n; SELECT 9\n"
+  ],
+  [
+    [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "select 7",
+    "SELECT 7"
+  ]
+]

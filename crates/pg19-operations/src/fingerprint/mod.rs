@@ -315,6 +315,7 @@ pub(crate) fn fingerprint_node(node: &Node) -> u64 {
     xxh3_64_with_seed(&w.stream, FINGERPRINT_VERSION)
 }
 
+// [spec:pgq:req:fingerprint.constants]
 pub fn fingerprint_sql(
     sql: &str,
     mode: pg19_parser::ParseMode,

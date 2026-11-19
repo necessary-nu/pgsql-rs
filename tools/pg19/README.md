@@ -201,3 +201,21 @@ the corpus comparison against the freshly built patched reference.
 The [PL/pgSQL reference](plpgsql/README.md) compiles function, procedure
 and DO bodies with the patched PG19 compiler and the library's offline
 catalog adapters. It emits routine JSON and SQL or body diagnostics.
+
+The summary oracle links the library’s summary walkers, truncation algorithm, compact deparser and protobuf encoder with the patched PG19 backend. It reads one SQL input on standard input. The first argument selects the upstream raw parse mode (0 through 5). The optional second argument gives the truncation limit, with -1 as the default. A third argument of 16 disables backslash quoting. The optional final argument `text` prints the truncated SQL instead of the SummaryResult wire message.
+
+```sh
+python3 tools/pg19/tests/build-summary-probe.py "$run" "$run/summary"
+python3 tools/pg19/tests/check-summary.py "$run/summary/summary-probe"
+printf '%s' 'SELECT a, b, c, d, e, f FROM xyz WHERE a = b' | "$run/summary/summary-probe" 0 40 0 text
+cargo test --locked -p pg19-operations --test summary
+```
+
+The build adapts the reference to PG19’s RepackStmt, WaitStmt and split subscription refresh kinds in the import directory. The fixture check reads the original C summary and truncation tests, verifies their expected truncated SQL, and compares the resulting wire messages and diagnostics with the checked-in snapshots. Use `check-summary.py --write` with the rebuilt probe when reviewing a version change.
+
+To repeat the full entity and diagnostic comparison, point the ignored integration test at the extracted regression corpus and the probe.
+
+```sh
+PG19_CORPUS="$corpus/cases.jsonl" PG19_SUMMARY_PROBE="$run/summary/summary-probe" \
+  cargo test --locked -p pg19-operations --test summary compare_extracted_corpus -- --ignored --nocapture
+```

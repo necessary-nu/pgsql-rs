@@ -253,6 +253,14 @@ children (
                     rust ([spec:pgq:sem:grammar.utility-actions])
                 }
                 deps (parser.expressions)
+                log (
+                    {
+                        at 2026-11-19T19:43:37.210502733Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
             }
 
             {

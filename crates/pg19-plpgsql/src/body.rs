@@ -260,6 +260,29 @@ pub enum CompileError {
     Unsupported { production: &'static str },
 }
 
+impl std::fmt::Display for CompileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Diagnostic(error) => error.fmt(f),
+            Self::SqlAction(error) => error.fmt(f),
+            Self::InvalidTree(reason) => write!(f, "invalid PL/pgSQL tree: {reason}"),
+            Self::Unsupported { production } => {
+                write!(f, "unsupported PL/pgSQL production: {production}")
+            }
+        }
+    }
+}
+
+impl std::error::Error for CompileError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Diagnostic(error) => Some(error),
+            Self::SqlAction(error) => Some(error),
+            Self::InvalidTree(_) | Self::Unsupported { .. } => None,
+        }
+    }
+}
+
 impl From<Error> for CompileError {
     fn from(e: Error) -> Self {
         Self::Diagnostic(e)

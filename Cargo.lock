@@ -82,6 +82,7 @@ dependencies = [
  "pg19-lexer",
  "pg19-nodes",
  "pg19-parser",
+ "prost",
  "serde_json",
  "xxhash-rust",
 ]
@@ -108,6 +109,18 @@ dependencies = [
  "pg19-parser",
  "pg19-tables",
  "serde_json",
+]
+
+[[package]]
+name = "pg19-query"
+version = "0.1.0"
+dependencies = [
+ "pg19-codec",
+ "pg19-lexer",
+ "pg19-nodes",
+ "pg19-operations",
+ "pg19-parser",
+ "pg19-plpgsql",
 ]
 
 [[package]]

@@ -20,7 +20,6 @@ pub(super) fn alias(a: &Alias) -> Result<String> {
     Ok(s)
 }
 pub(super) fn relation(r: &RangeVar, p: &mut Plan<'_>, insert: bool) -> Result<()> {
-    p.mark(r.location);
     if !r.inh {
         p.text("ONLY ");
     }
@@ -42,7 +41,7 @@ fn join<'a>(j: &'a JoinExpr, p: &mut Plan<'a>) -> Result<()> {
         p.text("(");
     }
     p.node(left, Role::From);
-    p.text(" ");
+    p.cut();
     if j.is_natural {
         p.text("NATURAL ");
     }
@@ -84,6 +83,24 @@ fn join<'a>(j: &'a JoinExpr, p: &mut Plan<'a>) -> Result<()> {
     }
     Ok(())
 }
+fn table_function_columns<'a>(cols: &'a [Node], p: &mut Plan<'a>) -> Result<()> {
+    for (i, n) in cols.iter().enumerate() {
+        let Node::ColumnDef(c) = n else {
+            return Err(Error::InvalidField("RangeFunction.coldeflist"));
+        };
+        if i > 0 {
+            p.text(", ");
+        }
+        p.text(named(&c.colname, "ColumnDef.colname")?);
+        p.text(" ");
+        p.typename(required(&c.type_name, "ColumnDef.typeName")?);
+        if let Some(col) = &c.coll_clause {
+            p.text(" COLLATE ");
+            p.text(names(&col.collname, ".")?);
+        }
+    }
+    Ok(())
+}
 fn from<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
     match n {
         Node::RangeVar(r) => return relation(r, p, false),
@@ -100,10 +117,25 @@ fn from<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
                 p.text(alias(a)?);
             }
         }
-        Node::RangeFunction(f) => {
-            if !f.coldeflist.is_empty() {
-                return Err(Error::UnsupportedStatement(n.tag()));
+        Node::JsonTable(t) => return super::json::table(t, p),
+        Node::RangeTableFunc(t) => return super::xml::table(t, p),
+        Node::RangeTableSample(t) => {
+            p.node(
+                required(&t.relation, "RangeTableSample.relation")?,
+                Role::From,
+            );
+            p.text(" TABLESAMPLE ");
+            p.text(names(&t.method, ".")?);
+            p.text("(");
+            p.list(&t.args, Role::Expr);
+            p.text(")");
+            if let Some(r) = &t.repeatable {
+                p.text(" REPEATABLE (");
+                p.expr(r);
+                p.text(")");
             }
+        }
+        Node::RangeFunction(f) => {
             if f.lateral {
                 p.text("LATERAL ");
             }
@@ -114,7 +146,7 @@ fn from<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
                 let Node::List(pair) = element else {
                     return Err(Error::InvalidField("RangeFunction.functions"));
                 };
-                let [call, Node::Null] = pair.as_slice() else {
+                let [call, defs] = pair.as_slice() else {
                     return Err(Error::UnsupportedStatement(n.tag()));
                 };
                 if i > 0 {
@@ -129,6 +161,19 @@ fn from<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
                 } else {
                     p.expr(call);
                 }
+                match defs {
+                    Node::Null => {
+                        if f.is_rowsfrom {
+                            p.text(" ");
+                        }
+                    }
+                    Node::List(columns) => {
+                        p.text(" AS (");
+                        table_function_columns(columns, p)?;
+                        p.text(")");
+                    }
+                    _ => return Err(Error::InvalidField("RangeFunction.functions")),
+                }
             }
             if f.is_rowsfrom {
                 p.text(")");
@@ -139,6 +184,11 @@ fn from<'a>(n: &'a Node, p: &mut Plan<'a>) -> Result<()> {
             if let Some(a) = &f.alias {
                 p.text(" ");
                 p.text(alias(a)?);
+            }
+            if !f.coldeflist.is_empty() {
+                p.text(if f.alias.is_some() { " (" } else { " AS (" });
+                table_function_columns(&f.coldeflist, p)?;
+                p.text(")");
             }
         }
         _ => return Err(Error::UnsupportedStatement(n.tag())),
@@ -204,11 +254,11 @@ fn cte<'a>(c: &'a CommonTableExpr, p: &mut Plan<'a>) -> Result<()> {
         )?);
         if let Some(v) = &s.cycle_mark_value {
             p.text(" TO ");
-            p.expr(v);
+            super::expr::typed_constant(v, p)?;
         }
         if let Some(v) = &s.cycle_mark_default {
             p.text(" DEFAULT ");
-            p.expr(v);
+            super::expr::typed_constant(v, p)?;
         }
         p.text(" USING ");
         p.text(named(
@@ -220,11 +270,12 @@ fn cte<'a>(c: &'a CommonTableExpr, p: &mut Plan<'a>) -> Result<()> {
 }
 pub(super) fn item<'a>(n: &'a Node, role: Role, p: &mut Plan<'a>) -> Result<()> {
     match (role, n) {
+        (Role::JsonColumn, Node::JsonTableColumn(c)) => return super::json::column(c, p),
         (Role::Target, Node::ResTarget(t)) => {
             if !t.indirection.is_empty() {
                 return Err(Error::InvalidField("target indirection"));
             }
-            p.mark(t.location);
+
             p.expr(required(&t.val, "ResTarget.val")?);
             if let Some(name) = &t.name {
                 p.text(" AS ");
@@ -251,7 +302,6 @@ pub(super) fn item<'a>(n: &'a Node, role: Role, p: &mut Plan<'a>) -> Result<()> 
     Ok(())
 }
 pub(super) fn with<'a>(w: &'a WithClause, p: &mut Plan<'a>) {
-    p.mark(w.location);
     p.clause(if w.recursive {
         "WITH RECURSIVE "
     } else {
@@ -267,7 +317,7 @@ fn simple<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
                 return Err(Error::InvalidField("SelectStmt.valuesLists"));
             };
             if i > 0 {
-                p.text(", ");
+                p.comma();
             }
             p.text("(");
             p.list(values, Role::Expr);
@@ -278,6 +328,7 @@ fn simple<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
     p.clause("SELECT");
     if !s.distinct_clause.is_empty() {
         p.text(" DISTINCT");
+        p.separate();
         if !matches!(s.distinct_clause.as_slice(), [Node::Null]) {
             p.text(" ON (");
             p.list(&s.distinct_clause, Role::Expr);
@@ -285,11 +336,23 @@ fn simple<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
         }
     }
     if !s.target_list.is_empty() {
-        p.text(" ");
+        if !s.distinct_clause.is_empty() {
+            p.cut();
+        } else {
+            p.text(" ");
+        }
         p.list(&s.target_list, Role::Target);
     }
-    if s.into_clause.is_some() || !s.window_clause.is_empty() {
-        return Err(Error::UnsupportedStatement(Some(NodeTag::SelectStmt)));
+    if let Some(into) = &s.into_clause {
+        p.clause("INTO ");
+        let r = required(&into.rel, "IntoClause.rel")?;
+        match r.relpersistence {
+            b't' => p.text("TEMPORARY "),
+            b'u' => p.text("UNLOGGED "),
+            b'p' => {}
+            _ => return Err(Error::InvalidField("RangeVar.relpersistence")),
+        }
+        relation(r, p, false)?;
     }
     if !s.from_clause.is_empty() {
         p.clause("FROM ");
@@ -310,7 +373,7 @@ fn simple<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
         p.clause("HAVING ");
         p.expr(h);
     }
-    Ok(())
+    super::window::declarations(&s.window_clause, p)
 }
 fn select_tail<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
     if !s.sort_clause.is_empty() {
@@ -346,7 +409,12 @@ fn select_tail<'a>(s: &'a SelectStmt, p: &mut Plan<'a>) -> Result<()> {
         p.clause(super::dml::lock_strength(l.strength)?);
         if !l.locked_rels.is_empty() {
             p.text(" OF ");
-            p.list(&l.locked_rels, Role::From);
+            for (i, r) in l.locked_rels.iter().enumerate() {
+                if i > 0 {
+                    p.text(", ");
+                }
+                p.node(r, Role::From);
+            }
         }
         match l.wait_policy {
             LockWaitPolicy::LockWaitBlock => {}
@@ -367,6 +435,7 @@ pub(super) fn select<'a>(s: &'a SelectStmt, arm: bool, p: &mut Plan<'a>) -> Resu
             || !s.locking_clause.is_empty());
     if bracket {
         p.text("(");
+        p.enter();
     }
     if let Some(w) = &s.with_clause {
         with(w, p);
@@ -398,6 +467,7 @@ pub(super) fn select<'a>(s: &'a SelectStmt, arm: bool, p: &mut Plan<'a>) -> Resu
     }
     select_tail(s, p)?;
     if bracket {
+        p.leave();
         p.text(")");
     }
     Ok(())

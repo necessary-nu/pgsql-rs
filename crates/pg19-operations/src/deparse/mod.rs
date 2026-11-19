@@ -1,10 +1,16 @@
 //! SQL rendering for PostgreSQL 19 raw statement trees.
 mod comments;
+mod ddl;
 mod dml;
 mod expr;
+mod format;
+mod json;
+pub use format::Options;
 mod operator;
 mod query;
+mod window;
 mod writer;
+mod xml;
 pub use comments::{comments, Comment};
 
 use pg19_codec::protobuf::{statements_from_protobuf, ProtobufError};
@@ -47,10 +53,14 @@ fn ident(name: &str) -> Result<String> {
     if name.is_empty() || name.len() > 63 || name.contains('\0') {
         return Err(Error::InvalidField("identifier"));
     }
+    Ok(quoted_identifier(name))
+}
+
+pub(crate) fn quoted_identifier(name: &str) -> String {
     if plain_name(name) && keyword(name).is_none_or(|(_, _, cat)| cat == KeywordKind::Unreserved) {
-        Ok(name.to_owned())
+        name.to_owned()
     } else {
-        Ok(format!("\"{}\"", name.replace('"', "\"\"")))
+        format!("\"{}\"", name.replace('"', "\"\""))
     }
 }
 
@@ -274,10 +284,32 @@ fn render(out: &mut String, node: &Node) -> Result<()> {
 /// Render raw statements in compact form. An unsupported node identifies its tag.
 // [spec:pgq:req:deparse.stream]
 pub fn statements(stmts: &[RawStmt]) -> Result<String> {
-    writer::statements(stmts)
+    writer::statements(stmts, Options::default(), &[])
 }
 
 /// Decode a versioned PG19 ParseResult and render it with the compact writer.
 pub fn protobuf(bytes: &[u8]) -> Result<String> {
     statements(&statements_from_protobuf(bytes).map_err(Error::Protobuf)?)
+}
+
+// [spec:pgq:req:deparse.pretty]
+// [spec:pgq:req:deparse.comments]
+/// Render each statement with optional formatting and scanner-extracted comments.
+pub fn statements_with_options(
+    stmts: &[RawStmt],
+    options: Options,
+    comments: &[Comment<'_>],
+) -> Result<String> {
+    writer::statements(stmts, options, comments)
+}
+
+// [spec:pgq:req:deparse.protobuf]
+/// Decode PG19 wire data and apply the same format and comment options as native trees.
+pub fn protobuf_with_options(
+    bytes: &[u8],
+    options: Options,
+    comments: &[Comment<'_>],
+) -> Result<String> {
+    let tree = statements_from_protobuf(bytes).map_err(Error::Protobuf)?;
+    writer::statements(&tree, options, comments)
 }

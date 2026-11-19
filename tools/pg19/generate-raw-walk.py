@@ -12,6 +12,17 @@ AlterRoleStmt DeclareCursorStmt CreateFunctionStmt DoStmt CreateSubscriptionStmt
 AlterSubscriptionStmt CreateUserMappingStmt AlterUserMappingStmt NotifyStmt""".split()
 
 
+def summary_tags():
+    source = (ROOT / "src/pg_query_summary_statement_type.c").read_text()
+    statements = set(re.findall(r'add_stmt_type_if_needed\(summary, "(\w+)"\)', source))
+    statements.remove("ClusterStmt")
+    statements.update(("RepackStmt", "WaitStmt"))
+    entities = (ROOT / "src/pg_query_summary.c").read_text()
+    visited = set(re.findall(r"case T_(\w+):", entities))
+    supported = set(re.findall(r"case T_(\w+):", (ROOT / "src/pg_query_raw_tree_walker_supports.c").read_text()))
+    return statements, visited, supported
+
+
 def generate(source):
     model = (ROOT / "crates/pg19-nodes/src/nodes.in").read_text()
     records = {}
@@ -21,7 +32,8 @@ def generate(source):
     source = source.split("raw_expression_tree_walker_impl(Node *node,")[1].split("\n\t\tdefault:")[0]
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
     parts = re.split(r"case T_(\w+):", source)
-    nodes = {pg: [] for pg in UTILITY + ["CaseWhen"]}
+    statements, visited, supported = summary_tags()
+    nodes = {pg: [] for pg in set(UTILITY + ["CaseWhen"]) | ((statements | visited) & records.keys())}
     for pg, body in zip(parts[1::2], parts[2::2]):
         if pg == "List":
             assert re.search(r"WALK\(\(Node \*\) lfirst\(temp\)\)", body)
@@ -49,12 +61,21 @@ def generate(source):
             key, ty = members[field]
             if ty == "Vec<Node>":
                 children.append(f"list {key}")
-            elif re.fullmatch(r"Option<(Arc|NodeBox|Box)<\w+>>", ty):
+            elif ty == "Option<Arc<Node>>":
+                children.append(f"shared {key}")
+            elif re.fullmatch(r"Option<(NodeBox|Box)<\w+>>", ty):
                 children.append(f"ptr {key}")
             else:
                 raise ValueError(f"unsupported {pg}.{field} type {ty}")
         rows.append(f"    {native} {{ {', '.join(children)} }}")
-    return "\n".join(rows + ["}", ""])
+    def variants(names):
+        return [f"    NodeTag::{records[pg][0]} |" for pg in sorted(names & records.keys())]
+    def predicate(name, names):
+        lines = variants(names)
+        lines[-1] = lines[-1].removesuffix(" |")
+        return [f"pub(super) fn {name}(tag: NodeTag) -> bool {{", "    matches!(tag,", *lines, "    )", "}"]
+    return "\n".join(rows + ["}"] + predicate("is_summary_statement", statements) +
+                     predicate("summary_walks_children", supported | {"CaseWhen"}) + [""])
 
 
 if __name__ == "__main__":

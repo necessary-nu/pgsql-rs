@@ -6,34 +6,110 @@ raw_records! {
     AIndirection { ptr arg, list indirection }
     AStar {  }
     Alias {  }
+    AlterCollationStmt {  }
+    AlterDatabaseSetStmt {  }
+    AlterDatabaseStmt {  }
+    AlterDefaultPrivilegesStmt {  }
+    AlterDomainStmt {  }
+    AlterEnumStmt {  }
+    AlterEventTrigStmt {  }
+    AlterExtensionContentsStmt {  }
+    AlterExtensionStmt {  }
+    AlterFdwStmt {  }
+    AlterForeignServerStmt {  }
+    AlterFunctionStmt {  }
+    AlterObjectDependsStmt {  }
+    AlterObjectSchemaStmt {  }
+    AlterOpFamilyStmt {  }
+    AlterOperatorStmt {  }
+    AlterOwnerStmt {  }
+    AlterPolicyStmt {  }
+    AlterPublicationStmt {  }
+    AlterRoleSetStmt {  }
     AlterRoleStmt {  }
+    AlterSeqStmt {  }
+    AlterStatsStmt {  }
     AlterSubscriptionStmt {  }
+    AlterSystemStmt {  }
+    AlterTSConfigurationStmt {  }
+    AlterTSDictionaryStmt {  }
+    AlterTableCmd {  }
+    AlterTableMoveAllStmt {  }
+    AlterTableSpaceOptionsStmt {  }
+    AlterTableStmt {  }
+    AlterTypeStmt {  }
     AlterUserMappingStmt {  }
     BoolExpr { list args }
     BooleanTest { ptr arg }
     CallStmt {  }
     CaseExpr { ptr arg, list args, ptr defresult }
     CaseWhen { ptr expr, ptr result }
+    CheckPointStmt {  }
+    ClosePortalStmt {  }
     CoalesceExpr { list args }
     CollateClause { ptr arg }
     ColumnDef { ptr type_name, ptr raw_default, ptr coll_clause }
     ColumnRef {  }
+    CommentStmt {  }
     CommonTableExpr { ptr ctequery }
+    CompositeTypeStmt {  }
+    ConstraintsSetStmt {  }
     CopyStmt {  }
+    CreateAmStmt {  }
+    CreateCastStmt {  }
+    CreateConversionStmt {  }
+    CreateDomainStmt {  }
+    CreateEnumStmt {  }
+    CreateEventTrigStmt {  }
+    CreateExtensionStmt {  }
+    CreateFdwStmt {  }
+    CreateForeignServerStmt {  }
+    CreateForeignTableStmt {  }
     CreateFunctionStmt {  }
+    CreateOpClassStmt {  }
+    CreateOpFamilyStmt {  }
+    CreatePLangStmt {  }
+    CreatePolicyStmt {  }
+    CreatePublicationStmt {  }
+    CreateRangeStmt {  }
     CreateRoleStmt {  }
+    CreateSchemaStmt {  }
+    CreateSeqStmt {  }
+    CreateStatsStmt {  }
+    CreateStmt {  }
     CreateSubscriptionStmt {  }
+    CreateTableAsStmt {  }
+    CreateTableSpaceStmt {  }
+    CreateTransformStmt {  }
+    CreateTrigStmt {  }
     CreateUserMappingStmt {  }
+    CreatedbStmt {  }
     CurrentOfExpr {  }
+    DeallocateStmt {  }
     DeclareCursorStmt {  }
     DefElem {  }
+    DefineStmt {  }
     DeleteStmt { ptr relation, list using_clause, ptr where_clause, ptr returning_clause, ptr with_clause }
+    DiscardStmt {  }
     DoStmt {  }
+    DropOwnedStmt {  }
+    DropRoleStmt {  }
+    DropStmt {  }
+    DropSubscriptionStmt {  }
+    DropTableSpaceStmt {  }
+    DropUserMappingStmt {  }
+    DropdbStmt {  }
+    ExecuteStmt {  }
     ExplainStmt {  }
+    FetchStmt {  }
     FuncCall { list args, list agg_order, ptr agg_filter, ptr over }
+    GrantRoleStmt {  }
+    GrantStmt {  }
     GroupingFunc { list args }
     GroupingSet { list content }
+    ImportForeignSchemaStmt {  }
     IndexElem { ptr expr }
+    IndexStmt {  }
     InferClause { list index_elems, ptr where_clause }
     InsertStmt { ptr relation, list cols, ptr select_stmt, ptr on_conflict_clause, ptr returning_clause, ptr with_clause }
     IntoClause { ptr rel, ptr view_query }
@@ -59,18 +135,22 @@ raw_records! {
     JsonTableColumn { ptr type_name, ptr on_empty, ptr on_error, list columns }
     JsonTablePathSpec { ptr string }
     JsonValueExpr { ptr raw_expr, ptr formatted_expr, ptr format }
+    ListenStmt {  }
+    LoadStmt {  }
+    LockStmt {  }
     LockingClause { list locked_rels }
     MergeStmt { ptr relation, ptr source_relation, ptr join_condition, list merge_when_clauses, ptr returning_clause, ptr with_clause }
     MergeSupportFunc {  }
     MergeWhenClause { ptr condition, list target_list, list values }
     MinMaxExpr { list args }
-    MultiAssignRef { ptr source }
+    MultiAssignRef { shared source }
     NamedArgExpr { ptr arg }
     NotifyStmt {  }
     NullTest { ptr arg }
     OnConflictClause { ptr infer, list target_list, ptr where_clause }
     PLAssignStmt { list indirection, ptr val }
     ParamRef {  }
+    PrepareStmt {  }
     RangeFunction { list functions, ptr alias, list coldeflist }
     RangeSubselect { ptr subquery, ptr alias }
     RangeTableFunc { ptr docexpr, ptr rowexpr, list namespaces, list columns, ptr alias }
@@ -78,21 +158,237 @@ raw_records! {
     RangeTableSample { ptr relation, list args, ptr repeatable }
     RangeVar { ptr alias }
     RawStmt {  }
+    ReassignOwnedStmt {  }
+    RefreshMatViewStmt {  }
+    ReindexStmt {  }
+    RenameStmt {  }
+    RepackStmt {  }
+    ReplicaIdentityStmt {  }
     ResTarget { list indirection, ptr val }
     ReturningClause { list options, list exprs }
     ReturningOption {  }
     RowExpr { list args }
+    RuleStmt {  }
     SQLValueFunction {  }
+    SecLabelStmt {  }
     SelectStmt { list distinct_clause, ptr into_clause, list target_list, list from_clause, ptr where_clause, list group_clause, ptr having_clause, list window_clause, list values_lists, list sort_clause, ptr limit_offset, ptr limit_count, list locking_clause, ptr with_clause, ptr larg, ptr rarg }
+    SetOperationStmt {  }
     SetToDefault {  }
     SortBy { ptr node }
     SubLink { ptr testexpr, ptr subselect }
+    TransactionStmt {  }
+    TruncateStmt {  }
     TypeCast { ptr arg, ptr type_name }
     TypeName { list typmods, list array_bounds }
+    UnlistenStmt {  }
     UpdateStmt { ptr relation, list target_list, ptr where_clause, list from_clause, ptr returning_clause, ptr with_clause }
+    VacuumStmt {  }
     VariableSetStmt {  }
+    VariableShowStmt {  }
+    ViewStmt {  }
+    WaitStmt {  }
     WindowDef { list partition_clause, list order_clause, ptr start_offset, ptr end_offset }
     WithClause { list ctes }
     XmlExpr { list named_args, list args }
     XmlSerialize { ptr expr, ptr type_name }
+}
+pub(super) fn is_summary_statement(tag: NodeTag) -> bool {
+    matches!(tag,
+    NodeTag::AlterCollationStmt |
+    NodeTag::AlterDatabaseSetStmt |
+    NodeTag::AlterDatabaseStmt |
+    NodeTag::AlterDefaultPrivilegesStmt |
+    NodeTag::AlterDomainStmt |
+    NodeTag::AlterEnumStmt |
+    NodeTag::AlterEventTrigStmt |
+    NodeTag::AlterExtensionContentsStmt |
+    NodeTag::AlterExtensionStmt |
+    NodeTag::AlterFdwStmt |
+    NodeTag::AlterForeignServerStmt |
+    NodeTag::AlterFunctionStmt |
+    NodeTag::AlterObjectDependsStmt |
+    NodeTag::AlterObjectSchemaStmt |
+    NodeTag::AlterOpFamilyStmt |
+    NodeTag::AlterOperatorStmt |
+    NodeTag::AlterOwnerStmt |
+    NodeTag::AlterPolicyStmt |
+    NodeTag::AlterPublicationStmt |
+    NodeTag::AlterRoleSetStmt |
+    NodeTag::AlterRoleStmt |
+    NodeTag::AlterSeqStmt |
+    NodeTag::AlterStatsStmt |
+    NodeTag::AlterSubscriptionStmt |
+    NodeTag::AlterSystemStmt |
+    NodeTag::AlterTSConfigurationStmt |
+    NodeTag::AlterTSDictionaryStmt |
+    NodeTag::AlterTableCmd |
+    NodeTag::AlterTableMoveAllStmt |
+    NodeTag::AlterTableSpaceOptionsStmt |
+    NodeTag::AlterTableStmt |
+    NodeTag::AlterTypeStmt |
+    NodeTag::AlterUserMappingStmt |
+    NodeTag::CallStmt |
+    NodeTag::CheckPointStmt |
+    NodeTag::ClosePortalStmt |
+    NodeTag::CommentStmt |
+    NodeTag::CompositeTypeStmt |
+    NodeTag::ConstraintsSetStmt |
+    NodeTag::CopyStmt |
+    NodeTag::CreateAmStmt |
+    NodeTag::CreateCastStmt |
+    NodeTag::CreateConversionStmt |
+    NodeTag::CreateDomainStmt |
+    NodeTag::CreateEnumStmt |
+    NodeTag::CreateEventTrigStmt |
+    NodeTag::CreateExtensionStmt |
+    NodeTag::CreateFdwStmt |
+    NodeTag::CreateForeignServerStmt |
+    NodeTag::CreateForeignTableStmt |
+    NodeTag::CreateFunctionStmt |
+    NodeTag::CreateOpClassStmt |
+    NodeTag::CreateOpFamilyStmt |
+    NodeTag::CreatePLangStmt |
+    NodeTag::CreatePolicyStmt |
+    NodeTag::CreatePublicationStmt |
+    NodeTag::CreateRangeStmt |
+    NodeTag::CreateRoleStmt |
+    NodeTag::CreateSchemaStmt |
+    NodeTag::CreateSeqStmt |
+    NodeTag::CreateStatsStmt |
+    NodeTag::CreateStmt |
+    NodeTag::CreateSubscriptionStmt |
+    NodeTag::CreateTableAsStmt |
+    NodeTag::CreateTableSpaceStmt |
+    NodeTag::CreateTransformStmt |
+    NodeTag::CreateTrigStmt |
+    NodeTag::CreateUserMappingStmt |
+    NodeTag::CreatedbStmt |
+    NodeTag::DeallocateStmt |
+    NodeTag::DeclareCursorStmt |
+    NodeTag::DefineStmt |
+    NodeTag::DeleteStmt |
+    NodeTag::DiscardStmt |
+    NodeTag::DoStmt |
+    NodeTag::DropOwnedStmt |
+    NodeTag::DropRoleStmt |
+    NodeTag::DropStmt |
+    NodeTag::DropSubscriptionStmt |
+    NodeTag::DropTableSpaceStmt |
+    NodeTag::DropUserMappingStmt |
+    NodeTag::DropdbStmt |
+    NodeTag::ExecuteStmt |
+    NodeTag::ExplainStmt |
+    NodeTag::FetchStmt |
+    NodeTag::GrantRoleStmt |
+    NodeTag::GrantStmt |
+    NodeTag::ImportForeignSchemaStmt |
+    NodeTag::IndexStmt |
+    NodeTag::InsertStmt |
+    NodeTag::ListenStmt |
+    NodeTag::LoadStmt |
+    NodeTag::LockStmt |
+    NodeTag::MergeStmt |
+    NodeTag::NotifyStmt |
+    NodeTag::PrepareStmt |
+    NodeTag::ReassignOwnedStmt |
+    NodeTag::RefreshMatViewStmt |
+    NodeTag::ReindexStmt |
+    NodeTag::RenameStmt |
+    NodeTag::RepackStmt |
+    NodeTag::ReplicaIdentityStmt |
+    NodeTag::RuleStmt |
+    NodeTag::SecLabelStmt |
+    NodeTag::SelectStmt |
+    NodeTag::SetOperationStmt |
+    NodeTag::TransactionStmt |
+    NodeTag::TruncateStmt |
+    NodeTag::UnlistenStmt |
+    NodeTag::UpdateStmt |
+    NodeTag::VacuumStmt |
+    NodeTag::VariableSetStmt |
+    NodeTag::VariableShowStmt |
+    NodeTag::ViewStmt |
+    NodeTag::WaitStmt
+    )
+}
+pub(super) fn summary_walks_children(tag: NodeTag) -> bool {
+    matches!(tag,
+    NodeTag::AArrayExpr |
+    NodeTag::AExpr |
+    NodeTag::AIndices |
+    NodeTag::AIndirection |
+    NodeTag::AStar |
+    NodeTag::Alias |
+    NodeTag::BoolExpr |
+    NodeTag::BooleanTest |
+    NodeTag::CaseExpr |
+    NodeTag::CaseWhen |
+    NodeTag::CoalesceExpr |
+    NodeTag::CollateClause |
+    NodeTag::ColumnDef |
+    NodeTag::ColumnRef |
+    NodeTag::CommonTableExpr |
+    NodeTag::CurrentOfExpr |
+    NodeTag::DeleteStmt |
+    NodeTag::FuncCall |
+    NodeTag::GroupingFunc |
+    NodeTag::GroupingSet |
+    NodeTag::IndexElem |
+    NodeTag::InferClause |
+    NodeTag::InsertStmt |
+    NodeTag::IntoClause |
+    NodeTag::JoinExpr |
+    NodeTag::JsonAggConstructor |
+    NodeTag::JsonArgument |
+    NodeTag::JsonArrayAgg |
+    NodeTag::JsonArrayConstructor |
+    NodeTag::JsonArrayQueryConstructor |
+    NodeTag::JsonBehavior |
+    NodeTag::JsonFormat |
+    NodeTag::JsonFuncExpr |
+    NodeTag::JsonIsPredicate |
+    NodeTag::JsonKeyValue |
+    NodeTag::JsonObjectAgg |
+    NodeTag::JsonObjectConstructor |
+    NodeTag::JsonOutput |
+    NodeTag::JsonParseExpr |
+    NodeTag::JsonReturning |
+    NodeTag::JsonScalarExpr |
+    NodeTag::JsonSerializeExpr |
+    NodeTag::JsonTable |
+    NodeTag::JsonTableColumn |
+    NodeTag::JsonTablePathSpec |
+    NodeTag::JsonValueExpr |
+    NodeTag::LockingClause |
+    NodeTag::MergeStmt |
+    NodeTag::MergeSupportFunc |
+    NodeTag::MergeWhenClause |
+    NodeTag::MinMaxExpr |
+    NodeTag::MultiAssignRef |
+    NodeTag::NamedArgExpr |
+    NodeTag::NullTest |
+    NodeTag::OnConflictClause |
+    NodeTag::PLAssignStmt |
+    NodeTag::ParamRef |
+    NodeTag::RangeFunction |
+    NodeTag::RangeSubselect |
+    NodeTag::RangeTableFunc |
+    NodeTag::RangeTableFuncCol |
+    NodeTag::RangeTableSample |
+    NodeTag::RangeVar |
+    NodeTag::ResTarget |
+    NodeTag::RowExpr |
+    NodeTag::SQLValueFunction |
+    NodeTag::SelectStmt |
+    NodeTag::SetToDefault |
+    NodeTag::SortBy |
+    NodeTag::SubLink |
+    NodeTag::TypeCast |
+    NodeTag::TypeName |
+    NodeTag::UpdateStmt |
+    NodeTag::WindowDef |
+    NodeTag::WithClause |
+    NodeTag::XmlExpr |
+    NodeTag::XmlSerialize
+    )
 }

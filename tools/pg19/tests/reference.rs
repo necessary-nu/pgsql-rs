@@ -93,6 +93,18 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         .arg(&run)
         .status()?
         .success());
+    let summary = run.join("summary");
+    assert!(Command::new("python3")
+        .arg(tools.join("tests/build-summary-probe.py"))
+        .arg(&run)
+        .arg(&summary)
+        .status()?
+        .success());
+    assert!(Command::new("python3")
+        .arg(tools.join("tests/check-summary.py"))
+        .arg(summary.join("summary-probe"))
+        .status()?
+        .success());
     for generator in [
         "import-lexer.py",
         "generate-raw-walk.py",

@@ -127,3 +127,14 @@ example. Both environment variables accept absolute paths.
 PG19_REGRESSION_DIR="$out" PG19_NATIVE_PROBE="$PWD/target/release/examples/pg19-native" \
   cargo test --offline --locked -p pg19-parser --test corpus -- --ignored
 ```
+
+Run the compact deparser over default-mode corpus cases and compare reparses with
+the patched PG19 C JSON probe. The report counts unsupported statements and
+native parser errors separately. The command exits with an error if a rendered
+statement changes its PG19 tree or cannot be reparsed.
+
+```sh
+cargo build -p pg19-operations --example deparse-corpus
+python3 tools/pg19/regress/deparse.py "$out/cases.jsonl" \
+  target/debug/examples/deparse-corpus "$json_probe" "$corpus/deparse-mismatches.jsonl"
+```
