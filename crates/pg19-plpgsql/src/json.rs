@@ -1,4 +1,4 @@
-use crate::{Block, DataType, Datum, Expression, ParseMode, Statement};
+use crate::{Block, DataType, Datum, Expression, ForSource, ParseMode, Statement};
 use serde_json::{json, Value};
 
 fn expression(e: &Expression) -> Value {
@@ -204,6 +204,77 @@ fn statement(s: &Statement) -> Value {
                 v["target"] = datum(&t.variable, t.id);
             }
             json!({"PLpgSQL_stmt_execsql":v})
+        }
+        Statement::For {
+            lineno,
+            label,
+            target,
+            source,
+            body,
+        } => {
+            let mut v = json!({"lineno":lineno,"var":datum(&target.variable,target.id)});
+            if let Some(l) = label {
+                v["label"] = json!(l);
+            }
+            statements(&mut v, "body", body);
+            let key = match source.as_ref() {
+                ForSource::Integer {
+                    lower,
+                    upper,
+                    step,
+                    reverse,
+                } => {
+                    v["lower"] = expression(lower);
+                    v["upper"] = expression(upper);
+                    optional_expr(&mut v, "step", step);
+                    if *reverse {
+                        v["reverse"] = json!(true);
+                    }
+                    "PLpgSQL_stmt_fori"
+                }
+                ForSource::Query {
+                    query,
+                    dynamic,
+                    params,
+                } => {
+                    v["query"] = expression(query);
+                    if !params.is_empty() {
+                        v["params"] = params.iter().map(expression).collect();
+                    }
+                    if *dynamic {
+                        "PLpgSQL_stmt_dynfors"
+                    } else {
+                        "PLpgSQL_stmt_fors"
+                    }
+                }
+                ForSource::Cursor { cursor, argquery } => {
+                    if *cursor > 0 {
+                        v["curvar"] = json!(cursor);
+                    }
+                    optional_expr(&mut v, "argquery", argquery);
+                    "PLpgSQL_stmt_forc"
+                }
+            };
+            json!({(key):v})
+        }
+        Statement::Execute {
+            lineno,
+            query,
+            target,
+            params,
+        } => {
+            let mut v = json!({"lineno":lineno,"query":expression(query)});
+            if let Some(t) = target {
+                v["into"] = json!(true);
+                if t.strict {
+                    v["strict"] = json!(true);
+                }
+                v["target"] = datum(&t.variable, t.id);
+            }
+            if !params.is_empty() {
+                v["params"] = params.iter().map(expression).collect();
+            }
+            json!({"PLpgSQL_stmt_dynexecute":v})
         }
         Statement::ReturnNext {
             lineno,

@@ -79,5 +79,5 @@ fn compare_project_sample_routines() {
         "matched {matched}/{} complete routine trees",
         signatures.len()
     );
-    assert!(matched >= 22);
+    assert!(matched >= 26);
 }
