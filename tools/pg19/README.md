@@ -43,6 +43,25 @@ syntax, actions and data layout. The stock and patched probes establish
 whether a behavioral change came from PostgreSQL or from the overlay.
 [Parser table regeneration](../../crates/pg19-tables/README.md)
 
+### Regenerating native record and utility actions
+
+After refreshing the Bison inventory and `simple.tsv`, run the typed
+constructor translator against the same patched build. It needs Python 3
+and `rustfmt`.
+
+```sh
+python3 tools/pg19/generate-record-actions.py "$run/patched"
+python3 tools/pg19/generate-record-actions.py "$run/patched" --check
+PG19_REFERENCE_DIR="$run" cargo test -p pg19-parser --test utility -- --include-ignored
+```
+
+The translator matches a complete C reduction against recognized allocation,
+field assignment, location, list and helper-call forms. It uses the generated
+Rust node definitions for the field types. It emits `records.tsv` and
+`src/records.in` in `crates/pg19-parser`. Handwritten family actions override
+generated fallbacks. Unrecognized C requires another translation and appears
+in the coverage report when a query reaches that reduction.
+
 ### Comparing parser behavior
 
 Set `run` to the path printed by the importer to inspect a default-mode SQL

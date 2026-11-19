@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 mod expr;
 mod query;
+mod records;
 mod utility;
 mod value;
 

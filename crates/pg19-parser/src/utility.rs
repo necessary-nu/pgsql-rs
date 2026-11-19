@@ -3,9 +3,40 @@ use super::{value::Value, Failure};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
+use crate::records::{optional_text, record};
+
 pub(super) enum Utility {
+    Cluster(isize, isize, Option<isize>),
+    VacuumLegacy,
+    ExplainAnalyze,
+    NegativeFloat,
+    NamedRole,
+    RoleId,
     Qualified(bool),
     Relation(isize, bool),
+}
+
+fn flag(name: &str, location: Location) -> Node {
+    DefElem {
+        defname: Some(name.to_owned()),
+        location,
+        arg_location: Location::UNKNOWN,
+        ..Default::default()
+    }
+    .into()
+}
+
+fn flag_options(
+    rhs: &mut Reduction<'_, Value>,
+    flags: &[(isize, &str)],
+) -> Result<Vec<Node>, Failure> {
+    let mut options = Vec::new();
+    for &(index, name) in flags {
+        if rhs.take(index).integer()? != 0 {
+            options.push(flag(name, rhs.location(index)));
+        }
+    }
+    Ok(options)
 }
 
 fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Failure> {
@@ -46,6 +77,106 @@ fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Fail
 
 pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     match op {
+        Utility::Cluster(rel, idx, options) => {
+            let relation = record!(rhs.take(rel), RangeVar);
+            let params = match options {
+                Some(pos) => rhs.take(pos).list()?,
+                None => flag_options(rhs, &[(2, "verbose")])?,
+            };
+            Ok(Value::Node(
+                RepackStmt {
+                    command: RepackCommand::REPACK_COMMAND_CLUSTER,
+                    relation: Some(Box::new(VacuumRelation {
+                        relation,
+                        ..Default::default()
+                    })),
+                    indexname: optional_text(rhs.take(idx))?,
+                    usingindex: true,
+                    params,
+                }
+                .into(),
+            ))
+        }
+        Utility::VacuumLegacy => {
+            let options = flag_options(
+                rhs,
+                &[(2, "full"), (3, "freeze"), (4, "verbose"), (5, "analyze")],
+            )?;
+            Ok(Value::Node(
+                VacuumStmt {
+                    options,
+                    rels: rhs.take(6).list()?,
+                    is_vacuumcmd: true,
+                }
+                .into(),
+            ))
+        }
+        Utility::ExplainAnalyze => {
+            let mut options = vec![flag("analyze", rhs.location(2))];
+            options.extend(flag_options(rhs, &[(3, "verbose")])?);
+            Ok(Value::Node(
+                ExplainStmt {
+                    options,
+                    query: rhs.take(4).optional()?,
+                }
+                .into(),
+            ))
+        }
+        Utility::NamedRole => {
+            let name = rhs.take(1).text()?;
+            let location = rhs.location(1);
+            let (roletype, rolename) = match name.as_str() {
+                "none" => {
+                    return Err(Failure::At(
+                        "role name \"none\" is reserved".to_owned(),
+                        "42939",
+                        location,
+                    ))
+                }
+                "public" => (RoleSpecType::ROLESPEC_PUBLIC, None),
+                _ => (RoleSpecType::ROLESPEC_CSTRING, Some(name)),
+            };
+            Ok(Value::Node(
+                RoleSpec {
+                    roletype,
+                    rolename,
+                    location,
+                }
+                .into(),
+            ))
+        }
+        Utility::RoleId => {
+            let Node::RoleSpec(mut role) = rhs.take(1).node()? else {
+                return Err("expected RoleSpec".into());
+            };
+            if role.roletype == RoleSpecType::ROLESPEC_CSTRING {
+                return Ok(Value::Text(
+                    role.rolename.take().ok_or("expected role name")?,
+                ));
+            }
+            let message = match role.roletype {
+                RoleSpecType::ROLESPEC_PUBLIC => "role name \"public\" is reserved".to_owned(),
+                role => {
+                    let name = match role {
+                        RoleSpecType::ROLESPEC_CURRENT_ROLE => "CURRENT_ROLE",
+                        RoleSpecType::ROLESPEC_CURRENT_USER => "CURRENT_USER",
+                        RoleSpecType::ROLESPEC_SESSION_USER => "SESSION_USER",
+                        _ => return Err("unknown role specification".into()),
+                    };
+                    format!("{name} cannot be used as a role name here")
+                }
+            };
+            Err(Failure::At(message, "42939", rhs.location(1)))
+        }
+        Utility::NegativeFloat => {
+            let text = rhs.take(2).text()?;
+            let digits = text.strip_prefix('+').unwrap_or(&text);
+            let number = match digits.strip_prefix('-') {
+                Some(positive) => positive.to_owned(),
+                None => format!("-{digits}"),
+            };
+            Ok(Value::Node(Node::Float(number)))
+        }
         Utility::Qualified(dotted) => qualified(rhs, dotted),
         Utility::Relation(index, inherit) => {
             let Node::RangeVar(mut range) = rhs.take(index).node()? else {

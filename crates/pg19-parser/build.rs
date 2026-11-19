@@ -28,7 +28,10 @@ fn main() {
     let table = fs::read_to_string(inventory).unwrap();
     println!("cargo:rerun-if-changed=simple.tsv");
     let simple = fs::read_to_string("simple.tsv").unwrap();
-    let mut generated = entries(&simple);
+    println!("cargo:rerun-if-changed=records.tsv");
+    let records = fs::read_to_string("records.tsv").unwrap();
+    let generated_sources = format!("{simple}\n{records}");
+    let mut generated = entries(&generated_sources);
     let mut paths: Vec<_> = fs::read_dir(manifests)
         .unwrap()
         .map(|file| file.unwrap().path())
