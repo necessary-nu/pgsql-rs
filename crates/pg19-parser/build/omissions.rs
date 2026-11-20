@@ -146,7 +146,7 @@ pub(super) fn guards(handlers: &[Option<&str>], arcs: &Arcs) -> BTreeMap<usize, 
                 let lhs = parent.lhs();
                 writeln!(guard, "if current.number() == {previous} && stack.has_room({extra}) && stack.lookahead().is_some_and(|t| matches!(t.symbol(), {tokens})) {{
                     let previous = stack.reduce_prefix({prefix}, current, span, |p| p, {construct})
-                        .map_err(|f| Box::new((Production::from_number({id}).unwrap(), f)))?;
+                        .map_err(|f| reduction_error({id}, f))?;
                     return goto_{lhs}(previous, stack, span);
                 }}").unwrap();
             }

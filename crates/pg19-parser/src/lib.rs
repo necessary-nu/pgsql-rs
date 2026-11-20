@@ -60,9 +60,17 @@ pub(crate) enum Failure {
     At(String, &'static str, pg19_nodes::Location),
 }
 impl From<&'static str> for Failure {
+    #[cold]
     fn from(s: &'static str) -> Self {
         Self::Value(s)
     }
+}
+
+#[cold]
+#[inline(never)]
+fn reduction_error(number: u16, failure: Failure) -> Box<(Production, Failure)> {
+    let rule = Production::from_number(number).expect("generated action has a production");
+    Box::new((rule, failure))
 }
 
 enum Op {
@@ -126,7 +134,7 @@ impl SqlEnd {
                 }
                 Ok(())
             })
-            .map_err(|failure| Box::new((self.append, failure)))?;
+            .map_err(|failure| reduction_error(self.append.number(), failure))?;
         Ok(if finished { self.accept } else { self.list })
     }
 }

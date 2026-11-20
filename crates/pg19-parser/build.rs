@@ -193,7 +193,7 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> Dispatch {
         let op = handlers[id].unwrap();
         code.push_str(&format!("#[inline] fn unit_{id}(stack:&mut ParseStack<Value>,span:(usize,usize)) -> Result<(),Box<(Production,Failure)>> {{\n"));
         code.push_str(ACTION_IMPORTS);
-        code.push_str(&format!("stack.map_top(span, |rhs| apply({op}, rhs)).map_err(|f| Box::new((Production::from_number({id}).unwrap(), f))) }}\n"));
+        code.push_str(&format!("stack.map_top(span, |rhs| apply({op}, rhs)).map_err(|f| reduction_error({id}, f)) }}\n"));
     }
     Dispatch {
         gotos: code,
@@ -283,7 +283,7 @@ fn main() {
                 "        Some(|stack, current, span| {{ {guard}let previous = stack.reduce_default({rule}, current, |p| p); {goto}(previous, stack, span) }}),\n"
             )),
             Some(op) => code.push_str(&format!(
-                "        Some(|stack, current, span| {{ {guard}let previous = stack.reduce({rule}, current, span, |p| p, |rhs| apply({op}, rhs)).map_err(|f| Box::new(({rule}, f)))?; {goto}(previous, stack, span) }}),\n"
+                "        Some(|stack, current, span| {{ {guard}let previous = stack.reduce({rule}, current, span, |p| p, |rhs| apply({op}, rhs)).map_err(|f| reduction_error({id}, f))?; {goto}(previous, stack, span) }}),\n"
             )),
             None => code.push_str("        None,\n"),
         }
