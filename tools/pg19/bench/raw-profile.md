@@ -2,16 +2,16 @@
 
 ## Ordinary release
 
-At `f84a5d3`, seven paired rounds on CPU 7 measured the following median
+At `996cc60`, seven paired rounds on CPU 5 measured the following median
 microseconds per query, including tree destruction. Rust used ordinary
 Cargo release settings. The patched C reference used GCC at `-O3`. Both
 used glibc. All 54,471 regression outcomes matched the pinned reference.
 
 | Raw parse workload | Rust µs | C µs | Rust/C |
 | --- | ---: | ---: | ---: |
-| `SELECT 1` | 0.318 | 0.432 | 0.737 |
-| Parameterized aggregate join | 6.538 | 6.216 | 1.052 |
-| 54,266 regression queries | 2.484 | 2.001 | 1.242 |
+| `SELECT 1` | 0.299 | 0.425 | 0.704 |
+| Parameterized aggregate join | 6.107 | 6.061 | 1.008 |
+| 54,266 regression queries | 2.261 | 1.846 | 1.224 |
 
 The following percentages come from user-mode cycle sampling on CPU 4
 before the error-path change. Each column includes allocator time spent in
@@ -22,6 +22,12 @@ that phase. The remaining samples belong to the harness or runtime.
 | `SELECT 1` | 4.8 / 26.6 | 73.2 / 67.9 | 19.0 / 4.8 |
 | Parameterized aggregate join | 13.0 / 38.4 | 69.6 / 61.0 | 17.1 / 0.5 |
 | Regression corpus | 15.4 / 42.5 | 68.3 / 56.0 | 15.6 / 1.1 |
+
+A separate glibc allocation count on the folded-shift parser found 90
+allocations, one reallocation, and 90 frees per join. The corpus averaged
+20.35 allocations, 0.71 reallocations, and 20.35 frees per query.
+PostgreSQL's memory context reused its blocks after warmup, with zero
+system allocations per join and 0.009 per corpus query.
 
 ## Historical profile-guided allocator experiment
 

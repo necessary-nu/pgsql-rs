@@ -687,6 +687,13 @@ children (
                         kind @note
                         text "f84a5d3 matches all 54,471 outcomes and 72 stack and syntax boundary cases on an ordinary release. Seven paired rounds on CPU 7 measured raw Rust/C medians of 0.318/0.432 µs, 6.538/6.216 µs and 2.484/2.001 µs. The raw join and corpus remain above target."
                     }
+
+                    {
+                        at 2026-11-20T09:55:17.830925595Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "996cc60 matched all 54,471 pinned outcomes and 72 additional boundaries. Seven paired rounds with the ordinary Rust release and optimized C on CPU 5 measured 0.299/0.425 µs for SELECT 1, 6.107/6.061 µs on the join, and 2.261/1.846 µs on the 54,266-query corpus. The join and corpus still miss the raw parse requirement. Both use glibc and destroy each full tree."
+                    }
                 )
             }
         )
