@@ -1,11 +1,13 @@
 // Bind reviewed native reductions to the exact patched gram.y actions.
 // Bison rule numbers can change when an unrelated production is inserted.
+use std::fmt::Write;
 use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
 #[path = "build/omissions.rs"]
 mod omissions;
 
 type Arcs = [BTreeMap<u16, (u16, usize)>];
+type Targets = BTreeMap<(u16, Vec<usize>), Vec<u16>>;
 
 struct Dispatch {
     gotos: String,
@@ -40,6 +42,57 @@ fn entries(source: &str) -> BTreeMap<&str, (&str, &str)> {
         );
     }
     entries
+}
+
+fn unit_actions(chain: &[usize]) -> String {
+    chain
+        .iter()
+        .map(|rule| format!("unit_{rule}(_stack, _span)?; "))
+        .collect()
+}
+
+/// Several hundred predecessor states can lead to different destinations
+/// while sharing the same few semantic actions after the goto.
+fn write_goto_table(
+    code: &mut String,
+    targets: &Targets,
+    default: &(u16, Vec<usize>),
+    sql_end: Option<&omissions::SqlEnd>,
+) {
+    let mut chains: Vec<_> = targets.keys().map(|(_, chain)| chain).collect();
+    chains.sort_unstable();
+    chains.dedup();
+    let entry = |(state, chain): &(u16, Vec<usize>)| {
+        let id = chains.binary_search(&chain).unwrap();
+        format!("(State::from_number({state}).unwrap(), {id})")
+    };
+    writeln!(code, "static ROW: [(State, u16); pg19_tables::STATE_COUNT] = {{ let mut row = [{}; pg19_tables::STATE_COUNT];", entry(default)).unwrap();
+    for (target, sources) in targets {
+        if target != default {
+            let entry = entry(target);
+            for source in sources {
+                writeln!(code, "row[{source}] = {entry};").unwrap();
+            }
+        }
+    }
+    code.push_str("row }; let (state, _chain) = ROW[usize::from(_previous.number())];\n");
+    match chains.as_slice() {
+        [chain] => code.push_str(&unit_actions(chain)),
+        [empty, chain] if empty.is_empty() => {
+            writeln!(code, "if _chain == 1 {{ {} }}", unit_actions(chain)).unwrap();
+        }
+        _ => {
+            code.push_str("match _chain {\n");
+            for (id, chain) in chains.iter().enumerate().filter(|(_, c)| !c.is_empty()) {
+                writeln!(code, "{id} => {{ {} }},", unit_actions(chain)).unwrap();
+            }
+            code.push_str("_ => {} }\n");
+        }
+    }
+    if sql_end.is_some_and(|end| targets.keys().any(|(s, _)| *s == end.list.number())) {
+        code.push_str("if state == SQL_END.list { return SQL_END.finish(_stack, _span); }\n");
+    }
+    code.push_str("Ok(state)\n");
 }
 
 /// Follow Bison's unconditional one-symbol reductions from each viable goto.
@@ -82,7 +135,7 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> Dispatch {
         ));
     }
     for (id, row) in arcs.iter().enumerate().filter(|(_, r)| !r.is_empty()) {
-        let mut targets = BTreeMap::<(u16, Vec<usize>), Vec<u16>>::new();
+        let mut targets = Targets::new();
         for (&previous, &edge) in row {
             let (mut state, mut unit) = edge;
             let mut sequence = Vec::new();
@@ -104,13 +157,16 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> Dispatch {
             .unwrap()
             .0
             .clone();
-        targets.remove(&default);
         code.push_str(&format!("#[inline] fn goto_{id}(_previous: State, _stack: &mut ParseStack<Value>, _span: (usize,usize)) -> Result<State, Box<(Production,Failure)>> {{\n"));
+        // Small matches generate less code than a full row of parser states.
+        if targets.len() >= 24 {
+            write_goto_table(&mut code, &targets, &default, sql_end.as_ref());
+            code.push_str("}\n");
+            continue;
+        }
+        targets.remove(&default);
         let finish = |(state, seq): &(u16, Vec<usize>)| {
-            let mut body = String::new();
-            for rule in seq {
-                body.push_str(&format!("unit_{rule}(_stack, _span)?; "));
-            }
+            let mut body = unit_actions(seq);
             if sql_end
                 .as_ref()
                 .is_some_and(|end| end.list.number() == *state)

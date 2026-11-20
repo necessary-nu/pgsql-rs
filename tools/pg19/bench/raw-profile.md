@@ -77,6 +77,36 @@ In seven paired raw runs on CPU 2, the new release binary retired 3,343 instruct
 
 The separate seven-round comparison with optimized C on CPU 31 verified identical JSON bytes for every input. Median Rust and C parse-and-free times were 0.663 and 0.858 µs for `SELECT 1`, 13.058 and 10.275 µs for the join, and 5.281 and 3.421 µs per corpus input. The join and corpus still exceed the C target.
 
+### Instruction fetch and tree ownership
+
+At `916e8a3`, seven hardware-counter runs on CPU 2 measured the following medians per query. On this processor, `ic_cache_fill_l2` counts 64-byte instruction-cache lines supplied by L2, and `ic_fetch_stall.ic_stall_dq_empty` counts cycles when the instruction pipe reports an empty-queue stall.
+
+| Workload | C µs | Rust µs | L2 instruction fills, C / Rust | Empty-queue stall cycles, C / Rust |
+| --- | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 0.438 | 0.363 | 0.3 / 5.8 | 27 / 18 |
+| Aggregate join | 6.147 | 7.314 | 41 / 1,638 | 571 / 841 |
+| Regression corpus | 1.897 | 2.673 | 20 / 604 | 169 / 645 |
+
+In separate samples of the L2 instruction-fill event on CPU 24, 38% of Rust's join samples and 37% of its corpus samples occurred under a generated reduction handler. Releasing the returned tree accounted for 18% and 19% respectively. A fill can overlap useful execution, so these percentages describe cache traffic.
+
+A single-threaded experiment kept each complete Rust tree in a per-query arena and compared recursive destruction with reclaiming the whole arena at once. All three allocator modes produced the reference JSON for every benchmark input. With recursive destruction, the allocation audit found zero outstanding allocations after each result. The experiment reserved the parser stack before measurement and confined all returned nodes to the arena's lifetime.
+
+Across seven paired rounds on CPU 12, arena allocation with recursive destruction reduced elapsed time against the experiment's system-allocator control by 19% on the join and 14% on the corpus. Bulk release increased those reductions to 25% and 23%. Even with bulk release the corpus took a median 3.920 µs against C's 3.442 µs. The public parser returns independently owned nodes and its benchmark includes their ordinary destruction.
+
+## Looking up grammar destinations
+
+For 32 PostgreSQL nonterminals, the parser can reach at least 24 distinct combinations of destination state and subsequent semantic actions. The generator now stores those combinations in tables indexed by predecessor state. In seven paired runs on CPU 4, the prototype reduced median L2 instruction-cache fills per query from 1,569 to 1,170 on the join and from 609 to 515 on the corpus. In a separate seven-round run on CPU 3, sharing the stack-handling code for all explicit reductions instead increased median paired time by 12% on the join and 8% on the corpus.
+
+The release build matched all 54,471 reference outcomes and all 72 additional boundary cases. Its seven-round comparison on CPU 3 verified every benchmark input's JSON bytes before timing. The table lookup reduced the executable's machine code by 112,928 bytes and increased read-only data by 701,848 bytes relative to `916e8a3`.
+
+| Workload | C parse and free, µs | Rust parse and free, µs | Rust/C |
+| --- | ---: | ---: | ---: |
+| `SELECT 1` | 0.472 | 0.365 | 0.774 |
+| Aggregate join | 6.039 | 6.790 | 1.124 |
+| Regression corpus | 1.918 | 2.442 | 1.274 |
+
+Repeating the arena experiment with the lookup tables gave median bulk-release times of 5.945 µs on the join and 2.195 µs on the corpus against C's 6.220 and 2.122 µs on CPU 3. Grouping the inputs by their leading keyword on CPU 26 put the largest remaining bulk-release deficit under CREATE, at 2.277 µs against 2.124 µs over 9,714 inputs. Grouping changes the input order and these figures measure the experimental ownership model.
+
 ## Reproducing the profiles
 
 Use a benchmark output directory containing `bench-c`, `bench-rust`, and the three `.sql0` inputs. This example profiles the join. For the full set, the perf repeat counts were 13,000,000 for `simple`, 850,000 for `join`, and 52 for `corpus`. The Callgrind repeat counts were 10,000, 1,000 and 1 respectively.

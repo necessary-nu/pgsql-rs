@@ -610,6 +610,13 @@ children (
                         kind @note
                         text "The parser now finishes a statement list directly when the pinned grammar proves its remaining reductions. All 54,471 reference outcomes matched, as did 72 stack and clause edge cases and the exact JSON bytes for all timing inputs. Across seven paired raw runs the corpus improved in every pair against the previous Rust binary, with a 7.7% median reduction, while the join's paired median rose 1.2%. Seven separate rounds against optimized C on CPU 31 gave Rust/C raw medians of 0.663/0.858 microseconds for SELECT 1, 13.058/10.275 for the aggregate join and 5.281/3.421 per corpus input. Only SELECT 1 meets the raw latency requirement. Hardware samples on the preceding release attributed the full join cycle gap and 46% of the corpus cycle gap to releasing the result."
                     }
+
+                    {
+                        at 2026-11-20T02:45:07.21222991Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The generator now uses indexed destination and action tables for 32 nonterminals in the pinned PostgreSQL grammar. All 54,471 reference outcomes and 72 additional cases matched. The release gate verified exact JSON bytes for every input. On seven paired rounds on CPU 3, median raw Rust/C times were 0.365/0.472 microseconds for SELECT 1, 6.790/6.039 for the aggregate join, and 2.442/1.918 per corpus input. The join is 12.4% slower and the corpus is 27.4% slower. A separate fully materialized, per-query arena experiment reclaimed the tree in bulk and measured 5.945/6.220 microseconds on the join and 2.195/2.122 on the corpus. Those numbers apply to the experiment. The public parser still returns independently owned nodes."
+                    }
                 )
             }
         )
