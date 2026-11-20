@@ -263,7 +263,6 @@ fn parse_value(sql: &str, mode: ParseMode, options: Options) -> Result<Value, Er
         })
 }
 
-// [spec:pgq:req:grammar.parse-speed]
 pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Error> {
     match parse_value(sql, ParseMode::Sql, options)? {
         Value::Owned(OwnedValue::Statements(list)) => Ok(list.into_statements()),

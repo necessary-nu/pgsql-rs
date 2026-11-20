@@ -231,16 +231,14 @@ After a PG19 reference import, schema generation, and regression capture, run
 sh tools/pg19/bench/check.sh "$run" "$corpus" /tmp/pg19-benchmark
 ```
 
-The command builds the public Rust parser with profile-guided optimization
-and `panic=abort`. Its executable links mimalloc statically. Training uses
-the 15 SQL files under `test/sql/deparse/` and requires the active Rust
-toolchain's `llvm-tools-preview` component. The patched PostgreSQL backend
-uses `CFLAGS=-O3` and the system allocator. The script reuses an optimized
+The command builds the public Rust parser with ordinary `cargo build --release`
+settings and the patched PostgreSQL backend with `CFLAGS=-O3`. Both use the
+system allocator. The script reuses an optimized
 import or builds one in the output directory. Both programs parse in process,
 destroy each result before the next iteration, and exclude process startup,
 input loading and warmup from their timers.
 
-To build the Rust executable alone, run
+For a separate profile-guided allocator experiment, run
 `sh tools/pg19/bench/build-release.sh /tmp/pg19-release`. It writes
 `bench-rust` and a SHA-256-named LLVM profile to that directory. Pass an
 executable as the fourth argument to `check.sh` to measure another release

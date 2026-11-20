@@ -20,7 +20,7 @@ fn main() -> Result<(), ParseError> {
 
 Run `cargo test --locked --release -p pg19-query` to exercise the public Rust API. The [PostgreSQL 19 import guide](tools/pg19/README.md) explains how to update the pinned release, regenerate the grammar and compare Rust results with stock and patched PostgreSQL.
 
-For the raw parse timings measured against optimized PostgreSQL, build the application with profile-guided optimization, `panic=abort` and mimalloc. [Application build instructions](tools/pg19/README.md#build-a-consuming-application-with-a-parser-profile) · [Benchmark results](tools/pg19/bench/raw-profile.md#release-results)
+The performance comparison uses ordinary Cargo release settings and the system allocator. [Benchmark instructions](tools/pg19/README.md#compare-native-parser-performance-with-c) · [Measurements](tools/pg19/bench/raw-profile.md)
 
 ## PostgreSQL 18 in C
 

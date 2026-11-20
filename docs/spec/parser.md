@@ -119,5 +119,6 @@ PostgreSQL 19 fixes standard-conforming strings on and removes the escape-string
 
 ## Parser performance
 
-> [spec:pgq:req:grammar.parse-speed]
+> [spec:pgq:req:grammar.parse-speed+1]
 > The native SQL parser MUST take at most the optimized patched C reference's median elapsed time on each of SELECT 1, the parameterized aggregate join in the benchmark, and the successful default-mode PG19 regression corpus. This applies separately to parsing and parsing with JSON encoding. Both timings include result destruction. Both implementations MUST emit identical JSON bytes for every benchmark input before timing.
+> The comparison MUST use ordinary `cargo build --release` settings for Rust, including the default panic strategy, and `-O3` for C. Both MUST use the system allocator and run without profile training.

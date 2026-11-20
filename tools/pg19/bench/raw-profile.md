@@ -1,6 +1,13 @@
 # PostgreSQL 19 raw parser profile
 
-## Release results
+## Ordinary release
+
+With the system allocator and ordinary Cargo release settings, Rust took
+0.313 µs on `SELECT 1`, 6.447 µs on the join and 2.365 µs per regression
+query on CPU 6. The optimized C reference took 0.433, 6.097 and 1.865 µs
+respectively. The join and corpus exceeded the latency target.
+
+## Profile-guided allocator experiment
 
 Each call builds and frees an independently owned raw tree. The table gives median
 microseconds per query over seven paired rounds on each core of an AMD Threadripper
