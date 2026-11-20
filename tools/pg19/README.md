@@ -248,3 +248,29 @@ per-round measurements in `samples.csv`, the six ratios in `results.json`,
 and the input, binary and output digests in `machine-and-verification.json`.
 `toolchain.txt` records the Rust and C compiler versions, PostgreSQL build
 flags and CPU model.
+
+### Build with a parser profile
+
+Rust can use execution counts from a separate SQL workload when optimizing
+the parser and its callers. From the repository root, this example trains on
+the checked-in deparser fixtures. Each file supplies one input to the ordinary
+raw parser. Applications can supply their own NUL-delimited UTF-8 SQL instead.
+
+```sh
+profile_dir=$(mktemp -d)
+for query in test/sql/deparse/*.sql; do
+    cat "$query"
+    printf '\0'
+done > "$profile_dir/train.sql0"
+sh tools/pg19/train-profile.sh "$profile_dir/train.sql0" "$profile_dir/parser.profdata"
+host=$(rustc -vV | awk '$1 == "host:" {print $2}')
+RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Cprofile-use=$profile_dir/parser.profdata" \
+    cargo build --release --locked --target "$host" -p pg19-query --lib --example parse-bench
+```
+
+The training command uses the active toolchain's `llvm-tools-preview`
+component. Recreate the profile when the parser or compiler changes. To use it
+in an application, pass the same profile flag to the application's release
+build. For a timing comparison, use independent evaluation queries and pass
+the resulting example binary to `bench/compare.py` with a prepared benchmark
+directory.

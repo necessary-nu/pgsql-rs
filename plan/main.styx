@@ -617,6 +617,20 @@ children (
                         kind @note
                         text "The generator now uses indexed destination and action tables for 32 nonterminals in the pinned PostgreSQL grammar. All 54,471 reference outcomes and 72 additional cases matched. The release gate verified exact JSON bytes for every input. On seven paired rounds on CPU 3, median raw Rust/C times were 0.365/0.472 microseconds for SELECT 1, 6.790/6.039 for the aggregate join, and 2.442/1.918 per corpus input. The join is 12.4% slower and the corpus is 27.4% slower. A separate fully materialized, per-query arena experiment reclaimed the tree in bulk and measured 5.945/6.220 microseconds on the join and 2.195/2.122 on the corpus. Those numbers apply to the experiment. The public parser still returns independently owned nodes."
                     }
+
+                    {
+                        at 2026-11-20T03:24:41.220069656Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "With the grammar lookup tables, result destruction accounts for 18.1% of Rust join cycles and 15.1% of corpus cycles. Inlining short strings cut join allocations from 90 to 65, yet increased join time 3.2% and corpus time 2.4%. A release trained on 263 independent fixtures improved paired raw time 16.7% on the join and 13.5% on the corpus. Its measured Rust/C medians were 5.551/6.057 and 2.113/1.938 microseconds respectively. The ordinary release and full-corpus latency requirement remain under investigation."
+                    }
+
+                    {
+                        at 2026-11-20T03:32:57.853946872Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The checked-in training procedure uses the ordinary raw API and 15 independent deparser SQL files. Its production release matched all 54,471 PG19 outcomes, all 72 additional boundary cases, and every benchmark JSON byte. Seven raw rounds measured Rust/C of 0.316/0.428, 5.539/6.090 and 2.309/1.890 microseconds on CPU 17. A separate comparison trained both Rust and GCC on 12,396 extension queries, giving 5.737/5.075 on the join and 2.126/1.703 on the corpus. Corpus parity remains open."
+                    }
                 )
             }
         )

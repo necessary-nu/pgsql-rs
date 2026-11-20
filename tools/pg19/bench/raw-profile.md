@@ -109,6 +109,64 @@ The release build matched all 54,471 reference outcomes and all 72 additional bo
 
 Repeating the arena experiment with the lookup tables gave median bulk-release times of 5.945 µs on the join and 2.195 µs on the corpus against C's 6.220 and 2.122 µs on CPU 3. Grouping the inputs by their leading keyword on CPU 26 put the largest remaining bulk-release deficit under CREATE, at 2.277 µs against 2.124 µs over 9,714 inputs. Grouping changes the input order and these figures measure the experimental ownership model.
 
+## Raw parse costs with the grammar lookup tables
+
+These cycle samples come from the same two release executables used for the
+`d7bedb4` comparison. Linux perf sampled user-mode cycles on CPU 6. Each
+row gives percentages of that executable's samples. The parser column includes
+building the tree and code inlined into the driver. Cleanup starts in the
+caller after the parser returns.
+
+| Workload | Implementation | Scanner | Parser and construction | Result cleanup | Other | Samples |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `SELECT 1` | Rust | 4.6% | 76.8% | 15.4% | 3.2% | 11,057 |
+| | C | 25.7% | 68.6% | 5.0% | 0.7% | 13,757 |
+| Aggregate join | Rust | 12.4% | 69.4% | 18.1% | 0.2% | 12,787 |
+| | C | 38.6% | 60.9% | 0.3% | 0.1% | 11,593 |
+| Regression corpus | Rust | 16.2% | 67.9% | 15.1% | 0.8% | 12,872 |
+| | C | 42.4% | 56.1% | 1.2% | 0.3% | 10,119 |
+
+Storing short strings inline reduced heap allocations on the join from 90
+to 65 and on the corpus from 20.31 to 16.06 per input. The complete trees
+produced identical JSON bytes. In seven paired raw runs on CPU 21, the join
+took 3.2% longer and the corpus took 2.4% longer. Storing just the
+`ColumnRef` record inline saved seven allocations on the join and sped it up
+1.9%, but corpus time increased 3.7%. Caching subtree depth for destruction
+increased join and corpus times by 5.8% and 5.6% on CPU 10.
+
+### Training the release compiler on other SQL
+
+Across seven paired runs, a Rust build trained on 263 separate SQL fixtures
+cut raw join time by 16.7% and corpus time by 13.5% relative to the ordinary
+Rust release. Rust and optimized C medians were 0.311 and 0.423 µs for
+`SELECT 1`, 5.551 and 6.057 µs for the join, and 2.113 and 1.938 µs for the
+corpus. The heap allocation counts in the timed code were independent of
+compiler training. Callgrind counted 51,204 instructions per join in the
+profiled build and 56,541 in the ordinary build.
+
+A separate comparison trained both compilers on the same 12,396 PostgreSQL
+extension queries, with four passes each through raw parse and parse plus
+JSON. The training inputs had zero matches to the timing inputs after
+normalizing case, whitespace and trailing semicolons. In seven paired raw
+rounds the following medians included freeing the result.
+
+| Workload | Rust with profile, µs | GCC `-O3`, µs | GCC `-O3` with profile, µs |
+| --- | ---: | ---: | ---: |
+| `SELECT 1` | 0.320 | 0.428 | 0.394 |
+| Aggregate join | 5.737 | 6.015 | 5.075 |
+| Regression corpus | 2.126 | 1.865 | 1.703 |
+
+The profiled Rust build beat both C builds on the literal query. It beat
+unprofiled C on the join and exceeded both C medians on the corpus.
+
+The [repository build example](../README.md#build-with-a-parser-profile)
+uses 15 checked-in SQL files so it can run from a fresh checkout. That
+release matched all 54,471 reference outcomes and 72 additional boundary
+cases. Before timing, the benchmark verified identical JSON bytes for every
+input. On CPU 17, its seven-round raw Rust/C medians were 0.316/0.428 µs,
+5.539/6.090 µs and 2.309/1.890 µs. The full corpus remains 22.2% over
+the C target with that training set.
+
 ## Reproducing the profiles
 
 Use a benchmark output directory containing `bench-c`, `bench-rust`, and the three `.sql0` inputs. This example profiles the join. For the full set, the perf repeat counts were 13,000,000 for `simple`, 850,000 for `join`, and 52 for `corpus`. The Callgrind repeat counts were 10,000, 1,000 and 1 respectively.
