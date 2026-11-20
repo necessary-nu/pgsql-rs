@@ -116,7 +116,7 @@ def lower(s, ty="Value"):
         if ty == "Node":
             return "Node::Null"
         if ty == "Value":
-            return "Value::List(Vec::new())" if s == "NIL" else "Value::Empty"
+            return "Value::from_list(Vec::new())" if s == "NIL" else "Value::Empty"
         raise Unsupported(s)
     if re.fullmatch(r'"[\w .:-]*"', s):
         result = s + ".to_owned()"
@@ -125,7 +125,7 @@ def lower(s, ty="Value"):
         if ty == "String":
             return result
         if ty == "Value":
-            return f"Value::Text({result})"
+            return f"Value::from_text({result})"
         raise Unsupported(s)
     if re.fullmatch(r"\+\d+", s):
         s = s[1:]
@@ -168,13 +168,13 @@ def lower(s, ty="Value"):
     name, raw = m.groups()
     args = arguments(raw)
     if name == "makeNullAConst" and len(args) == 1:
-        value = f"Value::Node(Node::AConst(AConst {{ val: Literal::Null, location: {lower(args[0], 'Location')} }}))"
+        value = f"Value::from_node(Node::AConst(AConst {{ val: Literal::Null, location: {lower(args[0], 'Location')} }}))"
         return convert(value, ty)
     if name == "makeRangeVarFromAnyName" and len(args) == 3 and args[2] == "yyscanner":
         value = f"any_relation({lower(args[0], 'Vec<Node>')}, {lower(args[1], 'Location')})?"
         if ty == "Option<Box<RangeVar>>":
             return f"Some(Box::new({value}))"
-        return convert(f"Value::Node({value}.into())", ty)
+        return convert(f"Value::from_node({value}.into())", ty)
     if (name, len(args)) in {("makeTypeNameFromNameList", 1), ("located_type_name", 2)}:
         names = lower(args[0], "Vec<Node>")
         location = lower(args[1], "Location") if len(args) == 2 else "Location::UNKNOWN"
@@ -184,7 +184,7 @@ def lower(s, ty="Value"):
         if ty == "Node":
             return f"Node::from({result})"
         if ty == "Value":
-            return f"Value::Node({result}.into())"
+            return f"Value::from_node({result}.into())"
         raise Unsupported(s)
     if name == "with_persistence" and len(args) == 2:
         return convert(f"persistence({lower(args[0])}, {lower(args[1], 'i32')})?", ty)
@@ -193,17 +193,17 @@ def lower(s, ty="Value"):
     if name == "castNode" and len(args) == 2 and args[0] in RECORDS:
         return lower(args[1], ty)
     if name == "NameListToString" and len(args) == 1:
-        value = f"Value::Text(dotted_name({lower(args[0], 'Vec<Node>')})?)"
+        value = f"Value::from_text(dotted_name({lower(args[0], 'Vec<Node>')})?)"
     elif name == "makeNode" and len(args) == 1 and args[0] in RECORDS:
         record = RECORDS[args[0]][0]
         if ty == f"Option<Box<{record}>>":
             return f"Some(Box::default())"
-        value = f"Value::Node({record}::default().into())"
+        value = f"Value::from_node({record}::default().into())"
     elif name == "makeVacuumRelation" and len(args) == 3 and args[1] == "InvalidOid":
         value = f"VacuumRelation {{ relation: {lower(args[0], 'Option<Box<RangeVar>>')}, oid: 0, va_cols: {lower(args[2], 'Vec<Node>')} }}"
         if ty == "Option<Box<VacuumRelation>>":
             return f"Some(Box::new({value}))"
-        value = f"Value::Node({value}.into())"
+        value = f"Value::from_node({value}.into())"
     elif name in ("makeDefElem", "makeDefElemExtended") and len(args) == (3 if name == "makeDefElem" else 5):
         if name == "makeDefElem":
             namespace, option, arg, action, loc = ["NULL", *args[:2], "DEFELEM_UNSPEC", args[2]]
@@ -212,14 +212,14 @@ def lower(s, ty="Value"):
         record = (f"DefElem {{ defnamespace: {lower(namespace, 'Option<String>')}, defname: {lower(option, 'Option<String>')}, "
                   f"arg: {lower(arg, 'Option<Box<Node>>')}, defaction: {lower(action, 'DefElemAction')}, "
                   f"location: {lower(loc, 'Location')}, arg_location: Location::UNKNOWN }}")
-        value = f"Value::Node({record}.into())"
+        value = f"Value::from_node({record}.into())"
     elif name in ("makeParamRef", "makeRoleSpec") and len(args) == 2:
         loc = lower(args[1], "Location")
         if name == "makeParamRef":
             rec = f"ParamRef {{ number: {lower(args[0], 'i32')}, location: {loc} }}"
         else:
             rec = f"RoleSpec {{ roletype: {lower(args[0], 'RoleSpecType')}, rolename: None, location: {loc} }}"
-        value = f"Value::Node({rec}.into())"
+        value = f"Value::from_node({rec}.into())"
     elif name in ("makeString", "makeInteger", "makeFloat", "makeBoolean") and len(args) == 1:
         if name == "makeString" and ty == "Option<String>":
             return f"Some({lower(args[0], 'String')})"
@@ -230,7 +230,7 @@ def lower(s, ty="Value"):
             return node
         if ty == "Option<Box<Node>>":
             return f"Some(Box::new({node}))"
-        value = f"Value::Node({node})"
+        value = f"Value::from_node({node})"
     elif name in ("makeStringConst", "makeIntConst", "makeFloatConst", "makeAConst") and len(args) == 2:
         loc = lower(args[1], "Location")
         if name == "makeAConst":
@@ -239,12 +239,12 @@ def lower(s, ty="Value"):
             variant, argtype = {"makeStringConst": ("String", "String"), "makeIntConst": ("Integer", "i32"),
                                 "makeFloatConst": ("Float", "String")}[name]
             literal = f"Literal::{variant}({lower(args[0], argtype)})"
-        value = f"Value::Node(Node::AConst(AConst {{ val: {literal}, location: {loc} }}))"
+        value = f"Value::from_node(Node::AConst(AConst {{ val: {literal}, location: {loc} }}))"
     elif re.fullmatch(r"list_make[1-5]", name) and int(name[-1]) == len(args):
         items = ", ".join(lower(arg, "Node") for arg in args)
         if ty == "Vec<Node>":
             return f"vec![{items}]"
-        value = f"Value::List(vec![{items}])"
+        value = f"Value::from_list(vec![{items}])"
     elif name in ("lappend", "lcons", "list_concat") and len(args) == 2:
         if name == "lcons":
             result = f"prepend({lower(args[0], 'Node')}, {lower(args[1], 'Vec<Node>')})"
@@ -254,7 +254,7 @@ def lower(s, ty="Value"):
             result = f"concat({lower(args[0], 'Vec<Node>')}, {lower(args[1], 'Vec<Node>')})"
         if ty == "Vec<Node>":
             return result
-        value = f"Value::List({result})"
+        value = f"Value::from_list({result})"
     else:
         raise Unsupported(s)
     return convert(value, ty)
@@ -355,7 +355,7 @@ def nested_record(statements):
     result = init(root[2])
     if visited != records.keys():
         raise Unsupported("unreachable local record")
-    return f"Value::Node({result}.into())"
+    return f"Value::from_node({result}.into())"
 
 
 def compile_action(raw, symbols):
@@ -422,7 +422,7 @@ def compile_action(raw, symbols):
         for stmt in changes:
             name, val = apply_member(record, stmt, re.escape(local))
             code.append(f"node.{name} = {val};")
-        return "{ " + " ".join(code) + f" Value::Node(Node::{native}(node)) }}"
+        return "{ " + " ".join(code) + f" Value::from_node(Node::{native}(node)) }}"
     if m := re.fullmatch(r"(\w+)\s*\*\s*(\w+) = makeNode\((\w+)\)", statements[0]):
         c_name, local, allocation = m.groups()
         if c_name != allocation or c_name not in RECORDS:
@@ -453,7 +453,7 @@ def compile_action(raw, symbols):
         if len({field for field, _ in assignments}) != len(assignments):
             raise Unsupported("reassigned field")
         if not assignments:
-            return f"Value::Node({record}::default().into())"
+            return f"Value::from_node({record}::default().into())"
         init = ", ".join((key if key == val else f"{key}: {val}") for key, val in assignments)
         if len(assignments) != len(fields):
             init += ", ..Default::default()"
@@ -461,7 +461,7 @@ def compile_action(raw, symbols):
         if updates:
             setup.extend([f"let mut node = {constructor};", *updates])
             constructor = "node"
-        value = f"Value::Node({constructor}.into())"
+        value = f"Value::from_node({constructor}.into())"
         return "{ " + " ".join(setup) + " " + value + " }" if setup else value
     if m := re.fullmatch(r"result\.(\w+) = (.*)", statements[0]):
         ctype, source = m.groups()
@@ -518,7 +518,7 @@ def generate(build):
             op = f"Take({m[1]})"
         elif code == "Value::Empty":
             op = "Empty"
-        elif code == "Value::List(Vec::new())":
+        elif code == "Value::from_list(Vec::new())":
             op = "Nil"
         else:
             index = functions.setdefault(code, (len(functions), []))[0]

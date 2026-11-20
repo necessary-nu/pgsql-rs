@@ -21,7 +21,7 @@ pub(super) fn signature(
     qualified_only: bool,
 ) -> Result<Value, Failure> {
     if qualified_only {
-        return Ok(Value::Node(
+        return Ok(Value::from_node(
             ObjectWithArgs {
                 objname: call::function_name(true, rhs)?.list()?,
                 args_unspecified: true,
@@ -50,7 +50,7 @@ fn object_signature(objname: Vec<Node>, objfuncargs: Vec<Node>) -> Result<Value,
             );
         }
     }
-    Ok(Value::Node(
+    Ok(Value::from_node(
         ObjectWithArgs {
             objname,
             objargs,
@@ -90,7 +90,7 @@ pub(super) fn table_function(rhs: &mut Reduction<'_, Value>) -> Result<Value, Fa
     result.setof = true;
     result.location = rhs.location(7);
     parameters.extend(columns);
-    Ok(Value::Node(
+    Ok(Value::from_node(
         CreateFunctionStmt {
             replace: rhs.take(2).integer()? != 0,
             funcname: rhs.take(4).list()?,
@@ -111,7 +111,7 @@ pub(super) fn percent_type(rhs: &mut Reduction<'_, Value>, setof: bool) -> Resul
     let mut ty = types::named(names, vec![], rhs.location(index));
     ty.setof = setof;
     ty.pct_type = true;
-    Ok(Value::Node(ty.into()))
+    Ok(Value::from_node(ty.into()))
 }
 
 pub(super) fn body(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
@@ -119,7 +119,7 @@ pub(super) fn body(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     if let Some(statement) = optional_node(rhs.take(2))? {
         list.push(*statement);
     }
-    Ok(Value::List(list))
+    Ok(Value::from_list(list))
 }
 
 pub(super) fn transform(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
@@ -133,7 +133,7 @@ pub(super) fn transform(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure
         Node::ObjectWithArgs(f) => Ok(Some(f.into_box())),
         _ => Err(Failure::Value("expected a transform function signature")),
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         CreateTransformStmt {
             replace: rhs.take(2).integer()? != 0,
             type_name: record!(rhs.take(5), TypeName),
@@ -173,7 +173,7 @@ pub(crate) fn aggregate_arg(rhs: &mut Reduction<'_, Value>) -> Result<Value, Fai
             rhs.location(1),
         ));
     }
-    Ok(Value::Node(arg))
+    Ok(Value::from_node(arg))
 }
 
 pub(crate) fn ordered_args(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
@@ -200,5 +200,5 @@ pub(crate) fn ordered_args(rhs: &mut Reduction<'_, Value>) -> Result<Value, Fail
     } else {
         direct.extend(ordered);
     }
-    Ok(Value::List(vec![direct.into(), Node::Integer(count)]))
+    Ok(Value::from_list(vec![direct.into(), Node::Integer(count)]))
 }

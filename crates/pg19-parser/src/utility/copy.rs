@@ -41,5 +41,5 @@ pub(super) fn copy(rhs: &mut Reduction<'_, Value>, query: bool) -> Result<Value,
         }
         statement.options.extend(rhs.take(10).list()?);
     }
-    Ok(Value::Node(statement.into()))
+    Ok(Value::from_node(statement.into()))
 }

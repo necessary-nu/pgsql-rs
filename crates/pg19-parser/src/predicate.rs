@@ -48,9 +48,9 @@ pub(super) fn reduce(op: Predicate, rhs: &mut Reduction<'_, Value>) -> Result<Va
         Predicate::Qualify => {
             let mut names = vec![Node::String(rhs.take(1).text()?)];
             names.extend(rhs.take(3).list()?);
-            return Ok(Value::List(names));
+            return Ok(Value::from_list(names));
         }
-        Predicate::OperatorName(op) => return Ok(Value::List(vec![Node::String(op.into())])),
+        Predicate::OperatorName(op) => return Ok(Value::from_list(vec![Node::String(op.into())])),
         Predicate::AnyAll => {
             let which = SubLinkType(rhs.take(3).integer()?);
             AExpr {
@@ -198,5 +198,5 @@ pub(super) fn reduce(op: Predicate, rhs: &mut Reduction<'_, Value>) -> Result<Va
         }
         .into(),
     };
-    Ok(Value::Node(node))
+    Ok(Value::from_node(node))
 }

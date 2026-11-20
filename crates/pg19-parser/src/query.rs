@@ -1,6 +1,6 @@
 //! Statement wrapping and the SELECT productions used by a raw expression.
 use super::{
-    value::{Quantifier, Value},
+    value::{OwnedValue, Quantifier, Value},
     Failure,
 };
 use pg19_engine::Reduction;
@@ -39,7 +39,7 @@ pub(super) enum Query {
 fn statement(value: Value) -> Result<Option<Node>, Failure> {
     match value {
         Value::Empty => Ok(None),
-        Value::Node(node) => Ok(Some(node)),
+        Value::Owned(OwnedValue::Node(node)) => Ok(Some(node)),
         _ => Err("expected nullable node".into()),
     }
 }
@@ -65,7 +65,7 @@ pub(super) fn select<const PRESENT: usize>(
     if PRESENT >= 4 {
         stmt.into_clause = match rhs.take(4) {
             Value::Empty => None,
-            Value::Node(Node::IntoClause(n)) => Some(n.into_box()),
+            Value::Owned(OwnedValue::Node(Node::IntoClause(n))) => Some(n.into_box()),
             _ => return Err("expected INTO clause".into()),
         };
     }
@@ -84,7 +84,7 @@ pub(super) fn select<const PRESENT: usize>(
     if PRESENT >= 9 {
         stmt.window_clause = rhs.take(9).list()?;
     }
-    Ok(Value::Node(stmt.into()))
+    Ok(Value::from_node(stmt.into()))
 }
 
 #[cfg_attr(not(debug_assertions), inline(always))]
@@ -98,12 +98,12 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 };
                 n.nnames = nnames;
             }
-            Value::List(vec![RawStmt::new(node, rhs.location(2)).into()])
+            Value::from_list(vec![RawStmt::new(node, rhs.location(2)).into()])
         }
         Query::Assignment => {
             let fields = rhs.take(2).list()?;
             super::expr::checked_fields(&fields)?;
-            Value::Node(
+            Value::from_node(
                 PLAssignStmt {
                     name: Some(rhs.take(1).text()?),
                     indirection: fields,
@@ -114,7 +114,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 .into(),
             )
         }
-        Query::ParameterName => Value::Text(format!("${}", rhs.take(1).integer()?)),
+        Query::ParameterName => Value::from_text(format!("${}", rhs.take(1).integer()?)),
         Query::PlExpression => {
             let (group_clause, group_distinct) = rhs.take(5).group()?;
             let mut stmt = SelectStmt {
@@ -131,7 +131,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 ..Default::default()
             };
             super::limits::apply(&mut stmt, rhs.take(9), false)?;
-            Value::Node(stmt.into())
+            Value::from_node(stmt.into())
         }
         Query::Options {
             with,
@@ -172,7 +172,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 }
                 stmt.with_clause = Some(with.into_box());
             }
-            Value::Node(stmt.into())
+            Value::from_node(stmt.into())
         }
         Query::Table => {
             let column = ColumnRef {
@@ -184,7 +184,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 location: Location::UNKNOWN,
                 ..Default::default()
             };
-            Value::Node(
+            Value::from_node(
                 SelectStmt {
                     target_list: vec![target.into()],
                     from_clause: vec![rhs.take(2).node()?],
@@ -198,7 +198,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 .map(|i| rhs.take(i).list())
                 .transpose()?
                 .unwrap_or_default();
-            Value::Node(
+            Value::from_node(
                 GroupingSet {
                     kind,
                     content,
@@ -215,10 +215,10 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             };
             let row = rhs.take(if more { 4 } else { 3 }).list()?;
             stmt.values_lists.push(Node::from(row));
-            Value::Node(stmt.into())
+            Value::from_node(stmt.into())
         }
         Query::CursorOption(mask) => Value::Integer(rhs.take(1).integer()? | mask),
-        Query::Cursor => Value::Node(
+        Query::Cursor => Value::from_node(
             DeclareCursorStmt {
                 portalname: Some(rhs.take(2).text()?),
                 options: rhs.take(3).integer()? | rhs.take(5).integer()? | 0x100,
@@ -233,7 +233,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                     location: Location::UNKNOWN,
                 })))
             };
-            Value::Node(
+            Value::from_node(
                 CTECycleClause {
                     cycle_col_list: rhs.take(2).list()?,
                     cycle_mark_column: Some(rhs.take(4).text()?),
@@ -251,22 +251,22 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 return Err("expected temporary relation".into());
             };
             relation.relpersistence = b't';
-            Value::Node(relation.into())
+            Value::from_node(relation.into())
         }
-        Query::TypeStart => Value::List(vec![rhs.take(2).node()?]),
-        Query::First => Value::Statements(StatementList::from_first(
+        Query::TypeStart => Value::from_list(vec![rhs.take(2).node()?]),
+        Query::First => Value::Owned(OwnedValue::Statements(StatementList::from_first(
             statement(rhs.take(1))?,
             rhs.location(1),
-        )),
+        ))),
         Query::Next => {
             let mut list = rhs.take(1).statements()?;
             terminate(&mut list, rhs.location(2))?;
             list.push(statement(rhs.take(3))?, rhs.location(3));
-            Value::Statements(list)
+            Value::Owned(OwnedValue::Statements(list))
         }
         Query::Target(alias) => {
             let name = alias.map(|i| rhs.take(i).text()).transpose()?;
-            Value::Node(
+            Value::from_node(
                 ResTarget {
                     name,
                     indirection: Vec::new(),
@@ -282,7 +282,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 fields: vec![AStar {}.into()],
                 location,
             };
-            Value::Node(
+            Value::from_node(
                 ResTarget {
                     val: Some(Box::new(col.into())),
                     location,
@@ -292,7 +292,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             )
         }
         Query::Select(distinct) => return select::<9>(distinct, rhs),
-        Query::Set(op) => Value::Node(
+        Query::Set(op) => Value::from_node(
             SelectStmt {
                 op,
                 all: rhs.take(3).quantifier()? == Quantifier::All,
@@ -303,11 +303,11 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             .into(),
         ),
         Query::Quantifier(q) => Value::Quantifier(q),
-        Query::Distinct => Value::List(vec![Node::Null]),
-        Query::Group(false) => Value::Group(Vec::new(), false),
-        Query::Group(true) => Value::Group(
+        Query::Distinct => Value::from_list(vec![Node::Null]),
+        Query::Group(false) => Value::Owned(OwnedValue::Group(Vec::new(), false)),
+        Query::Group(true) => Value::Owned(OwnedValue::Group(
             rhs.take(4).list()?,
             rhs.take(3).quantifier()? == Quantifier::Distinct,
-        ),
+        )),
     })
 }

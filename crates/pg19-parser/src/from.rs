@@ -1,5 +1,8 @@
 //! Range and alias productions in the SELECT grammar.
-use super::{value::Value, Failure};
+use super::{
+    value::{OwnedValue, Value},
+    Failure,
+};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
@@ -21,7 +24,7 @@ pub(super) enum From {
 fn alias(value: Value) -> Result<Option<Box<Alias>>, Failure> {
     match value {
         Value::Empty => Ok(None),
-        Value::Node(Node::Alias(a)) => Ok(Some(a.into_box())),
+        Value::Owned(OwnedValue::Node(Node::Alias(a))) => Ok(Some(a.into_box())),
         _ => Err("expected Alias".into()),
     }
 }
@@ -51,7 +54,7 @@ fn columns(node: Node) -> Result<Vec<Node>, Failure> {
 
 #[cfg_attr(not(debug_assertions), inline(always))]
 pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
-    Ok(Value::Node(match op {
+    Ok(Value::from_node(match op {
         From::Alias { name, columns } => Alias {
             aliasname: Some(rhs.take(name).text()?),
             colnames: columns
@@ -73,7 +76,7 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
                 ..Default::default()
             };
             match rhs.take(right + 1) {
-                Value::Node(node) => join.quals = Some(Box::new(node)),
+                Value::Owned(OwnedValue::Node(node)) => join.quals = Some(Box::new(node)),
                 v => {
                     let [names, alias] = pair(v)?;
                     join.using_clause = columns(names)?;
@@ -85,7 +88,7 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
         From::JoinUsing => {
             let names = Node::from(rhs.take(3).list()?);
             let alias = rhs.take(5).optional()?.map_or(Node::Null, |n| *n);
-            return Ok(Value::List(vec![names, alias]));
+            return Ok(Value::from_list(vec![names, alias]));
         }
         From::JoinAlias => {
             let Node::JoinExpr(mut join) = rhs.take(2).node()? else {
@@ -111,7 +114,7 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             };
             let coll_clause = match rhs.take(3) {
                 Value::Empty => None,
-                Value::Node(Node::CollateClause(v)) => Some(v.into_box()),
+                Value::Owned(OwnedValue::Node(Node::CollateClause(v))) => Some(v.into_box()),
                 _ => return Err("expected COLLATE".into()),
             };
             ColumnDef {
@@ -129,7 +132,7 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
                 aliasname: Some(rhs.take(name).text()?),
                 colnames: Vec::new(),
             };
-            return Ok(Value::List(vec![
+            return Ok(Value::from_list(vec![
                 alias.into(),
                 Node::from(rhs.take(defs).list()?),
             ]));

@@ -16,7 +16,7 @@ pub(super) fn spec(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
             ))
         }
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         PartitionSpec {
             strategy,
             location: rhs.location(1),
@@ -70,7 +70,7 @@ pub(super) fn hash_bound(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failur
             )
         })
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         PartitionBoundSpec {
             strategy: PartitionStrategy::PARTITION_STRATEGY_HASH.0 as u8,
             modulus: required(modulus, "modulus")?,

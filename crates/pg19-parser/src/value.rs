@@ -4,10 +4,17 @@ use pg19_nodes::{Node, NodeBox, SelectStmt, StatementList};
 pub(crate) enum Value {
     #[default]
     Empty,
-    Limit(Box<crate::limits::SelectLimit>),
     Integer(i32),
-    Text(String),
     Keyword(&'static str),
+    Quantifier(Quantifier),
+    // The parser discards punctuation and moved values on almost every reduction.
+    // Only this variant needs to run drop glue for a semantic payload.
+    Owned(OwnedValue),
+}
+
+pub(crate) enum OwnedValue {
+    Limit(Box<crate::limits::SelectLimit>),
+    Text(String),
     Node(Node),
     List(Vec<Node>),
     Statements(StatementList),
@@ -15,7 +22,6 @@ pub(crate) enum Value {
     KeyActions(u8, u8, Vec<Node>),
     TriggerEvents(i16, Vec<Node>),
     PrivilegeTarget(crate::utility::access::PrivilegeTarget),
-    Quantifier(Quantifier),
     Group(Vec<Node>, bool),
 }
 
@@ -29,12 +35,25 @@ pub(crate) enum Quantifier {
 pub(crate) type Checked<T> = Result<T, &'static str>;
 
 impl Value {
+    #[inline]
+    pub(crate) fn from_node(node: Node) -> Self {
+        Self::Owned(OwnedValue::Node(node))
+    }
+    #[inline]
+    pub(crate) fn from_list(list: Vec<Node>) -> Self {
+        Self::Owned(OwnedValue::List(list))
+    }
+    #[inline]
+    pub(crate) fn from_text(text: String) -> Self {
+        Self::Owned(OwnedValue::Text(text))
+    }
+
     pub(crate) fn cell(self) -> Checked<Node> {
         match self {
             Self::Empty => Ok(Node::Null),
-            Self::Node(node) => Ok(node),
-            Self::List(list) if list.is_empty() => Ok(Node::Null),
-            Self::List(list) => Ok(Node::from(list)),
+            Self::Owned(OwnedValue::Node(node)) => Ok(node),
+            Self::Owned(OwnedValue::List(list)) if list.is_empty() => Ok(Node::Null),
+            Self::Owned(OwnedValue::List(list)) => Ok(Node::from(list)),
             _ => Err("expected a nullable list element"),
         }
     }
@@ -46,46 +65,46 @@ impl Value {
     }
     pub(crate) fn text(self) -> Checked<String> {
         match self {
-            Self::Text(value) => Ok(value),
+            Self::Owned(OwnedValue::Text(value)) => Ok(value),
             Self::Keyword(word) => Ok(word.to_owned()),
             _ => Err("expected text"),
         }
     }
     pub(crate) fn node(self) -> Checked<Node> {
         match self {
-            Self::Node(value) => Ok(value),
+            Self::Owned(OwnedValue::Node(value)) => Ok(value),
             _ => Err("expected node"),
         }
     }
     pub(crate) fn optional(self) -> Checked<Option<Box<Node>>> {
         match self {
             Self::Empty => Ok(None),
-            Self::Node(value) => Ok(Some(Box::new(value))),
+            Self::Owned(OwnedValue::Node(value)) => Ok(Some(Box::new(value))),
             _ => Err("expected nullable node"),
         }
     }
     pub(crate) fn indirection(self) -> Checked<Vec<Node>> {
         match self {
-            Self::Node(first) => Ok(vec![first]),
-            Self::List(fields) => Ok(fields),
+            Self::Owned(OwnedValue::Node(first)) => Ok(vec![first]),
+            Self::Owned(OwnedValue::List(fields)) => Ok(fields),
             _ => Err("expected indirection"),
         }
     }
     pub(crate) fn list(self) -> Checked<Vec<Node>> {
         match self {
-            Self::List(value) => Ok(value),
+            Self::Owned(OwnedValue::List(value)) => Ok(value),
             _ => Err("expected list"),
         }
     }
     pub(crate) fn select(self) -> Checked<NodeBox<SelectStmt>> {
         match self {
-            Self::Node(Node::SelectStmt(value)) => Ok(value),
+            Self::Owned(OwnedValue::Node(Node::SelectStmt(value))) => Ok(value),
             _ => Err("expected SelectStmt"),
         }
     }
     pub(crate) fn statements(self) -> Checked<StatementList> {
         match self {
-            Self::Statements(value) => Ok(value),
+            Self::Owned(OwnedValue::Statements(value)) => Ok(value),
             _ => Err("expected statements"),
         }
     }
@@ -97,7 +116,7 @@ impl Value {
     }
     pub(crate) fn group(self) -> Checked<(Vec<Node>, bool)> {
         match self {
-            Self::Group(values, distinct) => Ok((values, distinct)),
+            Self::Owned(OwnedValue::Group(values, distinct)) => Ok((values, distinct)),
             _ => Err("expected GROUP BY"),
         }
     }

@@ -1,5 +1,8 @@
 //! Window frames and their SQLSTATE 42P20 checks from PostgreSQL gram.y.
-use super::{value::Value, Failure};
+use super::{
+    value::{OwnedValue, Value},
+    Failure,
+};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
@@ -22,7 +25,7 @@ pub(super) enum Window {
 
 fn window(value: Value) -> Result<NodeBox<WindowDef>, Failure> {
     match value {
-        Value::Node(Node::WindowDef(w)) => Ok(w),
+        Value::Owned(OwnedValue::Node(Node::WindowDef(w))) => Ok(w),
         _ => Err("expected window frame".into()),
     }
 }
@@ -97,5 +100,5 @@ pub(super) fn reduce(op: Window, rhs: &mut Reduction<'_, Value>) -> Result<Value
             frame
         }
     };
-    Ok(Value::Node(window.into()))
+    Ok(Value::from_node(window.into()))
 }

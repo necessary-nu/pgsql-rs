@@ -298,5 +298,5 @@ pub(super) fn reduce(op: Json, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             .into()
         }
     };
-    Ok(Value::Node(node))
+    Ok(Value::from_node(node))
 }

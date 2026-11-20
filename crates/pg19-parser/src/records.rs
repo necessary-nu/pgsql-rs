@@ -1,12 +1,15 @@
 //! Shared constructors used by the PostgreSQL semantic action translator.
-use super::{value::Value, Failure};
+use super::{
+    value::{OwnedValue, Value},
+    Failure,
+};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 macro_rules! record {
     ($value:expr, $record:ident) => {
         match $value {
             Value::Empty => None,
-            Value::Node(Node::$record(v)) => Some(v.into_box()),
+            Value::Owned($crate::value::OwnedValue::Node(Node::$record(v))) => Some(v.into_box()),
             _ => return Err(concat!("expected ", stringify!($record)).into()),
         }
     };
@@ -22,7 +25,7 @@ pub(super) fn optional_node(value: Value) -> Result<Option<Box<Node>>, Failure> 
 pub(crate) fn optional_text(value: Value) -> Result<Option<String>, Failure> {
     Ok(match value {
         Value::Empty => None,
-        Value::Text(text) => Some(text),
+        Value::Owned(OwnedValue::Text(text)) => Some(text),
         Value::Keyword(word) => Some(word.to_owned()),
         _ => return Err("expected nullable text".into()),
     })
@@ -44,7 +47,7 @@ fn persistence(value: Value, storage: i32) -> Result<Value, Failure> {
         return Err("expected RangeVar".into());
     };
     range.relpersistence = storage as u8;
-    Ok(Value::Node(Node::RangeVar(range)))
+    Ok(Value::from_node(Node::RangeVar(range)))
 }
 
 type ColumnQualifiers = (Vec<Node>, Option<Box<CollateClause>>);
@@ -96,7 +99,7 @@ fn with_arg_location(value: Value, location: Location) -> Result<Value, Failure>
         return Err("expected DefElem".into());
     };
     option.arg_location = location;
-    Ok(Value::Node(Node::DefElem(option)))
+    Ok(Value::from_node(Node::DefElem(option)))
 }
 
 fn append(mut list: Vec<Node>, item: Node) -> Vec<Node> {

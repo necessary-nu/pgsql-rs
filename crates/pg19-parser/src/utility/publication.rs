@@ -26,7 +26,7 @@ pub(super) fn continuation(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Resu
             except: false,
         }));
     }
-    Ok(Value::Node(spec.into()))
+    Ok(Value::from_node(spec.into()))
 }
 
 fn normalize(objects: &mut [Node]) -> Result<(), Failure> {
@@ -122,7 +122,7 @@ pub(super) fn publication(
         (objects, false, false)
     };
     if let Some(action) = action {
-        Ok(Value::Node(
+        Ok(Value::from_node(
             AlterPublicationStmt {
                 pubname,
                 pubobjects,
@@ -134,7 +134,7 @@ pub(super) fn publication(
             .into(),
         ))
     } else {
-        Ok(Value::Node(
+        Ok(Value::from_node(
             CreatePublicationStmt {
                 pubname,
                 options: rhs.take(6).list()?,

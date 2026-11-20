@@ -23,7 +23,7 @@ pub use pg19_lexer::Options;
 use pg19_lexer::Token;
 use pg19_nodes::{Node, RawStmt};
 use pg19_tables::{Production, RuleInfo, State};
-use value::Value;
+use value::{OwnedValue, Value};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
@@ -116,7 +116,7 @@ impl SqlEnd {
         let finished = stack
             .finish_root(span.1, self.before_eof, |value| {
                 if separator {
-                    let Value::Statements(statements) = value else {
+                    let Value::Owned(OwnedValue::Statements(statements)) = value else {
                         return Err(Failure::Value("expected statements"));
                     };
                     query::terminate(
@@ -147,8 +147,8 @@ fn apply(op: Op, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
         Op::Json(op) => json::reduce(op, rhs)?,
         Op::From(op) => from::reduce(op, rhs)?,
         Op::Empty => Value::Empty,
-        Op::Nil => Value::List(Vec::new()),
-        Op::Single => Value::List(vec![rhs.take(1).node()?]),
+        Op::Nil => Value::from_list(Vec::new()),
+        Op::Single => Value::from_list(vec![rhs.take(1).node()?]),
         Op::RuleActions { first } => {
             let (mut list, next) = if first {
                 (Vec::new(), rhs.take(1))
@@ -158,12 +158,12 @@ fn apply(op: Op, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
             if let Some(stmt) = next.optional()? {
                 list.push(*stmt);
             }
-            Value::List(list)
+            Value::from_list(list)
         }
         Op::Append(i) => {
             let mut items = rhs.take(1).list()?;
             items.push(rhs.take(i).node()?);
-            Value::List(items)
+            Value::from_list(items)
         }
         Op::Utility(op) => utility::reduce(op, rhs)?,
         Op::Expr(e) => expr::reduce(e, rhs)?,
@@ -185,7 +185,7 @@ impl StackActions for Parser<'_> {
         match std::mem::replace(&mut token.value, pg19_lexer::Value::None) {
             pg19_lexer::Value::None => Value::Empty,
             pg19_lexer::Value::Integer(n) => Value::Integer(n),
-            pg19_lexer::Value::Text(s) => Value::Text(s),
+            pg19_lexer::Value::Text(s) => Value::from_text(s),
             pg19_lexer::Value::Keyword(s) => Value::Keyword(s),
         }
     }
@@ -237,8 +237,10 @@ impl Parser<'_> {
 // [spec:pgq:req:grammar.runtime]
 pub fn parse(sql: &str, mode: ParseMode, options: Options) -> Result<Vec<Node>, Error> {
     match parse_value(sql, mode, options)? {
-        Value::List(nodes) => Ok(nodes),
-        Value::Statements(list) => Ok(list.into_statements().into_iter().map(Node::from).collect()),
+        Value::Owned(OwnedValue::List(nodes)) => Ok(nodes),
+        Value::Owned(OwnedValue::Statements(list)) => {
+            Ok(list.into_statements().into_iter().map(Node::from).collect())
+        }
         _ => Err(Error::InvalidOutput("start action did not return a list")),
     }
 }
@@ -263,7 +265,7 @@ fn parse_value(sql: &str, mode: ParseMode, options: Options) -> Result<Value, Er
 
 pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Error> {
     match parse_value(sql, ParseMode::Sql, options)? {
-        Value::Statements(list) => Ok(list.into_statements()),
+        Value::Owned(OwnedValue::Statements(list)) => Ok(list.into_statements()),
         _ => Err(Error::InvalidOutput(
             "default parse mode returned a non-statement",
         )),

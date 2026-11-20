@@ -1,5 +1,8 @@
 //! Expression constructors from PostgreSQL gram.y and nodes/makefuncs.c.
-use super::{value::Value, Failure};
+use super::{
+    value::{OwnedValue, Value},
+    Failure,
+};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
@@ -202,7 +205,7 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
                     location,
                 }
                 .into(),
-                Some(Value::Node(Node::String(field))) => ColumnRef {
+                Some(Value::Owned(OwnedValue::Node(Node::String(field)))) => ColumnRef {
                     fields: vec![Node::String(name), Node::String(field)],
                     location,
                 }
@@ -231,14 +234,14 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
         Expr::AppendField => {
             let next = rhs.take(2).node()?;
             let fields = match rhs.take(1) {
-                Value::Node(first) => vec![first, next],
-                Value::List(mut fields) => {
+                Value::Owned(OwnedValue::Node(first)) => vec![first, next],
+                Value::Owned(OwnedValue::List(mut fields)) => {
                     fields.push(next);
                     fields
                 }
                 _ => return Err("expected indirection".into()),
             };
-            return Ok(Value::List(fields));
+            return Ok(Value::from_list(fields));
         }
         Expr::Star => AStar {}.into(),
         Expr::Index => AIndices {
@@ -254,5 +257,5 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
         }
         .into(),
     };
-    Ok(Value::Node(result))
+    Ok(Value::from_node(result))
 }

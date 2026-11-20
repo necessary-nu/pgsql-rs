@@ -87,7 +87,7 @@ pub(super) fn generated_column(rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             rhs.location(2),
         ));
     }
-    Ok(Value::Node(
+    Ok(Value::from_node(
         Constraint {
             contype: ConstrType::CONSTR_GENERATED,
             generated_when: when,

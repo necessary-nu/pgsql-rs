@@ -11,7 +11,10 @@ pub(crate) mod routine;
 pub(crate) mod trigger;
 pub(crate) mod view;
 
-use super::{value::Value, Failure};
+use super::{
+    value::{OwnedValue, Value},
+    Failure,
+};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
@@ -78,15 +81,17 @@ fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Fail
     let first = rhs.take(1).text()?;
     let location = rhs.location(1);
     if !dotted {
-        return Ok(Value::Node(range_name([first], location, true)?.into()));
+        return Ok(Value::from_node(
+            range_name([first], location, true)?.into(),
+        ));
     }
     let tail = match rhs.take(2) {
-        Value::Node(Node::String(field)) => {
-            return Ok(Value::Node(
+        Value::Owned(OwnedValue::Node(Node::String(field))) => {
+            return Ok(Value::from_node(
                 range_name([first, field], location, true)?.into(),
             ))
         }
-        Value::Node(_) => return Err(Failure::Syntax("syntax error")),
+        Value::Owned(OwnedValue::Node(_)) => return Err(Failure::Syntax("syntax error")),
         fields => fields.list()?,
     };
     let mut parts = Vec::with_capacity(1 + tail.len());
@@ -97,7 +102,7 @@ fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Fail
         };
         parts.push(name);
     }
-    Ok(Value::Node(range_name(parts, location, true)?.into()))
+    Ok(Value::from_node(range_name(parts, location, true)?.into()))
 }
 
 pub(super) fn range_name<I: IntoIterator<Item = String>>(
@@ -142,7 +147,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             } else {
                 "CONTENT"
             };
-            Ok(Value::Node(
+            Ok(Value::from_node(
                 VariableSetStmt {
                     kind: VariableSetKind::VAR_SET_VALUE,
                     name: Some("xmloption".into()),
@@ -157,7 +162,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 .into(),
             ))
         }
-        Utility::OfType => Ok(Value::Node(
+        Utility::OfType => Ok(Value::from_node(
             AlterTableCmd {
                 subtype: AlterTableType::AT_AddOf,
                 def: Some(Box::new(
@@ -182,7 +187,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             } else {
                 None
             };
-            Ok(Value::Node(
+            Ok(Value::from_node(
                 CreateSchemaStmt {
                     schemaname: optional_text(rhs.take(6))?,
                     authrole,
@@ -195,7 +200,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
         Utility::Cluster(rel, idx) => {
             let relation = record!(rhs.take(rel), RangeVar);
             let params = flag_options(rhs, &[(2, "verbose")])?;
-            Ok(Value::Node(
+            Ok(Value::from_node(
                 RepackStmt {
                     command: RepackCommand::REPACK_COMMAND_CLUSTER,
                     relation: Some(Box::new(VacuumRelation {
@@ -214,7 +219,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 rhs,
                 &[(2, "full"), (3, "freeze"), (4, "verbose"), (5, "analyze")],
             )?;
-            Ok(Value::Node(
+            Ok(Value::from_node(
                 VacuumStmt {
                     options,
                     rels: rhs.take(6).list()?,
@@ -226,7 +231,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
         Utility::ExplainAnalyze => {
             let mut options = vec![flag("analyze", rhs.location(2))];
             options.extend(flag_options(rhs, &[(3, "verbose")])?);
-            Ok(Value::Node(
+            Ok(Value::from_node(
                 ExplainStmt {
                     options,
                     query: rhs.take(4).optional()?,
@@ -248,7 +253,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 "public" => (RoleSpecType::ROLESPEC_PUBLIC, None),
                 _ => (RoleSpecType::ROLESPEC_CSTRING, Some(name)),
             };
-            Ok(Value::Node(
+            Ok(Value::from_node(
                 RoleSpec {
                     roletype,
                     rolename,
@@ -262,7 +267,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 return Err("expected RoleSpec".into());
             };
             if role.roletype == RoleSpecType::ROLESPEC_CSTRING {
-                return Ok(Value::Text(
+                return Ok(Value::from_text(
                     role.rolename.take().ok_or("expected role name")?,
                 ));
             }
@@ -280,13 +285,13 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             };
             Err(Failure::At(message, "42939", rhs.location(1)))
         }
-        Utility::Target(kind, object_type, index) => {
-            Ok(Value::PrivilegeTarget(access::PrivilegeTarget {
+        Utility::Target(kind, object_type, index) => Ok(Value::Owned(OwnedValue::PrivilegeTarget(
+            access::PrivilegeTarget {
                 kind,
                 object_type,
                 objects: rhs.take(index).list()?,
-            }))
-        }
+            },
+        ))),
         Utility::Grant(grant, for_option) => access::grant(rhs, grant, for_option),
         Utility::RoleOption => access::role_option(rhs),
         Utility::Reindex { relation, schema } => {
@@ -302,7 +307,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             };
             let mut params = rhs.take(2).list()?;
             params.extend(flag_options(rhs, &[(4, "concurrently")])?);
-            Ok(Value::Node(
+            Ok(Value::from_node(
                 ReindexStmt {
                     kind,
                     relation,
@@ -312,7 +317,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 .into(),
             ))
         }
-        Utility::AllColumns(index) => Ok(Value::List(vec![AccessPriv {
+        Utility::AllColumns(index) => Ok(Value::from_list(vec![AccessPriv {
             priv_name: None,
             cols: rhs.take(index).list()?,
         }
@@ -338,7 +343,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 Some(positive) => positive.to_owned(),
                 None => format!("-{digits}"),
             };
-            Ok(Value::Node(Node::Float(number)))
+            Ok(Value::from_node(Node::Float(number)))
         }
         Utility::Qualified(dotted) => qualified(rhs, dotted),
         Utility::Relation(index, inherit) => {
@@ -347,7 +352,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             };
             range.inh = inherit;
             range.alias = None;
-            Ok(Value::Node(Node::RangeVar(range)))
+            Ok(Value::from_node(Node::RangeVar(range)))
         }
     }
 }

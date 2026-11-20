@@ -1,5 +1,8 @@
 //! PostgreSQL's raw TypeName constructors and casts from gram.y and makefuncs.c.
-use super::{value::Value, Failure};
+use super::{
+    value::{OwnedValue, Value},
+    Failure,
+};
 use pg19_engine::Reduction;
 use pg19_nodes::*;
 
@@ -117,7 +120,7 @@ fn modifiers(which: Modifiers, rhs: &mut Reduction<'_, Value>) -> Result<Vec<Nod
 
 fn typename(value: Value) -> Result<NodeBox<TypeName>, Failure> {
     match value {
-        Value::Node(Node::TypeName(n)) => Ok(n),
+        Value::Owned(OwnedValue::Node(Node::TypeName(n))) => Ok(n),
         _ => Err("expected TypeName".into()),
     }
 }
@@ -129,7 +132,7 @@ fn bound(rhs: &mut Reduction<'_, Value>, i: Option<isize>) -> Result<Node, Failu
 }
 
 fn cast(arg: Node, target: Box<TypeName>, location: Location) -> Value {
-    Value::Node(
+    Value::from_node(
         TypeCast {
             arg: Some(Box::new(arg)),
             type_name: Some(target),
@@ -160,7 +163,7 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
                 Vec::new()
             };
             names.push(Node::String(rhs.take(if more { 3 } else { 2 }).text()?));
-            return Ok(Value::List(names));
+            return Ok(Value::from_list(names));
         }
         Types::CharName(varying) => {
             let varying = varying
@@ -168,7 +171,7 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
                 .transpose()?
                 .unwrap_or(1)
                 != 0;
-            return Ok(Value::Text(
+            return Ok(Value::from_text(
                 if varying { "varchar" } else { "bpchar" }.into(),
             ));
         }
@@ -222,12 +225,12 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
         Types::Relocate => {
             let mut typ = typename(rhs.take(2))?;
             typ.location = loc;
-            return Ok(Value::Node(typ.into()));
+            return Ok(Value::from_node(typ.into()));
         }
         Types::SetModifiers(mods) => {
             let mut typ = typename(rhs.take(1))?;
             typ.typmods = modifiers(mods, rhs)?;
-            return Ok(Value::Node(typ.into()));
+            return Ok(Value::from_node(typ.into()));
         }
         Types::Array { set, bounds } => {
             let mut typ = typename(rhs.take(if set { 2 } else { 1 }))?;
@@ -236,12 +239,12 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
                 Bounds::Single(i) => vec![bound(rhs, i)?],
             };
             typ.setof = set;
-            return Ok(Value::Node(typ.into()));
+            return Ok(Value::from_node(typ.into()));
         }
         Types::Bound(i) => {
             let mut bounds = rhs.take(1).list()?;
             bounds.push(bound(rhs, i)?);
-            return Ok(Value::List(bounds));
+            return Ok(Value::from_list(bounds));
         }
         Types::IntervalFields {
             mask,
@@ -259,7 +262,7 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
             if let Some(i) = idx {
                 values.push(int_constant(rhs.take(i).integer()?, rhs.location(i)));
             }
-            return Ok(Value::List(values));
+            return Ok(Value::from_list(values));
         }
         Types::Cast { arg, target, pos } => {
             return Ok(cast(
@@ -318,5 +321,5 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
             return Ok(cast(arg, target, Location::UNKNOWN));
         }
     };
-    Ok(Value::Node(result.into()))
+    Ok(Value::from_node(result.into()))
 }

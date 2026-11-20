@@ -17,6 +17,6 @@ opt_xml_root_standalone: ',' STANDALONE_P YES_P	ae571bf859c7d2055361d5a6c1ad6e94
 opt_xml_root_standalone: ',' STANDALONE_P NO	f4f4bc25af9028804e05737f3360b6ddcbce001c3adec59b0f6f8c8b8d163232	Builtin(crate::builtin::Builtin::XmlRoot(Some(1)))
 opt_xml_root_standalone: ',' STANDALONE_P NO VALUE_P	c12157aaa7e4ce04cf3d613f2894cd9d0dc1a3d8c0210d608817e6b2571a630b	Builtin(crate::builtin::Builtin::XmlRoot(Some(2)))
 opt_xml_root_standalone: %empty	0e5f5af7348b86caf1418e227ed0cdbfce926035b7db20a36df682dfa89bad0f	Builtin(crate::builtin::Builtin::XmlRoot(Some(3)))
-MathOp: '%'	bf4a96aafd3add5104cb90f1b7fffdbbacc71bd7a04d7b7150b043f09ccb78b4	Generated(|_| Ok(Value::Text("%".to_owned())))
-MathOp: '^'	c6809dc3fa2dc527b7a8add2f629f0987c80b9f5825e663002912384b9caad50	Generated(|_| Ok(Value::Text("^".to_owned())))
+MathOp: '%'	bf4a96aafd3add5104cb90f1b7fffdbbacc71bd7a04d7b7150b043f09ccb78b4	Generated(|_| Ok(Value::from_text("%".to_owned())))
+MathOp: '^'	c6809dc3fa2dc527b7a8add2f629f0987c80b9f5825e663002912384b9caad50	Generated(|_| Ok(Value::from_text("^".to_owned())))
 substr_list: a_expr FOR a_expr	a7c979030f6a2ddd370bcebfa322b771ed2e910de113f2ccf0f0493864de0deb	Builtin(crate::builtin::Builtin::SubstringLength)

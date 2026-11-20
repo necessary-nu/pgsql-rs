@@ -101,7 +101,7 @@ pub(super) fn reduce(op: Builtin, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             ..Default::default()
         }
         .into(),
-        Builtin::ArgList(args) => return Ok(Value::List(arguments(args, rhs)?)),
+        Builtin::ArgList(args) => return Ok(Value::from_list(arguments(args, rhs)?)),
         Builtin::Function {
             name,
             system,
@@ -165,7 +165,7 @@ pub(super) fn reduce(op: Builtin, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 type_name: Some(Box::new(target)),
                 location: loc,
             };
-            return Ok(Value::List(vec![
+            return Ok(Value::from_list(vec![
                 rhs.take(1).node()?,
                 crate::types::int_constant(1, loc),
                 length.into(),
@@ -222,5 +222,5 @@ pub(super) fn reduce(op: Builtin, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             )
         }
     };
-    Ok(Value::Node(node))
+    Ok(Value::from_node(node))
 }

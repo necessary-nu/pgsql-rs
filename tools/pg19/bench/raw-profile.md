@@ -167,6 +167,32 @@ input. On CPU 17, its seven-round raw Rust/C medians were 0.316/0.428 µs,
 5.539/6.090 µs and 2.309/1.890 µs. The full corpus remains 22.2% over
 the C target with that training set.
 
+## Discarding semantic values on the parser stack
+
+The parser now groups the values that own heap storage under one private
+enum variant. Discarding punctuation or a value already moved into the
+result takes one discriminant check. Seven paired runs on CPU 2 compared
+the release executables before and after the change. Median paired
+parse-and-free time fell by 9.3% on `SELECT 1`, 3.9% on the join and 2.7%
+on the corpus. Retired instructions per input fell from 3,309 to 3,101,
+56,546 to 54,934 and 14,944 to 14,534 respectively.
+
+The ordinary release and the release trained on 263 other SQL fixtures each
+matched all 54,471 reference outcomes and all 72 additional boundary cases.
+Each seven-round benchmark also verified identical JSON bytes for every
+input before timing. Median raw parse-and-free times were as follows.
+
+| Workload | Ordinary Rust, µs | Paired C, µs | Profiled Rust, µs | Paired C, µs |
+| --- | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 0.318 | 0.432 | 0.305 | 0.442 |
+| Aggregate join | 6.600 | 6.078 | 5.653 | 6.197 |
+| Regression corpus | 2.471 | 1.889 | 2.197 | 1.917 |
+
+A separate seven-round comparison on CPU 4 ran the profiled Rust and C
+executables with the same allocator. With glibc, median corpus time was
+2.151 µs for Rust and 1.955 µs for C. With mimalloc v3, those times were
+1.994 and 1.940 µs. The remaining corpus gap was 2.8% with that allocator.
+
 ## Reproducing the profiles
 
 Use a benchmark output directory containing `bench-c`, `bench-rust`, and the three `.sql0` inputs. This example profiles the join. For the full set, the perf repeat counts were 13,000,000 for `simple`, 850,000 for `join`, and 52 for `corpus`. The Callgrind repeat counts were 10,000, 1,000 and 1 respectively.

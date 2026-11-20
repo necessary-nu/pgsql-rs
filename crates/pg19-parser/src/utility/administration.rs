@@ -48,7 +48,7 @@ pub(crate) fn statistics(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failur
                 rhs.location(3),
             )
         })?;
-    Ok(Value::Node(
+    Ok(Value::from_node(
         AlterTableCmd {
             subtype: AlterTableType::AT_SetStatistics,
             num,
@@ -71,7 +71,7 @@ pub(crate) fn identity_option(rhs: &mut Reduction<'_, Value>) -> Result<Value, F
             rhs.location(2),
         ));
     }
-    Ok(Value::Node(node))
+    Ok(Value::from_node(node))
 }
 
 pub(crate) fn import_qualification(
@@ -86,7 +86,7 @@ pub(crate) fn import_qualification(
     } else {
         (ImportForeignSchemaType::FDW_IMPORT_SCHEMA_ALL, Vec::new())
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         ImportForeignSchemaStmt {
             list_type,
             table_list,
@@ -104,7 +104,7 @@ pub(crate) fn import_schema(rhs: &mut Reduction<'_, Value>) -> Result<Value, Fai
     stmt.server_name = Some(rhs.take(8).text()?);
     stmt.local_schema = Some(rhs.take(10).text()?);
     stmt.options = rhs.take(11).list()?;
-    Ok(Value::Node(Node::ImportForeignSchemaStmt(stmt)))
+    Ok(Value::from_node(Node::ImportForeignSchemaStmt(stmt)))
 }
 
 pub(crate) fn revoke_role_option(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
@@ -115,7 +115,7 @@ pub(crate) fn revoke_role_option(rhs: &mut Reduction<'_, Value>) -> Result<Value
         arg_location: Location::UNKNOWN,
         ..Default::default()
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         GrantRoleStmt {
             is_grant: false,
             opt: vec![opt.into()],
@@ -156,7 +156,7 @@ pub(crate) fn set_optional(
     } else {
         VariableSetKind::VAR_SET_DEFAULT
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         VariableSetStmt {
             kind,
             name: Some(name.to_owned()),
@@ -202,7 +202,7 @@ pub(crate) fn alter_constraint(rhs: &mut Reduction<'_, Value>) -> Result<Value, 
         alter_inheritability: bits & CAS_NO_INHERIT != 0,
         noinherit: props.is_no_inherit,
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         AlterTableCmd {
             subtype: AlterTableType::AT_AlterConstraint,
             def: Some(Box::new(changes.into())),
@@ -246,7 +246,7 @@ pub(crate) fn foreign_table(
         oncommit: OnCommitAction::ONCOMMIT_NOOP,
         ..Default::default()
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         CreateForeignTableStmt {
             base,
             servername: Some(rhs.take(server).text()?),

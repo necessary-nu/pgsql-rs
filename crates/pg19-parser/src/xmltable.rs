@@ -12,7 +12,7 @@ pub(super) fn option(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
             rhs.location(1),
         ));
     }
-    Ok(Value::Node(
+    Ok(Value::from_node(
         DefElem {
             defname: Some(name),
             arg: Some(Box::new(rhs.take(2).node()?)),
@@ -73,5 +73,5 @@ pub(super) fn column(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
         }
     }
     column.colname = Some(name);
-    Ok(Value::Node(column.into()))
+    Ok(Value::from_node(column.into()))
 }

@@ -35,7 +35,7 @@ pub(super) fn create_as(
             rhs.take(target + 2).node()?
         }
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         CreateTableAsStmt {
             query: Some(Box::new(query)),
             into: Some(into),
@@ -102,7 +102,7 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
         from_clause: vec![from.into()],
         ..Default::default()
     };
-    Ok(Value::Node(
+    Ok(Value::from_node(
         ViewStmt {
             view: Some(view),
             aliases,

@@ -97,18 +97,18 @@ class Action:
             if kind in self.pointers or kind == "str":
                 return "Empty"
         if kind == "str":
-            body = f"Value::Text({self.string(expr)})"
+            body = f"Value::from_text({self.string(expr)})"
         elif kind in SCALARS:
             body = f"Value::Integer({self.scalar(expr)})"
         elif kind == "list":
             name, args = call(expr)
             if name == f"list_make{len(args)}" and 1 <= len(args) <= 5:
-                body = "Value::List(vec![" + ", ".join(self.node(arg) for arg in args) + "])"
+                body = "Value::from_list(vec![" + ", ".join(self.node(arg) for arg in args) + "])"
             elif name == "lappend" and len(args) == 2 and (found := re.fullmatch(r"\$(\d+):list", args[0])):
-                body = f"{{ let mut list = rhs.take({found[1]}).list()?; list.push({self.node(args[1])}); Value::List(list) }}"
+                body = f"{{ let mut list = rhs.take({found[1]}).list()?; list.push({self.node(args[1])}); Value::from_list(list) }}"
             elif name == "list_concat" and len(args) == 2 and all(re.fullmatch(r"\$\d+:list", arg) for arg in args):
                 a, b = (arg[1:].split(":")[0] for arg in args)
-                body = f"{{ let mut list = rhs.take({a}).list()?; list.extend(rhs.take({b}).list()?); Value::List(list) }}"
+                body = f"{{ let mut list = rhs.take({a}).list()?; list.extend(rhs.take({b}).list()?); Value::from_list(list) }}"
             else:
                 raise Untranslated
         elif kind in self.pointers:
@@ -117,7 +117,7 @@ class Action:
                 if found[2] not in self.pointers or found[2] == "list":
                     raise Untranslated
                 return f"Take({found[1]})"
-            body = f"Value::Node({self.node(expr)})"
+            body = f"Value::from_node({self.node(expr)})"
         else:
             raise Untranslated
         arg = "rhs" if "rhs." in body else "_"
