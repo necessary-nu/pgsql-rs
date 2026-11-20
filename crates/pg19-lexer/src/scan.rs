@@ -1,6 +1,6 @@
 use crate::{
     dfa::{longest, State},
-    truncate_identifier, Error, Kind, Options, Token, Value,
+    Error, Kind, Options, Token, Value, MAX_IDENTIFIER_BYTES,
 };
 
 pub struct Scanner<'a> {
@@ -58,11 +58,19 @@ impl<'a> Scanner<'a> {
         let Some(&first) = input.first() else {
             return Ok(false);
         };
-        let (len, kind, value, keyword) = if let Some(len) = crate::dfa::ordinary_word(input) {
-            let (kind, value, keyword) = identifier(&self.sql[start..start + len], input);
-            (len, kind, value, keyword)
-        } else if matches!(first, b'(' | b')' | b',' | b';' | b'[' | b']') {
-            (1, Kind(u16::from(first)), Value::None, None)
+        if let Some(len) = crate::dfa::ordinary_word(input) {
+            self.cursor = start + len;
+            identifier(
+                token,
+                &self.sql[start..self.cursor],
+                input,
+                start,
+                self.cursor,
+            );
+            return Ok(true);
+        }
+        let (len, kind, value) = if matches!(first, b'(' | b')' | b',' | b';' | b'[' | b']') {
+            (1, Kind(u16::from(first)), Value::None)
         } else if first.is_ascii_digit() {
             let mut len = 0;
             let mut integer = 0;
@@ -78,7 +86,7 @@ impl<'a> Scanner<'a> {
             ) {
                 return self.read_slow(token);
             }
-            (len, Kind::ICONST, Value::Integer(integer), None)
+            (len, Kind::ICONST, Value::Integer(integer))
         } else {
             return self.read_slow(token);
         };
@@ -86,7 +94,7 @@ impl<'a> Scanner<'a> {
         *token = Token {
             kind,
             value,
-            keyword,
+            keyword: None,
             start,
             end: self.cursor,
         };
@@ -98,7 +106,6 @@ impl<'a> Scanner<'a> {
             let start = self.cursor;
             let (action, mut end) = longest(State::Initial, self.sql.as_bytes(), start);
             let text = &self.sql[start..end];
-            let mut keyword = None;
             let (kind, value) = match action {
                 1 => {
                     self.cursor = end;
@@ -124,9 +131,9 @@ impl<'a> Scanner<'a> {
                     } else {
                         text
                     };
-                    let (k, v, category) = identifier(word, word.as_bytes());
-                    keyword = category;
-                    (k, v)
+                    self.cursor = end;
+                    identifier(token, word, word.as_bytes(), start, end);
+                    return Ok(true);
                 }
                 33 => {
                     let next = self.sql[end..].find(text).ok_or_else(|| {
@@ -190,7 +197,7 @@ impl<'a> Scanner<'a> {
                 start,
                 end,
                 value,
-                keyword,
+                keyword: None,
             };
             return Ok(true);
         }
@@ -239,15 +246,19 @@ fn block_comment(sql: &str, start: usize) -> Result<usize, Error> {
 }
 
 // [spec:pgq:req:lex.keywords]
-fn identifier(word: &str, input: &[u8]) -> (Kind, Value, Option<crate::KeywordKind>) {
-    match crate::identifier_keyword(word, input) {
-        Some((word, kind, category)) => (kind, Value::Keyword(word), Some(category)),
-        None => (
-            Kind::IDENT,
-            Value::Text(truncate_identifier(word.to_ascii_lowercase())),
-            None,
-        ),
+fn identifier(token: &mut Token, word: &str, input: &[u8], start: usize, end: usize) {
+    if let Some((name, kind, category)) = crate::identifier_keyword(word, input) {
+        token.kind = kind;
+        token.keyword = Some(category);
+        token.value = Value::Keyword(name);
+    } else {
+        token.kind = Kind::IDENT;
+        token.keyword = None;
+        let prefix = &word[..word.floor_char_boundary(MAX_IDENTIFIER_BYTES)];
+        token.value = Value::Text(prefix.to_ascii_lowercase());
     }
+    token.start = start;
+    token.end = end;
 }
 
 // [spec:pgq:req:lex.numbers-and-parameters]

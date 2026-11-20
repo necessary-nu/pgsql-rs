@@ -652,6 +652,13 @@ children (
                         kind @note
                         text "The performance harness can now accept a prebuilt public Rust runner. Its four-argument path verified all 54,266 corpus JSON trees and passed all six latency thresholds using the profiled panic-abort release and mimalloc for both programs. Two further seven-round runs on CPUs 5 and 12 independently passed. On CPU 5 with glibc the corpus still exceeded the C median by 3.4%. The same abort release matched every one of 54,471 oracle outcomes and 72 boundary cases."
                     }
+
+                    {
+                        at 2026-11-20T04:42:01.986414489Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The scanner now writes identifiers and keywords directly into reusable token storage and allocates only the valid 63-byte UTF-8 prefix. Against the prior ordinary Rust release, seven paired runs reduced raw parse time by 1.3%, 3.7%, and 1.9% on the three workloads. Both scanner interfaces matched 97,356 cases under both quote settings. The actual release matched all 54,471 oracle outcomes and 72 boundary cases. The ordinary C comparison remains over its ceiling on the join and corpus."
+                    }
                 )
             }
         )

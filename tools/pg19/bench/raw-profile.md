@@ -252,6 +252,21 @@ On CPU 12 with mimalloc and additional LLVM BOLT optimization of the C
 binary on the same training inputs, corpus time was 1.815 µs for Rust and
 1.854 µs for C.
 
+### Identifier scanning
+
+The scanner writes keywords and identifiers into the caller's token slot
+and limits unquoted identifiers to PostgreSQL's 63-byte UTF-8 boundary
+before allocating their lowercase text. In seven paired runs on CPU 23,
+the ordinary release cut median paired raw time by 1.3% on `SELECT 1`,
+3.7% on the join and 1.9% across the corpus. Corpus instructions per input
+fell from 14,534 to 14,245.
+
+The core and grammar scanners produced identical token streams on 97,356
+cases with each backslash-quote setting tested. The release also matched
+all 54,471 reference outcomes and 72 boundary cases. With the ordinary
+release settings on CPU 1, Rust took 0.310, 6.380 and 2.337 µs on the
+three workloads against C's 0.429, 6.095 and 1.862 µs.
+
 ## Reproducing the profiles
 
 Use a benchmark output directory containing `bench-c`, `bench-rust`, and the three `.sql0` inputs. This example profiles the join. For the full set, the perf repeat counts were 13,000,000 for `simple`, 850,000 for `join`, and 52 for `corpus`. The Callgrind repeat counts were 10,000, 1,000 and 1 respectively.

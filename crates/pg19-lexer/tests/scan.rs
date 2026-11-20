@@ -77,6 +77,14 @@ fn keyword_categories_and_identifier_spelling() {
     );
     assert_eq!(tokens[4].value, Value::Text("SELECT".into()));
     assert_eq!(tokens[5].value, Value::Text("mixÉ".into()));
+
+    let prefix = "A".repeat(62);
+    let sql = format!("{prefix}Éx {prefix}ZÉ");
+    let tokens = grammar(&sql);
+    assert_eq!(tokens[0].value, Value::Text("a".repeat(62)));
+    assert_eq!(tokens[1].value, Value::Text(format!("{}z", "a".repeat(62))));
+    assert_eq!((tokens[0].start, tokens[0].end), (0, 65));
+    assert_eq!((tokens[1].start, tokens[1].end), (66, sql.len()));
 }
 
 // [spec:pgq:req:lex.numbers-and-parameters/test]

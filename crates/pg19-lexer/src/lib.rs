@@ -277,13 +277,9 @@ impl Options {
     }
 }
 
+const MAX_IDENTIFIER_BYTES: usize = 63;
+
 fn truncate_identifier(mut ident: String) -> String {
-    if ident.len() > 63 {
-        let mut boundary = 63;
-        while !ident.is_char_boundary(boundary) {
-            boundary -= 1;
-        }
-        ident.truncate(boundary);
-    }
+    ident.truncate(ident.floor_char_boundary(MAX_IDENTIFIER_BYTES));
     ident
 }
