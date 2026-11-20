@@ -95,7 +95,9 @@ Across seven paired rounds on CPU 12, arena allocation with recursive destructio
 
 ## Looking up grammar destinations
 
-For 32 PostgreSQL nonterminals, the parser can reach at least 24 distinct combinations of destination state and subsequent semantic actions. The generator now stores those combinations in tables indexed by predecessor state. In seven paired runs on CPU 4, the prototype reduced median L2 instruction-cache fills per query from 1,569 to 1,170 on the join and from 609 to 515 on the corpus. In a separate seven-round run on CPU 3, sharing the stack-handling code for all explicit reductions instead increased median paired time by 12% on the join and 8% on the corpus.
+For 32 PostgreSQL nonterminals, the parser can reach at least 24 distinct combinations of destination state and subsequent semantic actions. The generator now stores those combinations in tables indexed by predecessor state. In seven paired runs on CPU 7, `d7bedb4` reduced median L2 instruction-cache fills per query from 1,559 to 1,279 on the join and from 613 to 513 on the corpus relative to `916e8a3`. A separate seven-round comparison of the same release binaries on CPU 10 measured median paired time reductions of 5.2% on the join and 6.1% on the corpus.
+
+Two other changes reduced code size or instruction counts at a cost in elapsed time. Sharing the stack-handling code for all explicit reductions increased median paired time by 12% on the join and 8% on the corpus on CPU 3. Combining omitted clauses in the INSERT, CREATE TABLE and column-definition actions saved about 100 instructions per corpus input but increased median paired time by 2.6%.
 
 The release build matched all 54,471 reference outcomes and all 72 additional boundary cases. Its seven-round comparison on CPU 3 verified every benchmark input's JSON bytes before timing. The table lookup reduced the executable's machine code by 112,928 bytes and increased read-only data by 701,848 bytes relative to `916e8a3`.
 
