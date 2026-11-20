@@ -43,6 +43,18 @@ The following counts come from interposing glibc `malloc`, `calloc`, `realloc` a
 | Aggregate join | 90 | 8 | 90 | 0 | 0 |
 | Regression corpus | 20.38 | 0.96 | 20.38 | 0.009 | 0.009 |
 
+## After the qualified-name and scanner changes
+
+At `8e795a4`, all 54,471 reference outcomes matched. The seven-round comparison on logical CPU 13 also verified identical JSON bytes for every input before timing. Times below are median microseconds per query, including destruction. The Callgrind columns count instructions per query on the same Rust release binary in separate runs.
+
+| Workload | C µs | Rust µs | Rust/C | Rust instructions | In reduction handlers | Releasing the result |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 0.521 | 0.577 | 1.106 | 4,565 | 2,161 | 653 |
+| Aggregate join | 10.422 | 13.048 | 1.252 | 59,241 | 21,755 | 11,117 |
+| Regression corpus | 2.336 | 3.922 | 1.679 | 16,045 | 6,080 | 2,408 |
+
+The join now spends 3,705 fewer instructions in reduction handlers per query. The corpus still spends 38% of its instructions in those handlers and 15% releasing the result. Common scanner paths are now inlined into the driver, so its self-time also includes scanning. The earlier scanner and driver columns use a different inlining boundary.
+
 ## Reproducing the profiles
 
 Use a benchmark output directory containing `bench-c`, `bench-rust`, and the three `.sql0` inputs. This example profiles the join. For the full set, the perf repeat counts were 13,000,000 for `simple`, 850,000 for `join`, and 52 for `corpus`. The Callgrind repeat counts were 10,000, 1,000 and 1 respectively.
