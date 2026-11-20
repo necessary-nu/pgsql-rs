@@ -1,10 +1,7 @@
 //! PostgreSQL's raw TypeName constructors and casts from gram.y and makefuncs.c.
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum Modifiers {
     None,
@@ -66,10 +63,7 @@ pub(super) fn named(names: Vec<Node>, typmods: Vec<Node>, location: Location) ->
 
 pub(super) fn builtin(name: &str, typmods: Vec<Node>, location: Location) -> TypeName {
     named(
-        vec![
-            Node::String("pg_catalog".into()),
-            Node::String(name.to_owned()),
-        ],
+        vec![Node::String("pg_catalog".into()), Node::String(name.into())],
         typmods,
         location,
     )
@@ -120,7 +114,7 @@ fn modifiers(which: Modifiers, rhs: &mut Reduction<'_, Value>) -> Result<Vec<Nod
 
 fn typename(value: Value) -> Result<NodeBox<TypeName>, Failure> {
     match value {
-        Value::Owned(OwnedValue::Node(Node::TypeName(n))) => Ok(n),
+        Value::Node(Node::TypeName(n)) => Ok(n),
         _ => Err("expected TypeName".into()),
     }
 }

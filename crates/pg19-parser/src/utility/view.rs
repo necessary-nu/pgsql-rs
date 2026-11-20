@@ -1,7 +1,7 @@
 //! CREATE TABLE AS, materialized views, and the recursive-view rewrite in gram.y.
+use crate::raw::*;
 use crate::{records::record, value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(crate) enum Source {
     Select,
@@ -63,7 +63,7 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
     }
     let mut view = record!(rhs.take(5 + shift), RangeVar).ok_or("expected view relation")?;
     view.relpersistence = rhs.take(2 + shift).integer()? as u8;
-    let relname = view.relname.clone().ok_or("expected view name")?;
+    let relname = view.relname.ok_or("expected view name")?;
     let aliases = rhs.take(7 + shift).list()?;
     let location = Location::UNKNOWN;
     let mut targets = Vec::with_capacity(aliases.len());
@@ -72,7 +72,7 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
             return Err("expected view column name".into());
         };
         let column = ColumnRef {
-            fields: vec![Node::String(name.clone())],
+            fields: vec![Node::String(*name)],
             location,
         };
         targets.push(
@@ -85,7 +85,7 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
         );
     }
     let cte = CommonTableExpr {
-        ctename: Some(relname.clone()),
+        ctename: Some(relname),
         aliascolnames: aliases.clone(),
         ctequery: rhs.take(11 + shift).optional()?,
         location,

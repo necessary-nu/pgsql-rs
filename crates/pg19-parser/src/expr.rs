@@ -1,10 +1,7 @@
 //! Expression constructors from PostgreSQL gram.y and nodes/makefuncs.c.
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum Expr {
     Integer,
@@ -42,7 +39,7 @@ fn operator(
 ) -> Node {
     AExpr {
         kind,
-        name: vec![Node::String(name.to_owned())],
+        name: vec![Node::String(name.into())],
         lexpr: left.map(Box::new),
         rexpr: Some(Box::new(right)),
         location,
@@ -62,8 +59,8 @@ fn negate(mut value: Node, location: Location) -> Node {
             Literal::Float(v) => {
                 let digits = v.strip_prefix('+').unwrap_or(v);
                 *v = match digits.strip_prefix('-') {
-                    Some(unsigned) => unsigned.to_owned(),
-                    None => format!("-{digits}"),
+                    Some(unsigned) => unsigned.into(),
+                    None => format!("-{digits}").into(),
                 };
                 return value;
             }
@@ -205,7 +202,7 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
                     location,
                 }
                 .into(),
-                Some(Value::Owned(OwnedValue::Node(Node::String(field)))) => ColumnRef {
+                Some(Value::Node(Node::String(field))) => ColumnRef {
                     fields: vec![Node::String(name), Node::String(field)],
                     location,
                 }
@@ -234,8 +231,8 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
         Expr::AppendField => {
             let next = rhs.take(2).node()?;
             let fields = match rhs.take(1) {
-                Value::Owned(OwnedValue::Node(first)) => vec![first, next],
-                Value::Owned(OwnedValue::List(mut fields)) => {
+                Value::Node(first) => vec![first, next],
+                Value::List(mut fields) => {
                     fields.push(next);
                     fields
                 }

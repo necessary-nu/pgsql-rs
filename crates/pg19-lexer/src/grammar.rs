@@ -1,15 +1,15 @@
 use crate::{
     literal::{digits, surrogate_pair},
-    truncate_identifier, Error, Kind, Scanner, Token, Value,
+    truncate_identifier, Error, Kind, Scanner, Token, TokenText, Value,
 };
 
-pub struct GrammarScanner<'a> {
+pub struct GrammarScanner<'a, T = String> {
     core: Scanner<'a>,
-    buffered: Option<Token>,
+    buffered: Option<Token<T>>,
     failed: bool,
 }
 
-impl<'a> GrammarScanner<'a> {
+impl<'a, T: TokenText> GrammarScanner<'a, T> {
     pub(crate) fn new(core: Scanner<'a>) -> Self {
         Self {
             core,
@@ -18,7 +18,7 @@ impl<'a> GrammarScanner<'a> {
         }
     }
 
-    fn read(&mut self) -> Result<Option<Token>, Error> {
+    fn read(&mut self) -> Result<Option<Token<T>>, Error> {
         loop {
             let token = self.core.one()?;
             if !token.as_ref().is_some_and(|t| t.kind.is_comment()) {
@@ -29,14 +29,14 @@ impl<'a> GrammarScanner<'a> {
 
     /// Fetch the next grammar token, including lookahead rewrites and EOF.
     #[inline]
-    pub fn next_token(&mut self) -> Result<Option<Token>, Error> {
+    pub fn next_token(&mut self) -> Result<Option<Token<T>>, Error> {
         let mut token = Token::default();
         Ok(self.next_into(&mut token)?.then_some(token))
     }
 
     /// Write the next grammar token to reusable storage and return false at EOF.
     #[inline]
-    pub fn next_into(&mut self, token: &mut Token) -> Result<bool, Error> {
+    pub fn next_into(&mut self, token: &mut Token<T>) -> Result<bool, Error> {
         if self.failed {
             return Ok(false);
         }
@@ -45,7 +45,7 @@ impl<'a> GrammarScanner<'a> {
 
     // [spec:pgq:req:lex.parser-lookahead]
     #[inline]
-    fn read_into(&mut self, token: &mut Token) -> Result<bool, Error> {
+    fn read_into(&mut self, token: &mut Token<T>) -> Result<bool, Error> {
         if let Some(buffered) = self.buffered.take() {
             *token = buffered;
         } else {
@@ -74,7 +74,7 @@ impl<'a> GrammarScanner<'a> {
         Ok(true)
     }
 
-    fn rewrite(&mut self, mut token: Token) -> Result<Token, Error> {
+    fn rewrite(&mut self, mut token: Token<T>) -> Result<Token<T>, Error> {
         self.buffered = self.read()?;
         let next = self.buffered.as_ref().map(|token| token.kind);
         token.kind = match (token.kind, next) {
@@ -110,7 +110,7 @@ impl<'a> GrammarScanner<'a> {
                     let Value::Text(value) = third.value else {
                         unreachable!()
                     };
-                    let bytes = value.as_bytes();
+                    let bytes = value.as_ref().as_bytes();
                     if bytes.len() != 1
                         || bytes[0].is_ascii_hexdigit()
                         || b"+'\" \t\r\n\x0c\x0b".contains(&bytes[0])
@@ -131,12 +131,12 @@ impl<'a> GrammarScanner<'a> {
                 let Value::Text(s) = &token.value else {
                     unreachable!()
                 };
-                let value = unescape(s, escape, self.core.sql, token.start)?;
+                let value = unescape(s.as_ref(), escape, self.core.sql, token.start)?;
                 if token.kind == Kind::UIDENT {
-                    token.value = Value::Text(truncate_identifier(value));
+                    token.value = Value::Text(truncate_identifier(value).into());
                     Kind::IDENT
                 } else {
-                    token.value = Value::Text(value);
+                    token.value = Value::Text(value.into());
                     Kind::SCONST
                 }
             }
@@ -146,8 +146,8 @@ impl<'a> GrammarScanner<'a> {
     }
 }
 
-impl Iterator for GrammarScanner<'_> {
-    type Item = Result<Token, Error>;
+impl<T: TokenText> Iterator for GrammarScanner<'_, T> {
+    type Item = Result<Token<T>, Error>;
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token().transpose()
     }

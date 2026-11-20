@@ -1,15 +1,12 @@
 //! Shared constructors used by the PostgreSQL semantic action translator.
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 macro_rules! record {
     ($value:expr, $record:ident) => {
         match $value {
             Value::Empty => None,
-            Value::Owned($crate::value::OwnedValue::Node(Node::$record(v))) => Some(v.into_box()),
+            Value::Node(Node::$record(v)) => Some(v.into_box()),
             _ => return Err(concat!("expected ", stringify!($record)).into()),
         }
     };
@@ -25,8 +22,8 @@ pub(super) fn optional_node(value: Value) -> Result<Option<Box<Node>>, Failure> 
 pub(crate) fn optional_text(value: Value) -> Result<Option<String>, Failure> {
     Ok(match value {
         Value::Empty => None,
-        Value::Owned(OwnedValue::Text(text)) => Some(text),
-        Value::Keyword(word) => Some(word.to_owned()),
+        Value::Text(text) => Some(text),
+        Value::Keyword(word) => Some(String::from_static(word)),
         _ => return Err("expected nullable text".into()),
     })
 }
@@ -79,11 +76,11 @@ fn dotted_name(nodes: Vec<Node>) -> Result<String, Failure> {
     for node in nodes {
         match node {
             Node::String(name) => names.push(name),
-            Node::AStar(_) => names.push("*".to_owned()),
+            Node::AStar(_) => names.push(String::from_static("*")),
             _ => return Err("expected dotted identifier".into()),
         }
     }
-    Ok(names.join("."))
+    Ok(names.join(".").into())
 }
 
 fn numeric_literal(node: Node) -> Result<Literal, Failure> {

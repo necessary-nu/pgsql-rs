@@ -119,7 +119,7 @@ def lower(s, ty="Value"):
             return "Value::from_list(Vec::new())" if s == "NIL" else "Value::Empty"
         raise Unsupported(s)
     if re.fullmatch(r'"[\w .:-]*"', s):
-        result = s + ".to_owned()"
+        result = f"crate::raw::String::from_static({s})"
         if ty == "Option<String>":
             return f"Some({result})"
         if ty == "String":

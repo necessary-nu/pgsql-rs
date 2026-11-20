@@ -1,6 +1,6 @@
-//! PostgreSQL equalfuncs ignores locations and selected backend fields.
-use crate::*;
-use std::{collections::HashSet, sync::Arc};
+// PostgreSQL equalfuncs ignores locations and selected backend fields.
+use super::*;
+use std::collections::HashSet;
 
 macro_rules! node_types {
     (values { $( $value:ident ($value_id:literal, $value_name:literal, $payload:ty) )* }
@@ -31,7 +31,7 @@ include!("nodes.in");
 
 #[derive(Default)]
 struct Work<'a> {
-    pending: Vec<Pair<'a>>,
+    pending: std::vec::Vec<Pair<'a>>,
     shared: HashSet<(*const Node, *const Node)>,
 }
 
@@ -100,12 +100,6 @@ impl Field for Option<Arc<Node>> {
         nullable(self.as_deref(), other.as_deref(), work)
     }
 }
-impl<T: Tagged + NodeRecord> Field for Option<NodeBox<T>> {
-    fn check<'a>(&'a self, other: &'a Self, work: &mut Work<'a>) -> bool {
-        nullable(self.as_deref(), other.as_deref(), work)
-    }
-}
-
 macro_rules! compare_records {
     ($( $record:ident { plain { $($($plain:ident).+),* } edges { $($($edge:ident).+),* } } )*
       @unsupported { $($missing:ident),* }) => {

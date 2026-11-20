@@ -41,7 +41,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some("password".to_owned()),
+                    defname: Some(crate::raw::String::from_static("password")),
                     arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -57,7 +57,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("password".to_owned()),
+                defname: Some(crate::raw::String::from_static("password")),
                 arg: optional_node(Value::from_node(
                     ParamRef {
                         number: rhs.take(2).integer()?,
@@ -77,7 +77,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("password".to_owned()),
+                defname: Some(crate::raw::String::from_static("password")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -92,7 +92,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some("password".to_owned()),
+                    defname: Some(crate::raw::String::from_static("password")),
                     arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -108,7 +108,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("password".to_owned()),
+                defname: Some(crate::raw::String::from_static("password")),
                 arg: optional_node(Value::from_node(
                     ParamRef {
                         number: rhs.take(3).integer()?,
@@ -128,7 +128,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("inherit".to_owned()),
+                defname: Some(crate::raw::String::from_static("inherit")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -142,7 +142,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("connectionlimit".to_owned()),
+                defname: Some(crate::raw::String::from_static("connectionlimit")),
                 arg: Some(Box::new(Node::Integer(rhs.take(3).integer()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -157,7 +157,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some("validUntil".to_owned()),
+                    defname: Some(crate::raw::String::from_static("validUntil")),
                     arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -173,7 +173,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("rolemembers".to_owned()),
+                defname: Some(crate::raw::String::from_static("rolemembers")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -187,7 +187,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("sysid".to_owned()),
+                defname: Some(crate::raw::String::from_static("sysid")),
                 arg: Some(Box::new(Node::Integer(rhs.take(2).integer()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -201,7 +201,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("adminmembers".to_owned()),
+                defname: Some(crate::raw::String::from_static("adminmembers")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -215,7 +215,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("addroleto".to_owned()),
+                defname: Some(crate::raw::String::from_static("addroleto")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -318,7 +318,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("rolemembers".to_owned()),
+                        defname: Some(crate::raw::String::from_static("rolemembers")),
                         arg: optional_node(rhs.take(6))?,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(6),
@@ -392,7 +392,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_MULTI,
-                name: Some("TRANSACTION".to_owned()),
+                name: Some(crate::raw::String::from_static("TRANSACTION")),
                 args: rhs.take(2).list()?,
                 jumble_args: true,
                 location: Location::UNKNOWN,
@@ -406,7 +406,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_MULTI,
-                name: Some("SESSION CHARACTERISTICS".to_owned()),
+                name: Some(crate::raw::String::from_static("SESSION CHARACTERISTICS")),
                 args: rhs.take(5).list()?,
                 jumble_args: true,
                 location: Location::UNKNOWN,
@@ -474,7 +474,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some("search_path".to_owned()),
+                name: Some(crate::raw::String::from_static("search_path")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(2).text()?),
                     location: rhs.location(2),
@@ -491,7 +491,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some("search_path".to_owned()),
+                name: Some(crate::raw::String::from_static("search_path")),
                 args: vec![Value::from_node(
                     ParamRef {
                         number: rhs.take(2).integer()?,
@@ -511,7 +511,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some("role".to_owned()),
+                name: Some(crate::raw::String::from_static("role")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(2).text()?),
                     location: rhs.location(2),
@@ -528,7 +528,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some("role".to_owned()),
+                name: Some(crate::raw::String::from_static("role")),
                 args: vec![Value::from_node(
                     ParamRef {
                         number: rhs.take(2).integer()?,
@@ -548,7 +548,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some("session_authorization".to_owned()),
+                name: Some(crate::raw::String::from_static("session_authorization")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(3).text()?),
                     location: rhs.location(3),
@@ -565,7 +565,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some("session_authorization".to_owned()),
+                name: Some(crate::raw::String::from_static("session_authorization")),
                 args: vec![Value::from_node(
                     ParamRef {
                         number: rhs.take(3).integer()?,
@@ -585,7 +585,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_DEFAULT,
-                name: Some("session_authorization".to_owned()),
+                name: Some(crate::raw::String::from_static("session_authorization")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -597,7 +597,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_MULTI,
-                name: Some("TRANSACTION SNAPSHOT".to_owned()),
+                name: Some(crate::raw::String::from_static("TRANSACTION SNAPSHOT")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(3).text()?),
                     location: rhs.location(3),
@@ -633,7 +633,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_RESET,
-                name: Some("timezone".to_owned()),
+                name: Some(crate::raw::String::from_static("timezone")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -645,7 +645,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_RESET,
-                name: Some("transaction_isolation".to_owned()),
+                name: Some(crate::raw::String::from_static("transaction_isolation")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -657,7 +657,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_RESET,
-                name: Some("session_authorization".to_owned()),
+                name: Some(crate::raw::String::from_static("session_authorization")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -700,7 +700,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some("timezone".to_owned()),
+                name: Some(crate::raw::String::from_static("timezone")),
             }
             .into(),
         ))
@@ -709,7 +709,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some("transaction_isolation".to_owned()),
+                name: Some(crate::raw::String::from_static("transaction_isolation")),
             }
             .into(),
         ))
@@ -718,7 +718,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some("session_authorization".to_owned()),
+                name: Some(crate::raw::String::from_static("session_authorization")),
             }
             .into(),
         ))
@@ -727,7 +727,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some("all".to_owned()),
+                name: Some(crate::raw::String::from_static("all")),
             }
             .into(),
         ))
@@ -1918,7 +1918,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("restart".to_owned()),
+                defname: Some(crate::raw::String::from_static("restart")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -1932,7 +1932,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("restart".to_owned()),
+                defname: Some(crate::raw::String::from_static("restart")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -1946,7 +1946,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("generated".to_owned()),
+                defname: Some(crate::raw::String::from_static("generated")),
                 arg: Some(Box::new(Node::Integer(rhs.take(3).integer()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2076,8 +2076,10 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("format".to_owned()),
-                arg: Some(Box::new(Node::String("binary".to_owned()))),
+                defname: Some(crate::raw::String::from_static("format")),
+                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                    "binary",
+                )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -2090,7 +2092,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("freeze".to_owned()),
+                defname: Some(crate::raw::String::from_static("freeze")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2104,7 +2106,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("delimiter".to_owned()),
+                defname: Some(crate::raw::String::from_static("delimiter")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2118,7 +2120,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("null".to_owned()),
+                defname: Some(crate::raw::String::from_static("null")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2132,8 +2134,10 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("format".to_owned()),
-                arg: Some(Box::new(Node::String("csv".to_owned()))),
+                defname: Some(crate::raw::String::from_static("format")),
+                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                    "csv",
+                )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -2146,8 +2150,10 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("format".to_owned()),
-                arg: Some(Box::new(Node::String("json".to_owned()))),
+                defname: Some(crate::raw::String::from_static("format")),
+                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                    "json",
+                )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -2160,7 +2166,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("header".to_owned()),
+                defname: Some(crate::raw::String::from_static("header")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2174,7 +2180,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("quote".to_owned()),
+                defname: Some(crate::raw::String::from_static("quote")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2188,7 +2194,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("escape".to_owned()),
+                defname: Some(crate::raw::String::from_static("escape")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2202,7 +2208,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("force_quote".to_owned()),
+                defname: Some(crate::raw::String::from_static("force_quote")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2216,7 +2222,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("force_quote".to_owned()),
+                defname: Some(crate::raw::String::from_static("force_quote")),
                 arg: optional_node(Value::from_node(AStar::default().into()))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2230,7 +2236,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("force_not_null".to_owned()),
+                defname: Some(crate::raw::String::from_static("force_not_null")),
                 arg: optional_node(rhs.take(4))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2244,7 +2250,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("force_not_null".to_owned()),
+                defname: Some(crate::raw::String::from_static("force_not_null")),
                 arg: optional_node(Value::from_node(AStar::default().into()))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2258,7 +2264,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("force_null".to_owned()),
+                defname: Some(crate::raw::String::from_static("force_null")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2272,7 +2278,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("force_null".to_owned()),
+                defname: Some(crate::raw::String::from_static("force_null")),
                 arg: optional_node(Value::from_node(AStar::default().into()))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2286,7 +2292,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("encoding".to_owned()),
+                defname: Some(crate::raw::String::from_static("encoding")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2300,7 +2306,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("delimiter".to_owned()),
+                defname: Some(crate::raw::String::from_static("delimiter")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(2),
@@ -2314,7 +2320,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("format".to_owned()),
+                defname: Some(crate::raw::String::from_static("format")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2935,7 +2941,7 @@ pub(super) const ACTIONS: &[Action] = &[
             let mut node = Constraint {
                 contype: ConstrType::CONSTR_NOTNULL,
                 location: rhs.location(1),
-                keys: vec![Node::String("value".to_owned())],
+                keys: vec![Node::String(crate::raw::String::from_static("value"))],
                 ..Default::default()
             };
             crate::utility::constraint::process(
@@ -3168,7 +3174,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("as".to_owned()),
+                defname: Some(crate::raw::String::from_static("as")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3182,7 +3188,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("cache".to_owned()),
+                defname: Some(crate::raw::String::from_static("cache")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3196,7 +3202,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("cycle".to_owned()),
+                defname: Some(crate::raw::String::from_static("cycle")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3210,7 +3216,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("cycle".to_owned()),
+                defname: Some(crate::raw::String::from_static("cycle")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3224,7 +3230,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("increment".to_owned()),
+                defname: Some(crate::raw::String::from_static("increment")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3238,7 +3244,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("logged".to_owned()),
+                defname: Some(crate::raw::String::from_static("logged")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3252,7 +3258,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("maxvalue".to_owned()),
+                defname: Some(crate::raw::String::from_static("maxvalue")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3266,7 +3272,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("minvalue".to_owned()),
+                defname: Some(crate::raw::String::from_static("minvalue")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3280,7 +3286,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("maxvalue".to_owned()),
+                defname: Some(crate::raw::String::from_static("maxvalue")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3294,7 +3300,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("minvalue".to_owned()),
+                defname: Some(crate::raw::String::from_static("minvalue")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3308,7 +3314,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("owned_by".to_owned()),
+                defname: Some(crate::raw::String::from_static("owned_by")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3322,7 +3328,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("sequence_name".to_owned()),
+                defname: Some(crate::raw::String::from_static("sequence_name")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3336,7 +3342,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("start".to_owned()),
+                defname: Some(crate::raw::String::from_static("start")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3350,7 +3356,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("unlogged".to_owned()),
+                defname: Some(crate::raw::String::from_static("unlogged")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3450,7 +3456,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("schema".to_owned()),
+                defname: Some(crate::raw::String::from_static("schema")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3464,7 +3470,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("new_version".to_owned()),
+                defname: Some(crate::raw::String::from_static("new_version")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3478,7 +3484,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("cascade".to_owned()),
+                defname: Some(crate::raw::String::from_static("cascade")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3681,7 +3687,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("handler".to_owned()),
+                defname: Some(crate::raw::String::from_static("handler")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3695,7 +3701,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("handler".to_owned()),
+                defname: Some(crate::raw::String::from_static("handler")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3709,7 +3715,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("validator".to_owned()),
+                defname: Some(crate::raw::String::from_static("validator")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3723,7 +3729,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("validator".to_owned()),
+                defname: Some(crate::raw::String::from_static("validator")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3737,7 +3743,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("connection".to_owned()),
+                defname: Some(crate::raw::String::from_static("connection")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3751,7 +3757,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("connection".to_owned()),
+                defname: Some(crate::raw::String::from_static("connection")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -4280,7 +4286,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 definition: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("from".to_owned()),
+                        defname: Some(crate::raw::String::from_static("from")),
                         arg: optional_node(rhs.take(5))?,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(5),
@@ -4304,7 +4310,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 definition: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("from".to_owned()),
+                        defname: Some(crate::raw::String::from_static("from")),
                         arg: optional_node(rhs.take(8))?,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(8),
@@ -5351,7 +5357,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             AccessPriv {
-                priv_name: Some("alter system".to_owned()),
+                priv_name: Some(crate::raw::String::from_static("alter system")),
                 cols: Vec::new(),
             }
             .into(),
@@ -5414,7 +5420,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("schemas".to_owned()),
+                defname: Some(crate::raw::String::from_static("schemas")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5428,7 +5434,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("roles".to_owned()),
+                defname: Some(crate::raw::String::from_static("roles")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5554,7 +5560,7 @@ pub(super) const ACTIONS: &[Action] = &[
         ))
     },
     // access_method_clause: %empty
-    |_| Ok(Value::from_text("btree".to_owned())),
+    |_| Ok(Value::from_text(crate::raw::String::from_static("btree"))),
     // index_elem_options: opt_collate opt_qualified_name opt_asc_desc opt_nulls_order
     |rhs| {
         Ok(Value::from_node(
@@ -5758,7 +5764,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("strict".to_owned()),
+                defname: Some(crate::raw::String::from_static("strict")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5772,7 +5778,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("strict".to_owned()),
+                defname: Some(crate::raw::String::from_static("strict")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5786,8 +5792,10 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("volatility".to_owned()),
-                arg: Some(Box::new(Node::String("immutable".to_owned()))),
+                defname: Some(crate::raw::String::from_static("volatility")),
+                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                    "immutable",
+                )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -5800,8 +5808,10 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("volatility".to_owned()),
-                arg: Some(Box::new(Node::String("stable".to_owned()))),
+                defname: Some(crate::raw::String::from_static("volatility")),
+                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                    "stable",
+                )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -5814,8 +5824,10 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("volatility".to_owned()),
-                arg: Some(Box::new(Node::String("volatile".to_owned()))),
+                defname: Some(crate::raw::String::from_static("volatility")),
+                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                    "volatile",
+                )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -5828,7 +5840,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("security".to_owned()),
+                defname: Some(crate::raw::String::from_static("security")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5842,7 +5854,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("security".to_owned()),
+                defname: Some(crate::raw::String::from_static("security")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5856,7 +5868,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("leakproof".to_owned()),
+                defname: Some(crate::raw::String::from_static("leakproof")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5870,7 +5882,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("leakproof".to_owned()),
+                defname: Some(crate::raw::String::from_static("leakproof")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5884,7 +5896,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("cost".to_owned()),
+                defname: Some(crate::raw::String::from_static("cost")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5898,7 +5910,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("rows".to_owned()),
+                defname: Some(crate::raw::String::from_static("rows")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5912,7 +5924,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("support".to_owned()),
+                defname: Some(crate::raw::String::from_static("support")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5926,7 +5938,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("set".to_owned()),
+                defname: Some(crate::raw::String::from_static("set")),
                 arg: optional_node(rhs.take(1))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5940,7 +5952,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("parallel".to_owned()),
+                defname: Some(crate::raw::String::from_static("parallel")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5955,7 +5967,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some("as".to_owned()),
+                    defname: Some(crate::raw::String::from_static("as")),
                     arg: optional_node(rhs.take(2))?,
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -5971,7 +5983,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("language".to_owned()),
+                defname: Some(crate::raw::String::from_static("language")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5986,7 +5998,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some("language".to_owned()),
+                    defname: Some(crate::raw::String::from_static("language")),
                     arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -6002,7 +6014,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("transform".to_owned()),
+                defname: Some(crate::raw::String::from_static("transform")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -6016,7 +6028,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("window".to_owned()),
+                defname: Some(crate::raw::String::from_static("window")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -6245,7 +6257,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some("as".to_owned()),
+                    defname: Some(crate::raw::String::from_static("as")),
                     arg: Some(Box::new(Node::String(rhs.take(1).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -8094,7 +8106,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("enabled".to_owned()),
+                        defname: Some(crate::raw::String::from_static("enabled")),
                         arg: Some(Box::new(Node::Boolean(true))),
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(1),
@@ -8117,7 +8129,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("enabled".to_owned()),
+                        defname: Some(crate::raw::String::from_static("enabled")),
                         arg: Some(Box::new(Node::Boolean(false))),
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(1),
@@ -8380,7 +8392,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("transaction_isolation".to_owned()),
+                defname: Some(crate::raw::String::from_static("transaction_isolation")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(3).text()?),
                     location: rhs.location(3),
@@ -8397,7 +8409,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("transaction_read_only".to_owned()),
+                defname: Some(crate::raw::String::from_static("transaction_read_only")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(1),
                     location: rhs.location(1),
@@ -8414,7 +8426,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("transaction_read_only".to_owned()),
+                defname: Some(crate::raw::String::from_static("transaction_read_only")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(0),
                     location: rhs.location(1),
@@ -8431,7 +8443,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("transaction_deferrable".to_owned()),
+                defname: Some(crate::raw::String::from_static("transaction_deferrable")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(1),
                     location: rhs.location(1),
@@ -8448,7 +8460,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("transaction_deferrable".to_owned()),
+                defname: Some(crate::raw::String::from_static("transaction_deferrable")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(0),
                     location: rhs.location(1),
@@ -8549,7 +8561,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("tablespace".to_owned()),
+                        defname: Some(crate::raw::String::from_static("tablespace")),
                         arg: Some(Box::new(Node::String(rhs.take(6).text()?))),
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(6),
@@ -8630,7 +8642,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("force".to_owned()),
+                defname: Some(crate::raw::String::from_static("force")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -8954,7 +8966,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 params: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("verbose".to_owned()),
+                        defname: Some(crate::raw::String::from_static("verbose")),
                         arg: None,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(2),
@@ -8996,7 +9008,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("verbose".to_owned()),
+                        defname: Some(crate::raw::String::from_static("verbose")),
                         arg: None,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(2),
@@ -9040,7 +9052,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some("verbose".to_owned()),
+                        defname: Some(crate::raw::String::from_static("verbose")),
                         arg: None,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(2),
@@ -9945,7 +9957,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("default".to_owned()),
+                defname: Some(crate::raw::String::from_static("default")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -9959,7 +9971,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("__pg__is_not_null".to_owned()),
+                defname: Some(crate::raw::String::from_static("__pg__is_not_null")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -9973,7 +9985,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("__pg__is_not_null".to_owned()),
+                defname: Some(crate::raw::String::from_static("__pg__is_not_null")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -9987,7 +9999,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some("path".to_owned()),
+                defname: Some(crate::raw::String::from_static("path")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),

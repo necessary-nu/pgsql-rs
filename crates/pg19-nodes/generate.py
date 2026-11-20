@@ -99,7 +99,7 @@ def rust_type(field, enums, selected):
     if ctype.endswith("*") and base in VALUES:
         return f"Option<Box<{VALUES[base]}>>" if base == "A_Const" else f"Option<{VALUES[base]}>"
     if ctype == "Bitmapset *":
-        return "std::collections::BTreeSet<u32>"
+        return "Bitmapset"
     if ctype in ("Node *", "Expr *"):
         return "Option<Box<Node>>"
     if base in selected:

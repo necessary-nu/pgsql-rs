@@ -40,7 +40,7 @@ node_types! {
             coldefexprs ["coldefexprs"]: Vec<Node>,
             colvalexprs ["colvalexprs"]: Vec<Node>,
             passingvalexprs ["passingvalexprs"]: Vec<Node>,
-            notnulls ["notnulls"]: std::collections::BTreeSet<u32>,
+            notnulls ["notnulls"]: Bitmapset,
             plan ["plan"]: Option<Box<Node>>,
             ordinalitycol ["ordinalitycol"]: i32,
             location ["location"]: Location,
@@ -542,9 +542,9 @@ node_types! {
             inh ["inh"]: bool,
             required_perms ["requiredPerms"]: u64,
             check_as_user ["checkAsUser"]: u32,
-            selected_cols ["selectedCols"]: std::collections::BTreeSet<u32>,
-            inserted_cols ["insertedCols"]: std::collections::BTreeSet<u32>,
-            updated_cols ["updatedCols"]: std::collections::BTreeSet<u32>,
+            selected_cols ["selectedCols"]: Bitmapset,
+            inserted_cols ["insertedCols"]: Bitmapset,
+            updated_cols ["updatedCols"]: Bitmapset,
         }
         RangeTblFunction (103, "RangeTblFunction") {
             funcexpr ["funcexpr"]: Option<Box<Node>>,
@@ -553,7 +553,7 @@ node_types! {
             funccoltypes ["funccoltypes"]: Vec<Node>,
             funccoltypmods ["funccoltypmods"]: Vec<Node>,
             funccolcollations ["funccolcollations"]: Vec<Node>,
-            funcparams ["funcparams"]: std::collections::BTreeSet<u32>,
+            funcparams ["funcparams"]: Bitmapset,
         }
         TableSampleClause (104, "TableSampleClause") {
             tsmhandler ["tsmhandler"]: u32,

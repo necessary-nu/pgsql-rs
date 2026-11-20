@@ -1,5 +1,6 @@
 //! Postorder cloning keeps both generic and statically typed edges off the call stack.
-use crate::*;
+use super::*;
+use std::vec::Vec as Work;
 
 pub(crate) enum Visit<'a> {
     Read(&'a dyn Shape),
@@ -7,14 +8,14 @@ pub(crate) enum Visit<'a> {
 }
 
 pub(crate) trait Shape {
-    fn children<'a>(&'a self, work: &mut Vec<Visit<'a>>);
-    fn assemble(&self, ready: &mut Vec<Node>) -> Node;
+    fn children<'a>(&'a self, work: &mut Work<Visit<'a>>);
+    fn assemble(&self, ready: &mut Work<Node>) -> Node;
 }
 
 fn duplicate(root: &dyn Shape) -> Node {
-    let mut work = Vec::new();
+    let mut work = Work::new();
     root.children(&mut work);
-    let mut ready = Vec::new();
+    let mut ready = Work::new();
     while let Some(task) = work.pop() {
         match task {
             Visit::Read(shape) => {
@@ -32,6 +33,29 @@ fn duplicate(root: &dyn Shape) -> Node {
     node
 }
 
+macro_rules! node_types {
+    (values { $( $value:ident ($($payload:tt)*) )* }
+     records { $( $record:ident ($($tag:tt)*) { $($fields:tt)* } )* }) => {
+        impl Shape for Node {
+            fn children<'a>(&'a self, work: &mut Work<Visit<'a>>) {
+                match self {
+                    Self::Null => {},
+                    $(Self::$value(value) => Child::queue(value, work),)*
+                    $(Self::$record(record) => record.as_ref().children(work),)*
+                }
+            }
+            fn assemble(&self, ready: &mut Work<Node>) -> Node {
+                match self {
+                    Self::Null => Self::Null,
+                    $(Self::$value(value) => Self::$value(Child::rebuild(value, ready)),)*
+                    $(Self::$record(record) => record.as_ref().assemble(ready),)*
+                }
+            }
+        }
+    };
+}
+include!("nodes.in");
+
 impl Clone for Node {
     fn clone(&self) -> Self {
         duplicate(self)
@@ -40,26 +64,17 @@ impl Clone for Node {
 
 // Children are queued in field order, visited last to first, and popped in field order.
 pub(crate) trait Child: Sized {
-    fn queue<'a>(&'a self, work: &mut Vec<Visit<'a>>);
-    fn rebuild(&self, ready: &mut Vec<Node>) -> Self;
+    fn queue<'a>(&'a self, work: &mut Work<Visit<'a>>);
+    fn rebuild(&self, ready: &mut Work<Node>) -> Self;
 }
 
 impl Child for Vec<Node> {
-    fn queue<'a>(&'a self, work: &mut Vec<Visit<'a>>) {
+    fn queue<'a>(&'a self, work: &mut Work<Visit<'a>>) {
         work.extend(self.iter().map(|node| Visit::Read(node)));
     }
-    fn rebuild(&self, ready: &mut Vec<Node>) -> Self {
+    fn rebuild(&self, ready: &mut Work<Node>) -> Self {
         let start = ready.len() - self.len();
         ready.drain(start..).rev().collect()
-    }
-}
-
-impl Child for NodeList {
-    fn queue<'a>(&'a self, work: &mut Vec<Visit<'a>>) {
-        <Vec<Node> as Child>::queue(self, work);
-    }
-    fn rebuild(&self, ready: &mut Vec<Node>) -> Self {
-        <Vec<Node> as Child>::rebuild(self, ready).into()
     }
 }
 
@@ -74,34 +89,22 @@ impl Unbox for Node {
 }
 
 impl<T: Unbox> Child for Option<Box<T>> {
-    fn queue<'a>(&'a self, work: &mut Vec<Visit<'a>>) {
+    fn queue<'a>(&'a self, work: &mut Work<Visit<'a>>) {
         if let Some(value) = self.as_deref() {
             work.push(Visit::Read(value));
         }
     }
-    fn rebuild(&self, ready: &mut Vec<Node>) -> Self {
+    fn rebuild(&self, ready: &mut Work<Node>) -> Self {
         self.as_ref()
             .map(|_| T::unbox(ready.pop().expect("boxed child")))
-    }
-}
-
-impl<T: Unbox + NodeRecord> Child for Option<NodeBox<T>> {
-    fn queue<'a>(&'a self, work: &mut Vec<Visit<'a>>) {
-        if let Some(value) = self.as_deref() {
-            work.push(Visit::Read(value));
-        }
-    }
-    fn rebuild(&self, ready: &mut Vec<Node>) -> Self {
-        self.as_ref()
-            .map(|_| T::unbox(ready.pop().expect("owned child")).into())
     }
 }
 
 macro_rules! scalar {
     ($($t:ty),*) => {$(
         impl Child for $t {
-            fn queue<'a>(&'a self, _: &mut Vec<Visit<'a>>) {}
-            fn rebuild(&self, _: &mut Vec<Node>) -> Self { self.clone() }
+            fn queue<'a>(&'a self, _: &mut Work<Visit<'a>>) {}
+            fn rebuild(&self, _: &mut Work<Node>) -> Self { self.clone() }
         }
     )*}
 }
@@ -119,11 +122,17 @@ scalar!(
 macro_rules! record_copy {
     ($record:ident { $($child:ident),* } { $($plain:ident),* }) => {
         impl Shape for $record {
-            fn children<'a>(&'a self, #[allow(unused_variables)] work: &mut Vec<Visit<'a>>) {
+            fn children<'a>(&'a self, #[allow(unused_variables)] work: &mut Work<Visit<'a>>) {
                 $(self.$child.queue(work);)*
             }
-            fn assemble(&self, #[allow(unused_variables)] ready: &mut Vec<Node>) -> Node {
+            fn assemble(&self, #[allow(unused_variables)] ready: &mut Work<Node>) -> Node {
                 Self { $($child: self.$child.rebuild(ready),)* $($plain: self.$plain.clone(),)* }.into()
+            }
+        }
+        impl $record {
+            fn copied_record(node: Node) -> Self {
+                let Node::$record(owner) = node else { unreachable!("record type follows its source") };
+                owner.into_inner()
             }
         }
         impl Unbox for $record {
@@ -133,11 +142,11 @@ macro_rules! record_copy {
             }
         }
         impl Child for $record {
-            fn queue<'a>(&'a self, work: &mut Vec<Visit<'a>>) { work.push(Visit::Read(self)); }
-            fn rebuild(&self, ready: &mut Vec<Node>) -> Self { *Self::unbox(ready.pop().expect("embedded child")) }
+            fn queue<'a>(&'a self, work: &mut Work<Visit<'a>>) { work.push(Visit::Read(self)); }
+            fn rebuild(&self, ready: &mut Work<Node>) -> Self { Self::copied_record(ready.pop().expect("embedded child")) }
         }
         impl Clone for $record {
-            fn clone(&self) -> Self { *Self::unbox(duplicate(self)) }
+            fn clone(&self) -> Self { Self::copied_record(duplicate(self)) }
         }
     };
 }

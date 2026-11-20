@@ -12,10 +12,20 @@
 //! Cloning also uses a heap worklist. Comparison and debug formatting can recurse.
 #![forbid(unsafe_code)]
 
-use std::sync::Arc;
+use std::{boxed::Box, sync::Arc, vec::Vec};
+
+pub type Bitmapset = std::collections::BTreeSet<u32>;
 
 mod copy;
-mod equal;
+mod equal {
+    include!("equal.rs");
+    impl<T: Tagged + NodeRecord> Field for Option<NodeBox<T>> {
+        fn check<'a>(&'a self, other: &'a Self, work: &mut Work<'a>) -> bool {
+            nullable(self.as_deref(), other.as_deref(), work)
+        }
+    }
+}
+
 mod owned;
 pub use owned::{NodeBox, NodeList, NodeRecord};
 
@@ -100,22 +110,6 @@ macro_rules! node_types {
             Null,
             $( $value($payload), )*
             $( $record(NodeBox<$record>), )*
-        }
-        impl copy::Shape for Node {
-            fn children<'a>(&'a self, work: &mut Vec<copy::Visit<'a>>) {
-                match self {
-                    Self::Null => {},
-                    $(Self::$value(value) => copy::Child::queue(value, work),)*
-                    $(Self::$record(record) => record.as_ref().children(work),)*
-                }
-            }
-            fn assemble(&self, ready: &mut Vec<Node>) -> Node {
-                match self {
-                    Self::Null => Self::Null,
-                    $(Self::$value(value) => Self::$value(copy::Child::rebuild(value, ready)),)*
-                    $(Self::$record(record) => record.as_ref().assemble(ready),)*
-                }
-            }
         }
         impl Node {
             pub fn tag(&self) -> Option<NodeTag> {

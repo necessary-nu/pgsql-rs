@@ -204,7 +204,7 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> Dispatch {
     }
 }
 
-const ACTION_IMPORTS: &str = "#[allow(unused_imports)] use Op::*;\n#[allow(unused_imports)] use crate::{expr::Expr as E,query::Query as Q,value::Quantifier as Qu};\n#[allow(unused_imports)] use pg19_nodes::{AExprKind,BoolExprType,BoolTestType,NullTestType,SetOperation};\n";
+const ACTION_IMPORTS: &str = "#[allow(unused_imports)] use Op::*;\n#[allow(unused_imports)] use crate::{raw::Node,expr::Expr as E,query::Query as Q,value::Quantifier as Qu};\n#[allow(unused_imports)] use pg19_nodes::{AExprKind,BoolExprType,BoolTestType,NullTestType,SetOperation};\n";
 
 fn main() {
     let inventory = "../pg19-tables/data/productions.tsv";

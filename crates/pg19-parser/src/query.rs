@@ -1,10 +1,10 @@
 //! Statement wrapping and the SELECT productions used by a raw expression.
 use super::{
-    value::{OwnedValue, Quantifier, Value},
+    value::{Quantifier, Value},
     Failure,
 };
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum Query {
     TypeStart,
@@ -39,7 +39,7 @@ pub(super) enum Query {
 fn statement(value: Value) -> Result<Option<Node>, Failure> {
     match value {
         Value::Empty => Ok(None),
-        Value::Owned(OwnedValue::Node(node)) => Ok(Some(node)),
+        Value::Node(node) => Ok(Some(node)),
         _ => Err("expected nullable node".into()),
     }
 }
@@ -65,7 +65,7 @@ pub(super) fn select<const PRESENT: usize>(
     if PRESENT >= 4 {
         stmt.into_clause = match rhs.take(4) {
             Value::Empty => None,
-            Value::Owned(OwnedValue::Node(Node::IntoClause(n))) => Some(n.into_box()),
+            Value::Node(Node::IntoClause(n)) => Some(n.into_box()),
             _ => return Err("expected INTO clause".into()),
         };
     }
@@ -114,7 +114,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 .into(),
             )
         }
-        Query::ParameterName => Value::from_text(format!("${}", rhs.take(1).integer()?)),
+        Query::ParameterName => Value::from_text(format!("${}", rhs.take(1).integer()?).into()),
         Query::PlExpression => {
             let (group_clause, group_distinct) = rhs.take(5).group()?;
             let mut stmt = SelectStmt {
@@ -254,15 +254,15 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             Value::from_node(relation.into())
         }
         Query::TypeStart => Value::from_list(vec![rhs.take(2).node()?]),
-        Query::First => Value::Owned(OwnedValue::Statements(StatementList::from_first(
+        Query::First => Value::Statements(StatementList::from_first(
             statement(rhs.take(1))?,
             rhs.location(1),
-        ))),
+        )),
         Query::Next => {
             let mut list = rhs.take(1).statements()?;
             terminate(&mut list, rhs.location(2))?;
             list.push(statement(rhs.take(3))?, rhs.location(3));
-            Value::Owned(OwnedValue::Statements(list))
+            Value::Statements(list)
         }
         Query::Target(alias) => {
             let name = alias.map(|i| rhs.take(i).text()).transpose()?;
@@ -304,10 +304,10 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
         ),
         Query::Quantifier(q) => Value::Quantifier(q),
         Query::Distinct => Value::from_list(vec![Node::Null]),
-        Query::Group(false) => Value::Owned(OwnedValue::Group(Vec::new(), false)),
-        Query::Group(true) => Value::Owned(OwnedValue::Group(
+        Query::Group(false) => Value::Group(Vec::new(), false),
+        Query::Group(true) => Value::Group(
             rhs.take(4).list()?,
             rhs.take(3).quantifier()? == Quantifier::Distinct,
-        )),
+        ),
     })
 }

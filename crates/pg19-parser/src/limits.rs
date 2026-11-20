@@ -1,11 +1,7 @@
 //! SQL:2008 FETCH, LIMIT and OFFSET from PostgreSQL gram.y.
-use super::{
-    types::int_constant,
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{types::int_constant, value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(crate) struct SelectLimit {
     offset: Option<Box<Node>>,
@@ -61,7 +57,7 @@ pub(super) fn reduce(op: Limit, rhs: &mut Reduction<'_, Value>) -> Result<Value,
         Limit::Offset { offset, count } => {
             let mut limit = if let Some(i) = count {
                 match rhs.take(i) {
-                    Value::Owned(OwnedValue::Limit(v)) => *v,
+                    Value::Limit(v) => v.into_inner(),
                     _ => return Err("expected LIMIT".into()),
                 }
             } else {
@@ -79,13 +75,13 @@ pub(super) fn reduce(op: Limit, rhs: &mut Reduction<'_, Value>) -> Result<Value,
             ))
         }
     };
-    Ok(Value::Owned(OwnedValue::Limit(Box::new(limit))))
+    Ok(Value::Limit(Box::new(limit)))
 }
 
 pub(super) fn apply(stmt: &mut SelectStmt, limit: Value, check_lock: bool) -> Result<(), Failure> {
     let limit = match limit {
         Value::Empty => return Ok(()),
-        Value::Owned(OwnedValue::Limit(v)) => v,
+        Value::Limit(v) => v.into_inner(),
         _ => return Err("expected LIMIT".into()),
     };
     if let Some(offset) = limit.offset {

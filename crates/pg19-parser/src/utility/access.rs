@@ -1,11 +1,7 @@
 //! Role option and privilege records from PostgreSQL gram.y.
-use crate::{
-    records::record,
-    value::{OwnedValue, Value},
-    Failure,
-};
+use crate::raw::*;
+use crate::{records::record, value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(crate) struct PrivilegeTarget {
     pub kind: GrantTargetType,
@@ -19,7 +15,7 @@ pub(super) fn grant(
     option_for: bool,
 ) -> Result<Value, Failure> {
     let skip = if option_for { 3 } else { 0 };
-    let Value::Owned(OwnedValue::PrivilegeTarget(target)) = rhs.take(4 + skip) else {
+    let Value::PrivilegeTarget(target) = rhs.take(4 + skip) else {
         return Err("expected privilege target".into());
     };
     let grant_option = if is_grant {
@@ -71,7 +67,7 @@ pub(super) fn role_option(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failu
     };
     Ok(Value::from_node(
         DefElem {
-            defname: Some(defname.to_owned()),
+            defname: Some(defname.into()),
             arg: Some(Box::new(Node::Boolean(enabled))),
             location,
             arg_location: Location::UNKNOWN,

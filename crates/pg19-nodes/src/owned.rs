@@ -261,3 +261,26 @@ impl<'a> IntoIterator for &'a mut NodeList {
         self.iter_mut()
     }
 }
+
+use crate::copy::{Child, Unbox, Visit};
+use std::vec::Vec as Work;
+impl Child for NodeList {
+    fn queue<'a>(&'a self, work: &mut Work<Visit<'a>>) {
+        <Vec<Node> as Child>::queue(self, work);
+    }
+    fn rebuild(&self, ready: &mut Work<Node>) -> Self {
+        <Vec<Node> as Child>::rebuild(self, ready).into()
+    }
+}
+
+impl<T: Unbox + NodeRecord> Child for Option<NodeBox<T>> {
+    fn queue<'a>(&'a self, work: &mut Work<Visit<'a>>) {
+        if let Some(value) = self.as_deref() {
+            work.push(Visit::Read(value));
+        }
+    }
+    fn rebuild(&self, ready: &mut Work<Node>) -> Self {
+        self.as_ref()
+            .map(|_| T::unbox(ready.pop().expect("owned child")).into())
+    }
+}

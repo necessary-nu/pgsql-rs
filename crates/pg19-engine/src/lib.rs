@@ -1,7 +1,7 @@
 //! Shift/reduce driver for the patched PostgreSQL 19 grammar.
 #![forbid(unsafe_code)]
 
-use pg19_lexer::{Error, Kind, Options, Scanner, Token, Value};
+use pg19_lexer::{Error, Kind, Options, Scanner, Token, TokenText, Value};
 use pg19_nodes::Location;
 use pg19_tables::{goto, Action, Lookahead, Production, State, INITIAL_STATE};
 
@@ -17,7 +17,7 @@ pub enum ParseMode {
 }
 
 impl ParseMode {
-    fn prefix(self) -> Option<Token> {
+    fn prefix<T>(self) -> Option<Token<T>> {
         let kind = match self {
             Self::Sql => return None,
             Self::TypeName => Kind::MODE_TYPE_NAME,
@@ -306,18 +306,18 @@ impl<V: Default> ParseStack<V> {
 }
 
 /// A dispatcher may fold unconditional unit reductions before returning the next state.
-pub trait StackActions {
+pub trait StackActions<T = String> {
     type Value: Default;
     type Error;
 
     const COMPILED_SHIFTS: Option<&'static [u8]> = None;
 
     /// Construct a literal whose unconditional reductions were folded into the shift.
-    fn shift_literal(&mut self, _token: &mut Token, _location: Location) -> Self::Value {
+    fn shift_literal(&mut self, _token: &mut Token<T>, _location: Location) -> Self::Value {
         unreachable!("dispatcher has no folded literal shifts")
     }
 
-    fn shift(&mut self, token: &mut Token) -> Self::Value;
+    fn shift(&mut self, token: &mut Token<T>) -> Self::Value;
     fn reduce_stack(
         &mut self,
         rule: Production,
@@ -371,13 +371,23 @@ pub fn parse_with<A: StackActions>(
     context: &mut A,
     stack: &mut ParseStack<A::Value>,
 ) -> Result<A::Value, ParseError<A::Error>> {
+    parse_with_text(sql, mode, options, context, stack)
+}
+
+pub fn parse_with_text<T: TokenText, A: StackActions<T>>(
+    sql: &str,
+    mode: ParseMode,
+    options: Options,
+    context: &mut A,
+    stack: &mut ParseStack<A::Value>,
+) -> Result<A::Value, ParseError<A::Error>> {
     stack.clear();
     let result = run(sql, mode, options, context, stack);
     stack.clear();
     result
 }
 
-fn run<A: StackActions>(
+fn run<T: TokenText, A: StackActions<T>>(
     sql: &str,
     mode: ParseMode,
     options: Options,
@@ -392,7 +402,7 @@ fn run<A: StackActions>(
             "54000",
         )));
     }
-    let mut scanner = scanner.grammar();
+    let mut scanner = scanner.grammar_with_text::<T>();
     stack.input_len = sql.len();
     stack.frames.reserve(32);
     stack.frames.push(Frame {

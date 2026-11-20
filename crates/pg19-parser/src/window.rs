@@ -1,10 +1,7 @@
 //! Window frames and their SQLSTATE 42P20 checks from PostgreSQL gram.y.
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 // PostgreSQL parsenodes.h pairs each START bit with its END bit one position higher.
 const BETWEEN: i32 = 0x10;
@@ -25,7 +22,7 @@ pub(super) enum Window {
 
 fn window(value: Value) -> Result<NodeBox<WindowDef>, Failure> {
     match value {
-        Value::Owned(OwnedValue::Node(Node::WindowDef(w))) => Ok(w),
+        Value::Node(Node::WindowDef(w)) => Ok(w),
         _ => Err("expected window frame".into()),
     }
 }

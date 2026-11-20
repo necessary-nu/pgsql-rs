@@ -1,10 +1,7 @@
 //! Range and alias productions in the SELECT grammar.
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum From {
     Alias { name: isize, columns: Option<isize> },
@@ -24,7 +21,7 @@ pub(super) enum From {
 fn alias(value: Value) -> Result<Option<Box<Alias>>, Failure> {
     match value {
         Value::Empty => Ok(None),
-        Value::Owned(OwnedValue::Node(Node::Alias(a))) => Ok(Some(a.into_box())),
+        Value::Node(Node::Alias(a)) => Ok(Some(a.into_box())),
         _ => Err("expected Alias".into()),
     }
 }
@@ -76,7 +73,7 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
                 ..Default::default()
             };
             match rhs.take(right + 1) {
-                Value::Owned(OwnedValue::Node(node)) => join.quals = Some(Box::new(node)),
+                Value::Node(node) => join.quals = Some(Box::new(node)),
                 v => {
                     let [names, alias] = pair(v)?;
                     join.using_clause = columns(names)?;
@@ -87,7 +84,10 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
         }
         From::JoinUsing => {
             let names = Node::from(rhs.take(3).list()?);
-            let alias = rhs.take(5).optional()?.map_or(Node::Null, |n| *n);
+            let alias = rhs
+                .take(5)
+                .optional()?
+                .map_or(Node::Null, |n| n.into_inner());
             return Ok(Value::from_list(vec![names, alias]));
         }
         From::JoinAlias => {
@@ -114,7 +114,7 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             };
             let coll_clause = match rhs.take(3) {
                 Value::Empty => None,
-                Value::Owned(OwnedValue::Node(Node::CollateClause(v))) => Some(v.into_box()),
+                Value::Node(Node::CollateClause(v)) => Some(v.into_box()),
                 _ => return Err("expected COLLATE".into()),
             };
             ColumnDef {

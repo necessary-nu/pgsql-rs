@@ -11,12 +11,9 @@ pub(crate) mod routine;
 pub(crate) mod trigger;
 pub(crate) mod view;
 
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 use crate::records::{optional_text, record};
 
@@ -56,7 +53,7 @@ pub(super) enum Utility {
 
 fn flag(name: &str, location: Location) -> Node {
     DefElem {
-        defname: Some(name.to_owned()),
+        defname: Some(name.into()),
         location,
         arg_location: Location::UNKNOWN,
         ..Default::default()
@@ -86,12 +83,12 @@ fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Fail
         ));
     }
     let tail = match rhs.take(2) {
-        Value::Owned(OwnedValue::Node(Node::String(field))) => {
+        Value::Node(Node::String(field)) => {
             return Ok(Value::from_node(
                 range_name([first, field], location, true)?.into(),
             ))
         }
-        Value::Owned(OwnedValue::Node(_)) => return Err(Failure::Syntax("syntax error")),
+        Value::Node(_) => return Err(Failure::Syntax("syntax error")),
         fields => fields.list()?,
     };
     let mut parts = Vec::with_capacity(1 + tail.len());
@@ -285,13 +282,13 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             };
             Err(Failure::At(message, "42939", rhs.location(1)))
         }
-        Utility::Target(kind, object_type, index) => Ok(Value::Owned(OwnedValue::PrivilegeTarget(
-            access::PrivilegeTarget {
+        Utility::Target(kind, object_type, index) => {
+            Ok(Value::PrivilegeTarget(access::PrivilegeTarget {
                 kind,
                 object_type,
                 objects: rhs.take(index).list()?,
-            },
-        ))),
+            }))
+        }
         Utility::Grant(grant, for_option) => access::grant(rhs, grant, for_option),
         Utility::RoleOption => access::role_option(rhs),
         Utility::Reindex { relation, schema } => {
@@ -340,8 +337,8 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             let text = rhs.take(2).text()?;
             let digits = text.strip_prefix('+').unwrap_or(&text);
             let number = match digits.strip_prefix('-') {
-                Some(positive) => positive.to_owned(),
-                None => format!("-{digits}"),
+                Some(positive) => positive.into(),
+                None => format!("-{digits}").into(),
             };
             Ok(Value::from_node(Node::Float(number)))
         }

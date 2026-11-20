@@ -1,4 +1,5 @@
 //! Function signatures, TABLE return columns and SQL routine bodies from gram.y.
+use crate::raw::*;
 use crate::{
     call,
     records::{optional_node, record},
@@ -7,7 +8,6 @@ use crate::{
     Failure,
 };
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 fn parameter(node: &Node) -> Result<&FunctionParameter, Failure> {
     match node {
@@ -117,7 +117,7 @@ pub(super) fn percent_type(rhs: &mut Reduction<'_, Value>, setof: bool) -> Resul
 pub(super) fn body(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let mut list = rhs.take(1).list()?;
     if let Some(statement) = optional_node(rhs.take(2))? {
-        list.push(*statement);
+        list.push(statement.into_inner());
     }
     Ok(Value::from_list(list))
 }

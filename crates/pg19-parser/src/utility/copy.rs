@@ -1,10 +1,10 @@
+use crate::raw::*;
 use crate::{
     records::{optional_text, record},
     value::Value,
     Failure,
 };
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) fn copy(rhs: &mut Reduction<'_, Value>, query: bool) -> Result<Value, Failure> {
     let mut statement = CopyStmt {
@@ -36,7 +36,7 @@ pub(super) fn copy(rhs: &mut Reduction<'_, Value>, query: bool) -> Result<Value,
         }
         for index in [2, 8] {
             if let Some(flag) = rhs.take(index).optional()? {
-                statement.options.push(*flag);
+                statement.options.push(flag.into_inner());
             }
         }
         statement.options.extend(rhs.take(10).list()?);

@@ -5,8 +5,8 @@ use super::{
     value::Value,
     Failure,
 };
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum Json {
     Format { explicit: bool, encoding: bool },
@@ -241,12 +241,12 @@ pub(super) fn reduce(op: Json, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             constructor.over = record!(rhs.take(3), WindowDef);
             agg
         }
-        Json::Path => (*path(
+        Json::Path => path(
             rhs.take(2).text()?,
             rhs.location(2),
             None,
             Location::UNKNOWN,
-        ))
+        )
         .into(),
         Json::Table => {
             let Node::AConst(AConst {

@@ -1,17 +1,13 @@
 use super::constraint;
-use crate::{
-    records::record,
-    value::{OwnedValue, Value},
-    Failure,
-};
+use crate::raw::*;
+use crate::{records::record, value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) fn update(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let action = rhs.take(3);
     match &action {
-        Value::Owned(OwnedValue::KeyAction(_, columns)) if columns.is_empty() => Ok(action),
-        Value::Owned(OwnedValue::KeyAction(kind, _)) => {
+        Value::KeyAction(_, columns) if columns.is_empty() => Ok(action),
+        Value::KeyAction(kind, _) => {
             let action_name = if *kind == b'n' {
                 "SET NULL"
             } else {
@@ -35,7 +31,7 @@ fn action_at(
         return Ok((b'a', Vec::new()));
     };
     match rhs.take(index) {
-        Value::Owned(OwnedValue::KeyAction(kind, columns)) => Ok((kind, columns)),
+        Value::KeyAction(kind, columns) => Ok((kind, columns)),
         _ => Err("expected foreign key action".into()),
     }
 }
@@ -47,15 +43,12 @@ pub(super) fn actions(
 ) -> Result<Value, Failure> {
     let (update, _) = action_at(rhs, update)?;
     let (delete, columns) = action_at(rhs, delete)?;
-    Ok(Value::Owned(OwnedValue::KeyActions(
-        update, delete, columns,
-    )))
+    Ok(Value::KeyActions(update, delete, columns))
 }
 
 pub(super) fn foreign_key(rhs: &mut Reduction<'_, Value>, table: bool) -> Result<Value, Failure> {
     let rel = if table { 8 } else { 2 };
-    let Value::Owned(OwnedValue::KeyActions(update, delete, set_columns)) = rhs.take(rel + 3)
-    else {
+    let Value::KeyActions(update, delete, set_columns) = rhs.take(rel + 3) else {
         return Err("expected foreign key actions".into());
     };
     let mut node = Constraint {
@@ -73,7 +66,7 @@ pub(super) fn foreign_key(rhs: &mut Reduction<'_, Value>, table: bool) -> Result
     if table {
         node.fk_attrs = rhs.take(4).list()?;
         if let Some(period) = rhs.take(5).optional()? {
-            node.fk_attrs.push(*period);
+            node.fk_attrs.push(period.into_inner());
             node.fk_with_period = true;
         }
         let mut columns = rhs.take(9).list()?.into_iter();

@@ -1,4 +1,4 @@
-use pg19_nodes::{Node, NodeBox, SelectStmt, StatementList};
+use crate::raw::{Box, Node, NodeBox, SelectStmt, StatementList, String, Vec};
 
 #[derive(Default)]
 pub(crate) enum Value {
@@ -7,12 +7,6 @@ pub(crate) enum Value {
     Integer(i32),
     Keyword(&'static str),
     Quantifier(Quantifier),
-    // The parser discards punctuation and moved values on almost every reduction.
-    // Only this variant needs to run drop glue for a semantic payload.
-    Owned(OwnedValue),
-}
-
-pub(crate) enum OwnedValue {
     Limit(Box<crate::limits::SelectLimit>),
     Text(String),
     Node(Node),
@@ -25,6 +19,9 @@ pub(crate) enum OwnedValue {
     Group(Vec<Node>, bool),
 }
 
+// Parser frames can be discarded as a block on syntax errors.
+const _: () = assert!(!std::mem::needs_drop::<Value>());
+
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Quantifier {
     Default,
@@ -34,97 +31,90 @@ pub(crate) enum Quantifier {
 
 pub(crate) type Checked<T> = Result<T, &'static str>;
 
-#[cold]
-#[inline(never)]
-fn unexpected(value: Value, expected: &'static str) -> &'static str {
-    drop(value);
-    expected
-}
-
 impl Value {
     #[inline]
     pub(crate) fn from_node(node: Node) -> Self {
-        Self::Owned(OwnedValue::Node(node))
+        Self::Node(node)
     }
     #[inline]
     pub(crate) fn from_list(list: Vec<Node>) -> Self {
-        Self::Owned(OwnedValue::List(list))
+        Self::List(list)
     }
     #[inline]
     pub(crate) fn from_text(text: String) -> Self {
-        Self::Owned(OwnedValue::Text(text))
+        Self::Text(text)
     }
 
     pub(crate) fn cell(self) -> Checked<Node> {
         match self {
             Self::Empty => Ok(Node::Null),
-            Self::Owned(OwnedValue::Node(node)) => Ok(node),
-            Self::Owned(OwnedValue::List(list)) if list.is_empty() => Ok(Node::Null),
-            Self::Owned(OwnedValue::List(list)) => Ok(Node::from(list)),
-            other => Err(unexpected(other, "expected a nullable list element")),
+            Self::Node(node) => Ok(node),
+            Self::List(list) if list.is_empty() => Ok(Node::Null),
+            Self::List(list) => Ok(Node::from(list)),
+            _ => Err("expected a nullable list element"),
         }
     }
     pub(crate) fn integer(self) -> Checked<i32> {
         match self {
             Self::Integer(value) => Ok(value),
-            other => Err(unexpected(other, "expected integer")),
+            _ => Err("expected integer"),
         }
     }
     pub(crate) fn text(self) -> Checked<String> {
         match self {
-            Self::Owned(OwnedValue::Text(value)) => Ok(value),
-            Self::Keyword(word) => Ok(word.to_owned()),
-            other => Err(unexpected(other, "expected text")),
+            Self::Text(value) => Ok(value),
+            Self::Keyword(word) => Ok(String::from_static(word)),
+            _ => Err("expected text"),
         }
     }
     pub(crate) fn node(self) -> Checked<Node> {
         match self {
-            Self::Owned(OwnedValue::Node(value)) => Ok(value),
-            other => Err(unexpected(other, "expected node")),
+            Self::Node(value) => Ok(value),
+            _ => Err("expected node"),
         }
     }
     pub(crate) fn optional(self) -> Checked<Option<Box<Node>>> {
         match self {
             Self::Empty => Ok(None),
-            Self::Owned(OwnedValue::Node(value)) => Ok(Some(Box::new(value))),
-            other => Err(unexpected(other, "expected nullable node")),
+            Self::Node(value) => Ok(Some(Box::new(value))),
+            _ => Err("expected nullable node"),
         }
     }
     pub(crate) fn indirection(self) -> Checked<Vec<Node>> {
         match self {
-            Self::Owned(OwnedValue::Node(first)) => Ok(vec![first]),
-            Self::Owned(OwnedValue::List(fields)) => Ok(fields),
-            other => Err(unexpected(other, "expected indirection")),
+            Self::Node(first) => Ok(vec![first]),
+            Self::List(fields) => Ok(fields),
+            _ => Err("expected indirection"),
         }
     }
     pub(crate) fn list(self) -> Checked<Vec<Node>> {
         match self {
-            Self::Owned(OwnedValue::List(value)) => Ok(value),
-            other => Err(unexpected(other, "expected list")),
+            Self::List(value) => Ok(value),
+            _ => Err("expected list"),
         }
     }
     pub(crate) fn select(self) -> Checked<NodeBox<SelectStmt>> {
         match self {
-            Self::Owned(OwnedValue::Node(Node::SelectStmt(value))) => Ok(value),
-            other => Err(unexpected(other, "expected SelectStmt")),
+            Self::Node(Node::SelectStmt(value)) => Ok(value),
+            _ => Err("expected SelectStmt"),
         }
     }
     pub(crate) fn statements(self) -> Checked<StatementList> {
         match self {
-            Self::Owned(OwnedValue::Statements(value)) => Ok(value),
-            other => Err(unexpected(other, "expected statements")),
+            Self::Statements(value) => Ok(value),
+            _ => Err("expected statements"),
         }
     }
     pub(crate) fn quantifier(self) -> Checked<Quantifier> {
         match self {
             Self::Quantifier(value) => Ok(value),
-            other => Err(unexpected(other, "expected set quantifier")),
+            _ => Err("expected set quantifier"),
         }
     }
     pub(crate) fn group(self) -> Checked<(Vec<Node>, bool)> {
         match self {
-            Self::Owned(OwnedValue::Group(values, distinct)) => Ok((values, distinct)),
-            other => Err(unexpected(other, "expected GROUP BY")),
+            Self::Group(values, distinct) => Ok((values, distinct)),
+            _ => Err("expected GROUP BY"),
         }
     }
 }

@@ -694,6 +694,20 @@ children (
                         kind @note
                         text "996cc60 matched all 54,471 pinned outcomes and 72 additional boundaries. Seven paired rounds with the ordinary Rust release and optimized C on CPU 5 measured 0.299/0.425 µs for SELECT 1, 6.107/6.061 µs on the join, and 2.261/1.846 µs on the 54,266-query corpus. The join and corpus still miss the raw parse requirement. Both use glibc and destroy each full tree."
                     }
+
+                    {
+                        at 2026-11-20T10:54:51.080818811Z
+                        author "brendan@necessary.nu"
+                        kind @decision
+                        text "The raw API owns a per-parse arena. Reductions construct the complete PG19 tree there. Callers that need independently mutable nodes explicitly convert to the owned representation at the API boundary. Measure the ordinary raw and JSON paths including arena release."
+                    }
+
+                    {
+                        at 2026-11-20T11:21:12.94342657Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Seven paired rounds on CPU 1 with ordinary Rust release and optimized C measured Rust/C raw medians of 0.195/0.418 µs for SELECT 1, 3.565/5.904 µs for the aggregate join and 1.333/1.805 µs per corpus input. Raw plus JSON also passed all three. All 54,471 pinned outcomes and 72 boundary checks matched, and Miri passed concurrent result use, nested unwind and the DML tests."
+                    }
                 )
             }
         )

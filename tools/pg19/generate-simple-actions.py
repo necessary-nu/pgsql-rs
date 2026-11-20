@@ -46,7 +46,7 @@ class Action:
         if found := re.fullmatch(r"\$(\d+):(?:str|keyword)", expr):
             return f"rhs.take({found[1]}).text()?"
         if re.fullmatch(r'"[A-Za-z0-9_ .:+*/<>=!-]*"', expr):
-            return f"{expr}.to_owned()"
+            return f"crate::raw::String::from_static({expr})"
         name, args = call(expr)
         if name == "pstrdup" and len(args) == 1:
             return self.string(args[0])
@@ -69,7 +69,7 @@ class Action:
             if name == "makeBoolean" and args[0] in ("false", "true"):
                 return f"Node::Boolean({args[0]})"
             if name == "makeNode" and args[0] in self.records:
-                return f"pg19_nodes::{self.records[args[0]]}::default().into()"
+                return f"crate::raw::{self.records[args[0]]}::default().into()"
         if len(args) == 2 and name in ("makeIntConst", "makeStringConst", "makeFloatConst", "makeBitStringConst", "makeBoolAConst"):
             tag = {"makeIntConst": "Integer", "makeStringConst": "String", "makeFloatConst": "Float",
                    "makeBitStringConst": "BitString", "makeBoolAConst": "Boolean"}[name]
@@ -83,7 +83,7 @@ class Action:
                 val = args[0]
             else:
                 val = self.string(args[0])
-            return (f"pg19_nodes::AConst {{ val: pg19_nodes::Literal::{tag}({val}), "
+            return (f"crate::raw::AConst {{ val: crate::raw::Literal::{tag}({val}), "
                     f"location: rhs.location({args[1][1:]}) }}.into()")
         raise Untranslated
 

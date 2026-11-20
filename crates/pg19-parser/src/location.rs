@@ -1,5 +1,5 @@
 //! Locations reported by the raw-node cases in PostgreSQL nodes/nodeFuncs.c.
-use pg19_nodes::{Location, Node};
+use crate::raw::{Location, Node};
 
 const UNKNOWN: Location = Location::UNKNOWN;
 

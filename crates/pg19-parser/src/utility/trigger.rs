@@ -1,11 +1,7 @@
 use super::constraint::*;
-use crate::{
-    records::record,
-    value::{OwnedValue, Value},
-    Failure,
-};
+use crate::raw::*;
+use crate::{records::record, value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(crate) const TRIGGER_TYPE_AFTER: i32 = 0;
 pub(crate) const TRIGGER_TYPE_BEFORE: i32 = 1 << 1;
@@ -17,7 +13,7 @@ pub(crate) const TRIGGER_TYPE_INSTEAD: i32 = 1 << 6;
 
 fn events(value: Value) -> Result<(i16, Vec<Node>), Failure> {
     match value {
-        Value::Owned(OwnedValue::TriggerEvents(mask, columns)) => Ok((mask, columns)),
+        Value::TriggerEvents(mask, columns) => Ok((mask, columns)),
         _ => Err("expected trigger events".into()),
     }
 }
@@ -29,10 +25,7 @@ pub(super) fn merge(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
         return Err(Failure::Syntax("duplicate trigger events specified"));
     }
     columns.extend(other);
-    Ok(Value::Owned(OwnedValue::TriggerEvents(
-        left | right,
-        columns,
-    )))
+    Ok(Value::TriggerEvents(left | right, columns))
 }
 
 pub(super) fn create(rhs: &mut Reduction<'_, Value>, constraint: bool) -> Result<Value, Failure> {

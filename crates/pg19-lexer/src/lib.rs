@@ -164,25 +164,35 @@ impl Kind {
 
 const ASCII: &str = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f";
 
+/// The scanner can write token text directly into the parser's result storage.
+pub trait TokenText: AsRef<str> + From<String> + for<'a> From<&'a str> {
+    fn lowercase_identifier(word: &str) -> Self;
+}
+impl TokenText for String {
+    fn lowercase_identifier(word: &str) -> Self {
+        word.to_ascii_lowercase()
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Value {
+pub enum Value<T = String> {
     None,
     Integer(i32),
-    Text(String),
+    Text(T),
     Keyword(&'static str),
 }
 
 // [spec:pgq:req:lex.byte-spans]
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Token {
+pub struct Token<T = String> {
     pub kind: Kind,
     pub start: usize,
     pub end: usize,
     pub keyword: Option<KeywordKind>,
-    pub value: Value,
+    pub value: Value<T>,
 }
 
-impl Default for Token {
+impl<T> Default for Token<T> {
     fn default() -> Self {
         Self {
             kind: Kind(0),

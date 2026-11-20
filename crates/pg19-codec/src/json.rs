@@ -1,7 +1,7 @@
-use std::collections::BTreeSet;
 use std::fmt::{self, Display, Write as _};
+use std::string::String as Output;
 
-use pg19_nodes::*;
+use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EncodeError {
@@ -22,7 +22,7 @@ impl std::error::Error for EncodeError {}
 type Result = std::result::Result<(), EncodeError>;
 
 struct Writer {
-    text: String,
+    text: Output,
     depth: u16,
 }
 
@@ -205,7 +205,7 @@ impl Writer {
         })
     }
 
-    fn write_bitmapset(&mut self, key: Key, set: &BTreeSet<u32>) -> Result {
+    fn write_bitmapset(&mut self, key: Key, set: &Bitmapset) -> Result {
         if !set.is_empty() {
             self.numbers(key, set)?;
         }
@@ -293,12 +293,12 @@ impl Object for AConst {
 include!("json-records.in");
 
 // [spec:pgq:req:codec.json-fields]
-pub fn node_json(node: &Node) -> std::result::Result<String, EncodeError> {
+pub fn node_json(node: &Node) -> std::result::Result<Output, EncodeError> {
     if matches!(node, Node::Null) {
         return Ok("null".into());
     }
     let mut w = Writer {
-        text: String::with_capacity(256),
+        text: Output::with_capacity(256),
         depth: 0,
     };
     w.object(|w| node.fields(w))?;
@@ -306,9 +306,9 @@ pub fn node_json(node: &Node) -> std::result::Result<String, EncodeError> {
 }
 
 // [spec:pgq:req:codec.json-envelope]
-pub fn statements_json(stmts: &[RawStmt]) -> std::result::Result<String, EncodeError> {
+pub fn statements_json(stmts: &[RawStmt]) -> std::result::Result<Output, EncodeError> {
     let mut w = Writer {
-        text: String::with_capacity(if stmts.is_empty() { 32 } else { 1024 }),
+        text: Output::with_capacity(if stmts.is_empty() { 32 } else { 1024 }),
         depth: 0,
     };
     w.object(|w| {

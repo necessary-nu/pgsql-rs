@@ -4,13 +4,14 @@ This repository provides a standalone PostgreSQL 19 parser in Rust and the Postg
 
 ## PostgreSQL 19 in Rust
 
-Add `pg19-query` as a Cargo path dependency pointing to `crates/pg19-query` in this checkout. The Rust parser returns typed raw statements and runs without a database connection. This example reads the index named in a PostgreSQL 19 `REPACK` statement.
+Add `pg19-query` as a Cargo path dependency pointing to `crates/pg19-query` in this checkout. The Rust parser runs without a database connection. `parse_raw` returns a tree that owns its arena. Inspect statement tags and spans or call `tree.json()` directly. Call `tree.into_owned()` when you need independently mutable records. This example reads the index named in a PostgreSQL 19 `REPACK` statement.
 
 ```rust
-use pg19_query::{nodes::Node, parse_statements, Options, ParseError};
+use pg19_query::{nodes::Node, parse_raw, Options, ParseError};
 
 fn main() -> Result<(), ParseError> {
-    let statements = parse_statements("REPACK accounts USING INDEX accounts_pkey", Options::default())?;
+    let tree = parse_raw("REPACK accounts USING INDEX accounts_pkey", Options::default())?;
+    let statements = tree.into_owned();
     if let Some(Node::RepackStmt(repack)) = statements[0].stmt.as_deref() {
         assert_eq!(repack.indexname.as_deref(), Some("accounts_pkey"));
     }

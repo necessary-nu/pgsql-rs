@@ -1,11 +1,11 @@
 //! Administrative utility actions with validations in PostgreSQL gram.y.
+use crate::raw::*;
 use crate::{
     records::{optional_node, optional_text, record},
     value::Value,
     Failure,
 };
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(crate) fn security_mode(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let name = rhs.take(2).text()?;
@@ -136,7 +136,7 @@ pub(crate) fn set_optional(
         (
             "timezone",
             Location::UNKNOWN,
-            optional_node(rhs.take(3))?.map(|v| *v),
+            optional_node(rhs.take(3))?.map(|v| v.into_inner()),
         )
     } else {
         let location = rhs.location(2);
@@ -159,7 +159,7 @@ pub(crate) fn set_optional(
     Ok(Value::from_node(
         VariableSetStmt {
             kind,
-            name: Some(name.to_owned()),
+            name: Some(name.into()),
             args: arg.into_iter().collect(),
             location,
             jumble_args: timezone,

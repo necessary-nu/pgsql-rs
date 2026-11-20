@@ -1,5 +1,8 @@
 //! Native semantic actions for the patched PostgreSQL 19 grammar.
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
+macro_rules! vec {
+    ($($item:expr),* $(,)?) => { crate::raw::Vec::from([$($item),*]) };
+}
 mod builtin;
 mod call;
 mod dml;
@@ -10,6 +13,7 @@ mod limits;
 mod location;
 mod predicate;
 mod query;
+mod raw;
 mod records;
 mod types;
 mod utility;
@@ -23,7 +27,8 @@ pub use pg19_lexer::Options;
 use pg19_lexer::Token;
 use pg19_nodes::{Node, RawStmt};
 use pg19_tables::{Production, RuleInfo, State};
-use value::{OwnedValue, Value};
+use raw::Vec as ArenaVec;
+use value::Value;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
@@ -124,7 +129,7 @@ impl SqlEnd {
         let finished = stack
             .finish_root(span.1, self.before_eof, |value| {
                 if separator {
-                    let Value::Owned(OwnedValue::Statements(statements)) = value else {
+                    let Value::Statements(statements) = value else {
                         return Err(Failure::Value("expected statements"));
                     };
                     query::terminate(
@@ -155,16 +160,16 @@ fn apply(op: Op, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
         Op::Json(op) => json::reduce(op, rhs)?,
         Op::From(op) => from::reduce(op, rhs)?,
         Op::Empty => Value::Empty,
-        Op::Nil => Value::from_list(Vec::new()),
+        Op::Nil => Value::from_list(ArenaVec::new()),
         Op::Single => Value::from_list(vec![rhs.take(1).node()?]),
         Op::RuleActions { first } => {
             let (mut list, next) = if first {
-                (Vec::new(), rhs.take(1))
+                (ArenaVec::new(), rhs.take(1))
             } else {
                 (rhs.take(1).list()?, rhs.take(3))
             };
             if let Some(stmt) = next.optional()? {
-                list.push(*stmt);
+                list.push(stmt.into_inner());
             }
             Value::from_list(list)
         }
@@ -184,7 +189,7 @@ struct Parser<'a> {
 }
 
 // [spec:pgq:req:grammar.overlay-differences]
-impl StackActions for Parser<'_> {
+impl StackActions<raw::String> for Parser<'_> {
     type Value = Value;
     type Error = Box<Error>;
 
@@ -192,9 +197,13 @@ impl StackActions for Parser<'_> {
         Some(include_bytes!(concat!(env!("OUT_DIR"), "/shifts.bin")));
 
     #[inline]
-    fn shift_literal(&mut self, token: &mut Token, location: pg19_nodes::Location) -> Value {
+    fn shift_literal(
+        &mut self,
+        token: &mut Token<raw::String>,
+        location: pg19_nodes::Location,
+    ) -> Value {
         use pg19_lexer::{Kind, Value as Lexeme};
-        use pg19_nodes::{AConst, Literal};
+        use raw::{AConst, Literal};
         let lexeme = std::mem::replace(&mut token.value, Lexeme::None);
         let val = match (token.kind, lexeme) {
             (Kind::ICONST, Lexeme::Integer(value)) => Literal::Integer(value),
@@ -210,7 +219,7 @@ impl StackActions for Parser<'_> {
     }
 
     #[inline]
-    fn shift(&mut self, token: &mut Token) -> Value {
+    fn shift(&mut self, token: &mut Token<raw::String>) -> Value {
         match std::mem::replace(&mut token.value, pg19_lexer::Value::None) {
             pg19_lexer::Value::None => Value::Empty,
             pg19_lexer::Value::Integer(n) => Value::Integer(n),
@@ -265,13 +274,18 @@ impl Parser<'_> {
 // [spec:pgq:req:grammar.parse-modes]
 // [spec:pgq:req:grammar.runtime]
 pub fn parse(sql: &str, mode: ParseMode, options: Options) -> Result<Vec<Node>, Error> {
-    match parse_value(sql, mode, options)? {
-        Value::Owned(OwnedValue::List(nodes)) => Ok(nodes),
-        Value::Owned(OwnedValue::Statements(list)) => {
-            Ok(list.into_statements().into_iter().map(Node::from).collect())
-        }
-        _ => Err(Error::InvalidOutput("start action did not return a list")),
+    if mode == ParseMode::Sql {
+        return Ok(parse_raw(sql, options)?
+            .into_owned()
+            .into_iter()
+            .map(Node::from)
+            .collect());
     }
+    let region = raw::Region::new();
+    region.build(|| match parse_value(sql, mode, options)? {
+        Value::List(nodes) => Ok(nodes.iter().map(raw::materialize).collect()),
+        _ => Err(Error::InvalidOutput("start action did not return a list")),
+    })
 }
 
 fn parse_value(sql: &str, mode: ParseMode, options: Options) -> Result<Value, Error> {
@@ -282,7 +296,7 @@ fn parse_value(sql: &str, mode: ParseMode, options: Options) -> Result<Value, Er
         .with(|cache| {
             let mut stack = cache.take();
             let result =
-                pg19_engine::parse_with(sql, mode, options, &mut Parser { sql }, &mut stack);
+                pg19_engine::parse_with_text(sql, mode, options, &mut Parser { sql }, &mut stack);
             cache.set(stack);
             result
         })
@@ -293,12 +307,91 @@ fn parse_value(sql: &str, mode: ParseMode, options: Options) -> Result<Value, Er
 }
 
 pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Error> {
-    match parse_value(sql, ParseMode::Sql, options)? {
-        Value::Owned(OwnedValue::Statements(list)) => Ok(list.into_statements()),
+    parse_raw(sql, options).map(RawTree::into_owned)
+}
+
+/// Complete raw SQL tree. Its nodes and text live until the result is dropped.
+pub struct RawTree {
+    statements: raw::StatementList,
+    _region: raw::Region,
+}
+pub use raw::json::EncodeError;
+
+/// Read-only statement in a raw result.
+#[derive(Clone, Copy)]
+pub struct RawStatement<'tree>(&'tree raw::RawStmt);
+impl RawStatement<'_> {
+    /// Copy this statement and its descendants into independently mutable nodes.
+    pub fn to_owned(self) -> RawStmt {
+        raw::owned_statement(self.0)
+    }
+
+    pub fn tag(&self) -> Option<pg19_nodes::NodeTag> {
+        self.0.stmt.as_deref()?.tag()
+    }
+    pub fn location(&self) -> pg19_nodes::Location {
+        self.0.stmt_location
+    }
+    pub fn source_range(&self, source_len: usize) -> Option<std::ops::Range<usize>> {
+        self.0.source_range(source_len)
+    }
+    pub fn json(&self) -> Result<String, EncodeError> {
+        match self.0.stmt.as_deref() {
+            Some(n) => raw::json::node_json(n),
+            None => Ok("null".into()),
+        }
+    }
+}
+impl std::fmt::Debug for RawStatement<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RawStatement")
+            .field("tag", &self.tag())
+            .field("location", &self.location())
+            .finish()
+    }
+}
+impl std::fmt::Debug for RawTree {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.statements()).finish()
+    }
+}
+impl RawTree {
+    pub fn statements(&self) -> impl ExactSizeIterator<Item = RawStatement<'_>> {
+        self.statements.as_slice().iter().map(RawStatement)
+    }
+    pub fn json(&self) -> Result<String, EncodeError> {
+        raw::json::statements_json(self.statements.as_slice())
+    }
+
+    pub fn len(&self) -> usize {
+        self.statements.as_slice().len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.statements.as_slice().is_empty()
+    }
+    /// Materialize independent PostgreSQL records and release the arena.
+    pub fn into_owned(self) -> Vec<RawStmt> {
+        self.statements
+            .into_statements()
+            .iter()
+            .map(raw::owned_statement)
+            .collect()
+    }
+}
+/// Parse directly into a per-result arena.
+// [spec:pgq:req:grammar.parse-speed+1]
+pub fn parse_raw(sql: &str, options: Options) -> Result<RawTree, Error> {
+    let region = raw::Region::new();
+    let statements = region.build(|| match parse_value(sql, ParseMode::Sql, options)? {
+        Value::Statements(s) => Ok(s),
         _ => Err(Error::InvalidOutput(
             "default parse mode returned a non-statement",
         )),
-    }
+    })?;
+    Ok(RawTree {
+        statements,
+        _region: region,
+    })
 }
 
 #[cfg(test)]

@@ -1,10 +1,7 @@
 //! INSERT statement assembly and assignment targets from PostgreSQL gram.y.
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum Dml {
     Insert,
@@ -37,17 +34,17 @@ pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, F
             insert.relation = Some(relation.into_box());
             insert.on_conflict_clause = match rhs.take(6) {
                 Value::Empty => None,
-                Value::Owned(OwnedValue::Node(Node::OnConflictClause(v))) => Some(v.into_box()),
+                Value::Node(Node::OnConflictClause(v)) => Some(v.into_box()),
                 _ => return Err("expected ON CONFLICT".into()),
             };
             insert.returning_clause = match rhs.take(7) {
                 Value::Empty => None,
-                Value::Owned(OwnedValue::Node(Node::ReturningClause(v))) => Some(v.into_box()),
+                Value::Node(Node::ReturningClause(v)) => Some(v.into_box()),
                 _ => return Err("expected RETURNING".into()),
             };
             insert.with_clause = match rhs.take(1) {
                 Value::Empty => None,
-                Value::Owned(OwnedValue::Node(Node::WithClause(v))) => Some(v.into_box()),
+                Value::Node(Node::WithClause(v)) => Some(v.into_box()),
                 _ => return Err("expected WITH".into()),
             };
             Value::from_node(insert.into())
@@ -77,7 +74,7 @@ pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, F
         }
         Dml::MultiAssignment => {
             let mut targets = rhs.take(2).list()?;
-            let source = std::sync::Arc::new(rhs.take(5).node()?);
+            let source = Arc::from(Box::new(rhs.take(5).node()?));
             let ncolumns =
                 i32::try_from(targets.len()).map_err(|_| "too many assignment targets")?;
             for (target, colno) in targets.iter_mut().zip(1..=ncolumns) {

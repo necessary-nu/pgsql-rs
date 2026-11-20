@@ -1,7 +1,7 @@
 //! PostgreSQL's ConstraintAttributeSpec and processCASbits.
+use crate::raw::{ConstrType, Constraint, Location};
 use crate::{value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::{ConstrType, Constraint, Location};
 
 pub(crate) const CAS_NOT_DEFERRABLE: i32 = 0x01;
 pub(crate) const CAS_DEFERRABLE: i32 = 0x02;

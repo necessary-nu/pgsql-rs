@@ -1,6 +1,6 @@
 use crate::{
     dfa::{longest, State},
-    Error, Kind, Options, Token, Value, MAX_IDENTIFIER_BYTES,
+    Error, Kind, Options, Token, TokenText, Value, MAX_IDENTIFIER_BYTES,
 };
 
 pub struct Scanner<'a> {
@@ -38,13 +38,17 @@ impl<'a> Scanner<'a> {
         crate::GrammarScanner::new(self)
     }
 
-    pub(crate) fn one(&mut self) -> Result<Option<Token>, Error> {
+    pub fn grammar_with_text<T: TokenText>(self) -> crate::GrammarScanner<'a, T> {
+        crate::GrammarScanner::new(self)
+    }
+
+    pub(crate) fn one<T: TokenText>(&mut self) -> Result<Option<Token<T>>, Error> {
         let mut token = Token::default();
         Ok(self.read_into(&mut token)?.then_some(token))
     }
 
     #[inline]
-    pub(crate) fn read_into(&mut self, token: &mut Token) -> Result<bool, Error> {
+    pub(crate) fn read_into<T: TokenText>(&mut self, token: &mut Token<T>) -> Result<bool, Error> {
         let bytes = self.sql.as_bytes();
         let mut start = self.cursor;
         while matches!(
@@ -101,7 +105,7 @@ impl<'a> Scanner<'a> {
         Ok(true)
     }
 
-    fn read_slow(&mut self, token: &mut Token) -> Result<bool, Error> {
+    fn read_slow<T: TokenText>(&mut self, token: &mut Token<T>) -> Result<bool, Error> {
         while self.cursor < self.sql.len() {
             let start = self.cursor;
             let (action, mut end) = longest(State::Initial, self.sql.as_bytes(), start);
@@ -119,7 +123,7 @@ impl<'a> Scanner<'a> {
                 9 | 12 | 14..=16 | 39 | 40 => {
                     let (kind, literal, next) = self.quoted(action, start, end)?;
                     end = next;
-                    (kind, Value::Text(literal))
+                    (kind, Value::Text(literal.into()))
                 }
                 13 | 45 | 71 => {
                     let word = if action == 13 {
@@ -144,7 +148,7 @@ impl<'a> Scanner<'a> {
                             "unterminated dollar-quoted string",
                         )
                     })?;
-                    let value = self.sql[end..end + next].to_owned();
+                    let value = T::from(&self.sql[end..end + next]);
                     end += next + text.len();
                     (Kind::SCONST, Value::Text(value))
                 }
@@ -161,7 +165,7 @@ impl<'a> Scanner<'a> {
                     }
                     let kind = operator_kind(operator);
                     let value = if kind == Kind::OP {
-                        Value::Text(operator.to_owned())
+                        Value::Text(operator.into())
                     } else {
                         Value::None
                     };
@@ -188,7 +192,7 @@ impl<'a> Scanner<'a> {
                     };
                     return Err(Error::near(self.sql, start, end, message));
                 }
-                64 | 66 => (Kind::FCONST, Value::Text(text.to_owned())),
+                64 | 66 => (Kind::FCONST, Value::Text(text.into())),
                 _ => unreachable!("unmapped initial scanner action {action}"),
             };
             self.cursor = end;
@@ -246,7 +250,13 @@ fn block_comment(sql: &str, start: usize) -> Result<usize, Error> {
 }
 
 // [spec:pgq:req:lex.keywords]
-fn identifier(token: &mut Token, word: &str, input: &[u8], start: usize, end: usize) {
+fn identifier<T: TokenText>(
+    token: &mut Token<T>,
+    word: &str,
+    input: &[u8],
+    start: usize,
+    end: usize,
+) {
     if let Some((name, kind, category)) = crate::identifier_keyword(word, input) {
         token.kind = kind;
         token.keyword = Some(category);
@@ -255,14 +265,14 @@ fn identifier(token: &mut Token, word: &str, input: &[u8], start: usize, end: us
         token.kind = Kind::IDENT;
         token.keyword = None;
         let prefix = &word[..word.floor_char_boundary(MAX_IDENTIFIER_BYTES)];
-        token.value = Value::Text(prefix.to_ascii_lowercase());
+        token.value = Value::Text(T::lowercase_identifier(prefix));
     }
     token.start = start;
     token.end = end;
 }
 
 // [spec:pgq:req:lex.numbers-and-parameters]
-fn integer(text: &str, action: u8) -> (Kind, Value) {
+fn integer<T: TokenText>(text: &str, action: u8) -> (Kind, Value<T>) {
     let (radix, digits) = match action {
         58 => (16, &text[2..]),
         59 => (8, &text[2..]),
@@ -278,7 +288,7 @@ fn integer(text: &str, action: u8) -> (Kind, Value) {
     };
     match i32::from_str_radix(digits, radix) {
         Ok(value) => (Kind::ICONST, Value::Integer(value)),
-        Err(_) => (Kind::FCONST, Value::Text(text.to_owned())),
+        Err(_) => (Kind::FCONST, Value::Text(text.into())),
     }
 }
 
@@ -350,7 +360,7 @@ mod tests {
                 let sql = format!("{prefix}{}z", char::from(suffix));
                 let mut fast = Scanner::new(&sql);
                 let mut flex = Scanner::new(&sql);
-                let mut left = Token::default();
+                let mut left = Token::<String>::default();
                 let mut right = Token::default();
                 loop {
                     let actual = fast.read_into(&mut left);

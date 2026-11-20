@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::{Location, Node, RawStmt};
+use super::{Box, Location, Node, RawStmt, Vec};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StatementSpanError {

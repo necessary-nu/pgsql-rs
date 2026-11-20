@@ -146,3 +146,38 @@ fn sql_families_return_raw_statements_in_source_order() {
         Some("t")
     );
 }
+
+#[test]
+fn live_trees_own_storage_across_threads() {
+    use pg19_nodes::NodeTag;
+    use pg19_parser::parse_raw;
+    let first = {
+        let sql = String::from("select 'first'; select 2");
+        parse_raw(&sql, Default::default()).unwrap()
+    };
+    let second = parse_raw("delete from t", Default::default()).unwrap();
+    assert!(parse_raw("select (", Default::default()).is_err());
+    let first_stmt = first.statements().next().unwrap();
+    assert_eq!(first_stmt.source_range(24), Some(0..14));
+    std::thread::scope(|scope| {
+        scope.spawn(|| assert!(first_stmt.json().unwrap().contains("first")));
+        scope.spawn(move || {
+            assert_eq!(
+                second.statements().next().unwrap().tag(),
+                Some(NodeTag::DeleteStmt)
+            );
+            drop(second);
+        });
+    });
+    for _ in 0..32 {
+        drop(parse_raw("select 123", Default::default()).unwrap());
+    }
+    let json = first.json().unwrap();
+    let owned = first.into_owned();
+    assert_eq!(owned.len(), 2);
+    assert!(json.contains("first"));
+    assert!(matches!(
+        owned[0].stmt.as_deref(),
+        Some(pg19_nodes::Node::SelectStmt(_))
+    ));
+}

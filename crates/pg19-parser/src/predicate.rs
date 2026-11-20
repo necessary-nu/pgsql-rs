@@ -1,7 +1,7 @@
 //! PostgreSQL expression operators with qualified names, lists and subqueries.
 use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum Predicate {
     Qualified(bool),

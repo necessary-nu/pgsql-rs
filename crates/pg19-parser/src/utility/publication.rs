@@ -1,8 +1,8 @@
 //! Publication lists carry the TABLE or TABLES IN SCHEMA qualifier to later entries.
 use super::range_name;
+use crate::raw::*;
 use crate::{records::record, value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 type Kind = PublicationObjSpecType;
 

@@ -1,10 +1,7 @@
 //! Function calls, aggregate clauses and sort items from PG19 gram.y.
-use super::{
-    value::{OwnedValue, Value},
-    Failure,
-};
+use super::{value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) enum Call {
     Name(bool),
@@ -29,10 +26,8 @@ pub(super) fn function_name(
     let name = Node::String(rhs.take(1).text()?);
     let names = if qualified {
         let mut tail = match rhs.take(2) {
-            Value::Owned(OwnedValue::Node(field @ Node::String(_))) => {
-                return Ok(Value::from_list(vec![name, field]))
-            }
-            Value::Owned(OwnedValue::Node(_)) => return Err(Failure::Syntax("syntax error")),
+            Value::Node(field @ Node::String(_)) => return Ok(Value::from_list(vec![name, field])),
+            Value::Node(_) => return Err(Failure::Syntax("syntax error")),
             fields => fields.list()?,
         };
         if tail.iter().any(|n| !matches!(n, Node::String(_))) {
@@ -80,7 +75,7 @@ pub(super) fn aggregate<const DECORATED: bool>(
     call.ignore_nulls = rhs.take(4).integer()?;
     call.over = match rhs.take(5) {
         Value::Empty => None,
-        Value::Owned(OwnedValue::Node(Node::WindowDef(w))) => Some(w.into_box()),
+        Value::Node(Node::WindowDef(w)) => Some(w.into_box()),
         _ => return Err("expected window definition".into()),
     };
     Ok(Value::from_node(call.into()))

@@ -1,7 +1,7 @@
 //! XMLTABLE column options require validation before flattening into the raw node.
 use super::{records::record, value::Value, Failure};
+use crate::raw::*;
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) fn option(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let name = rhs.take(1).text()?;

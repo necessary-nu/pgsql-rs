@@ -1,6 +1,30 @@
 # PostgreSQL 19 raw parser profile
 
-## Ordinary release
+## Arena-backed raw parser
+
+Seven alternating Rust/C pairs ran on logical CPU 1 of an AMD Threadripper 2950X. Rust 1.100.0 used ordinary `cargo build --release` settings and PostgreSQL 19.0 used GCC 14.2 with `-O3`. Both used the system allocator. Times are median microseconds per query, including result destruction. Rust parsed through `pg19_query::parse_raw` and serialized the same tree through `RawTree::json`.
+
+| Workload | Rust raw | C raw | Rust/C raw | Rust with JSON | C with JSON |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 0.195 | 0.418 | 0.466 | 0.389 | 1.091 |
+| Parameterized aggregate join | 3.565 | 5.904 | 0.604 | 6.187 | 13.903 |
+| 54,266 successful regression queries | 1.333 | 1.805 | 0.739 | 2.301 | 4.153 |
+
+Every benchmark input produced byte-identical JSON. All 54,471 pinned parser outcomes and 72 additional boundary cases matched patched PostgreSQL.
+
+The arena stores the nodes, lists and dynamic identifier spellings for one result. Dropping the result releases the storage in bulk. A worker retains at most one empty block for its next parse. `RawTree::into_owned` copies the records when a caller needs independently mutable nodes.
+
+User-mode cycle samples on CPU 5 put the largest share of time in grammar reductions, driver bookkeeping and tree construction. The percentages below show Rust / C for each phase. The remaining samples fell in the harness or runtime.
+
+| Workload | Scanner | Parser and tree construction | Result release |
+| --- | ---: | ---: | ---: |
+| `SELECT 1` | 13.6% / 27.0% | 80.4% / 67.2% | 4.1% / 5.1% |
+| Parameterized aggregate join | 31.8% / 38.1% | 67.7% / 61.4% | 0.4% / 0.4% |
+| 54,266 successful regression queries | 37.3% / 41.9% | 61.6% / 56.5% | 0.4% / 1.1% |
+
+A separate glibc allocation count measured zero system allocations per warmed `SELECT 1` or aggregate join in both implementations. Rust averaged 0.73 allocations and 0.03 reallocations per corpus query. The previous independently allocated Rust tree averaged 20.35 allocations and 0.71 reallocations per corpus query and used 90 allocations per join.
+
+## Earlier owned-tree release
 
 At `996cc60`, seven paired rounds on CPU 5 measured the following median
 microseconds per query, including tree destruction. Rust used ordinary

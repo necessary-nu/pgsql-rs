@@ -4,10 +4,10 @@ use std::time::Instant;
 fn run(queries: &[&str], calls: usize, json: bool, dump: bool) -> usize {
     let mut total = 0;
     for query in queries.iter().cycle().take(calls) {
-        let tree = pg19_query::parse_statements(query, Default::default()).unwrap();
+        let tree = black_box(pg19_query::parse_raw(query, Default::default()).unwrap());
         total += tree.len();
         if json {
-            let output = pg19_query::codec::statements_json(&tree).unwrap();
+            let output = tree.json().unwrap();
             drop(tree);
             if dump {
                 println!("{output}");

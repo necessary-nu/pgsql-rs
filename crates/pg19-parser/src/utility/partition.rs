@@ -1,6 +1,6 @@
+use crate::raw::*;
 use crate::{value::Value, Failure};
 use pg19_engine::Reduction;
-use pg19_nodes::*;
 
 pub(super) fn spec(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let name = rhs.take(3).text()?;
