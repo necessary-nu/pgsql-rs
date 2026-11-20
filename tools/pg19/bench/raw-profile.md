@@ -43,17 +43,21 @@ The following counts come from interposing glibc `malloc`, `calloc`, `realloc` a
 | Aggregate join | 90 | 8 | 90 | 0 | 0 |
 | Regression corpus | 20.38 | 0.96 | 20.38 | 0.009 | 0.009 |
 
-## After the qualified-name and scanner changes
+## After folding omitted grammar clauses
 
-At `8e795a4`, all 54,471 reference outcomes matched. The seven-round comparison on logical CPU 13 also verified identical JSON bytes for every input before timing. Times below are median microseconds per query, including destruction. The Callgrind columns count instructions per query on the same Rust release binary in separate runs.
+At `02e4aa8`, the raw parser matched all 54,471 reference outcomes. The seven-round comparison on logical CPU 17 verified identical JSON bytes for every benchmark input before timing. Times below are median microseconds per query, including destruction. Callgrind counted instructions on the same Rust release binary in separate runs.
 
 | Workload | C µs | Rust µs | Rust/C | Rust instructions | In reduction handlers | Releasing the result |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `SELECT 1` | 0.521 | 0.577 | 1.106 | 4,565 | 2,161 | 653 |
-| Aggregate join | 10.422 | 13.048 | 1.252 | 59,241 | 21,755 | 11,117 |
-| Regression corpus | 2.336 | 3.922 | 1.679 | 16,045 | 6,080 | 2,408 |
+| `SELECT 1` | 0.430 | 0.350 | 0.814 | 3,430 | 1,264 | 653 |
+| Aggregate join | 6.038 | 6.979 | 1.156 | 57,252 | 20,174 | 11,117 |
+| Regression corpus | 1.888 | 2.722 | 1.442 | 15,506 | 5,642 | 2,408 |
 
-The join now spends 3,705 fewer instructions in reduction handlers per query. The corpus still spends 38% of its instructions in those handlers and 15% releasing the result. Common scanner paths are now inlined into the driver, so its self-time also includes scanning. The earlier scanner and driver columns use a different inlining boundary.
+Folding the omitted SELECT and aggregate clauses reduced handler work on `SELECT 1` from 2,161 instructions at `8e795a4` to 1,264. The driver now includes common scanner paths and uses 1,091 instructions on `SELECT 1`, 18,483 on the join and 4,852 per corpus input.
+
+Releasing the join tree costs Rust 10,969 more instructions than C, or 77% of their total instruction difference. On the corpus the corresponding figures are 2,258 instructions and 62%. On the join, Rust makes 90 allocations, one reallocation and 90 frees per query. On the corpus it averages 20.35 allocations, 0.71 reallocations and 20.35 frees. The C memory context needs zero system allocator calls on the join and averages 0.009 allocations and frees per corpus input after warmup.
+
+In a separate timing run, grouping the corpus by leading SQL keyword put 18,934 inputs under SELECT and 9,714 under CREATE. Together they accounted for 22.1 ms of the 35.2 ms Rust–C difference across groups, weighted by input count. Each group had seven paired rounds pinned to CPU 6. Grouping changes the order in which the parser sees statements, so the full-corpus row above remains the latency comparison.
 
 ## Reproducing the profiles
 
