@@ -582,6 +582,13 @@ children (
                         kind @note
                         text "Profiled raw parsing and result destruction in both optimized implementations on SELECT 1, the aggregate join and all 54,266 successful regression inputs. The join spends 14,403 extra Rust instructions in parsing and tree construction and 11,676 in result cleanup. The corpus averages 3,602 extra during parsing and construction and 2,279 during cleanup. Column reference and dotted field reductions are the largest join actions. C reuses its memory context, while Rust allocates six blocks on SELECT 1, 90 on the join and 20.38 on the corpus. Cycle samples, instruction counts, allocation sites and reproduction commands are in tools/pg19/bench/raw-profile.md."
                     }
+
+                    {
+                        at 2026-11-20T00:38:12.144289052Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Forward the first indirection element through the grammar so qualified columns construct their final field vector in one allocation. The join now uses one realloc per parse instead of eight and requests 3,803 bytes instead of 4,643. Raw retired instructions fell from 68,752 to 64,390 on the join and 17,784 to 17,583 on the corpus. SELECT 1 moved from 4,887 to 4,907. All 54,471 reference results and every successful benchmark JSON byte matched. The raw latency target remains open."
+                    }
                 )
             }
         )

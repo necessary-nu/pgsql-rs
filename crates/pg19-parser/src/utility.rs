@@ -80,7 +80,15 @@ fn qualified(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Result<Value, Fail
     if !dotted {
         return Ok(Value::Node(range_name([first], location, true)?.into()));
     }
-    let tail = rhs.take(2).list()?;
+    let tail = match rhs.take(2) {
+        Value::Node(Node::String(field)) => {
+            return Ok(Value::Node(
+                range_name([first, field], location, true)?.into(),
+            ))
+        }
+        Value::Node(_) => return Err(Failure::Syntax("syntax error")),
+        fields => fields.list()?,
+    };
     let mut parts = Vec::with_capacity(1 + tail.len());
     parts.push(first);
     for value in tail {

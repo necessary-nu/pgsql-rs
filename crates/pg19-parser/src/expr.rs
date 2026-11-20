@@ -21,6 +21,7 @@ pub(super) enum Expr {
     Parameter,
     Parentheses,
     Field,
+    AppendField,
     Star,
     Index,
     Slice,
@@ -194,12 +195,20 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
         }
         .into(),
         Expr::Column(has_fields) => {
-            let fields = if has_fields {
-                rhs.take(2).list()?
-            } else {
-                Vec::new()
-            };
-            column(rhs.take(1).text()?, fields, location)?
+            let name = rhs.take(1).text()?;
+            match has_fields.then(|| rhs.take(2)) {
+                None => ColumnRef {
+                    fields: vec![Node::String(name)],
+                    location,
+                }
+                .into(),
+                Some(Value::Node(Node::String(field))) => ColumnRef {
+                    fields: vec![Node::String(name), Node::String(field)],
+                    location,
+                }
+                .into(),
+                Some(fields) => column(name, fields.indirection()?, location)?,
+            }
         }
         Expr::Parameter => {
             let fields = rhs.take(2).list()?;
@@ -219,6 +228,18 @@ pub(super) fn reduce(action: Expr, rhs: &mut Reduction<'_, Value>) -> Result<Val
             indirect(rhs.take(2).node()?, fields)
         }
         Expr::Field => Node::String(rhs.take(2).text()?),
+        Expr::AppendField => {
+            let next = rhs.take(2).node()?;
+            let fields = match rhs.take(1) {
+                Value::Node(first) => vec![first, next],
+                Value::List(mut fields) => {
+                    fields.push(next);
+                    fields
+                }
+                _ => return Err("expected indirection".into()),
+            };
+            return Ok(Value::List(fields));
+        }
         Expr::Star => AStar {}.into(),
         Expr::Index => AIndices {
             is_slice: false,

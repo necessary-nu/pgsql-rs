@@ -64,6 +64,13 @@ impl Value {
             _ => Err("expected nullable node"),
         }
     }
+    pub(crate) fn indirection(self) -> Checked<Vec<Node>> {
+        match self {
+            Self::Node(first) => Ok(vec![first]),
+            Self::List(fields) => Ok(fields),
+            _ => Err("expected indirection"),
+        }
+    }
     pub(crate) fn list(self) -> Checked<Vec<Node>> {
         match self {
             Self::List(value) => Ok(value),

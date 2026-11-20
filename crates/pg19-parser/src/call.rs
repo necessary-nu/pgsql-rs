@@ -25,7 +25,11 @@ pub(super) fn function_name(
 ) -> Result<Value, Failure> {
     let name = Node::String(rhs.take(1).text()?);
     let names = if qualified {
-        let mut tail = rhs.take(2).list()?;
+        let mut tail = match rhs.take(2) {
+            Value::Node(field @ Node::String(_)) => return Ok(Value::List(vec![name, field])),
+            Value::Node(_) => return Err(Failure::Syntax("syntax error")),
+            fields => fields.list()?,
+        };
         if tail.iter().any(|n| !matches!(n, Node::String(_))) {
             return Err(Failure::Syntax("syntax error"));
         }

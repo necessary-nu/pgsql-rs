@@ -115,7 +115,7 @@ pub(super) fn reduce(op: Predicate, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 location: rhs.location(1),
                 ..Default::default()
             };
-            let indirection = rhs.take(2).list()?;
+            let indirection = rhs.take(2).indirection()?;
             super::expr::checked_fields(&indirection)?;
             AIndirection {
                 arg: Some(Box::new(sub.into())),
