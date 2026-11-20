@@ -188,6 +188,27 @@ impl StackActions for Parser<'_> {
     type Value = Value;
     type Error = Box<Error>;
 
+    const COMPILED_SHIFTS: Option<&'static [u8]> =
+        Some(include_bytes!(concat!(env!("OUT_DIR"), "/shifts.bin")));
+
+    #[inline]
+    fn shift_literal(&mut self, token: &mut Token, location: pg19_nodes::Location) -> Value {
+        use pg19_lexer::{Kind, Value as Lexeme};
+        use pg19_nodes::{AConst, Literal};
+        let lexeme = std::mem::replace(&mut token.value, Lexeme::None);
+        let val = match (token.kind, lexeme) {
+            (Kind::ICONST, Lexeme::Integer(value)) => Literal::Integer(value),
+            (Kind::FCONST, Lexeme::Text(text)) => Literal::Float(text),
+            (Kind::SCONST, Lexeme::Text(text)) => Literal::String(text),
+            (Kind::BCONST | Kind::XCONST, Lexeme::Text(text)) => Literal::BitString(text),
+            (Kind::TRUE_P, _) => Literal::Boolean(true),
+            (Kind::FALSE_P, _) => Literal::Boolean(false),
+            (Kind::NULL_P, _) => Literal::Null,
+            _ => unreachable!("folded literal does not match its lexer token"),
+        };
+        Value::from_node(AConst { val, location }.into())
+    }
+
     #[inline]
     fn shift(&mut self, token: &mut Token) -> Value {
         match std::mem::replace(&mut token.value, pg19_lexer::Value::None) {

@@ -680,6 +680,13 @@ children (
                         kind @note
                         text "The earlier completion used a profiled Rust executable with mimalloc and panic=abort. The default comparison now builds Rust with normal Cargo release settings and compares it with PostgreSQL at -O3 using the system allocator for both. The ordinary release still needs to meet the join and corpus medians."
                     }
+
+                    {
+                        at 2026-11-20T09:46:12.202589572Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "f84a5d3 matches all 54,471 outcomes and 72 stack and syntax boundary cases on an ordinary release. Seven paired rounds on CPU 7 measured raw Rust/C medians of 0.318/0.432 µs, 6.538/6.216 µs and 2.484/2.001 µs. The raw join and corpus remain above target."
+                    }
                 )
             }
         )

@@ -41,6 +41,41 @@ mod tests {
         }
     }
 
+    #[test]
+    fn compiled_shifts_preserve_bison_actions_in_shared_slots() {
+        let table = compile_shifts(|from, to, _| (to, from.number() % 2 == 0));
+        let mut retained = 0;
+        let mut folded = 0;
+        for number in 0..STATE_COUNT {
+            let state = State::from_number(number as u16).unwrap();
+            for look in terminals()
+                .map(Some)
+                .chain([None, Some(Lookahead::new(256))])
+            {
+                match (
+                    step(state, look),
+                    step_with_shifts(state, look, Some(&table)),
+                ) {
+                    (Action::Shift(expected), Action::Shift((actual, tag))) => {
+                        assert_eq!(expected, actual);
+                        if tag {
+                            assert_eq!(number % 2, 0);
+                            folded += 1;
+                        } else if number % 2 == 0 {
+                            retained += 1;
+                        }
+                    }
+                    (Action::Reduce(a), Action::Reduce(b)) => assert_eq!(a, b),
+                    (Action::NeedToken, Action::NeedToken)
+                    | (Action::Accept, Action::Accept)
+                    | (Action::Error, Action::Error) => {}
+                    pair => panic!("action changed in state {state:?} with {look:?}: {pair:?}"),
+                }
+            }
+        }
+        assert!(folded > 0 && retained > 0);
+    }
+
     // [spec:pgq:req:grammar.tables/test]
     #[test]
     fn patched_tokens_and_resolved_conflicts() {

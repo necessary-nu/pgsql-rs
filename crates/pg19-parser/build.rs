@@ -5,6 +5,8 @@ use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
 #[path = "build/omissions.rs"]
 mod omissions;
+#[path = "build/shifts.rs"]
+mod shifts;
 
 type Arcs = [BTreeMap<u16, (u16, usize)>];
 type Targets = BTreeMap<(u16, Vec<usize>), Vec<u16>>;
@@ -263,6 +265,8 @@ fn main() {
         "PostgreSQL removed generated productions: {:?}",
         generated.keys()
     );
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    fs::write(out_dir.join("shifts.bin"), shifts::compile(&handlers)).unwrap();
     // The native operations are compile-time constants. Resolve their dispatch
     // here, so a reduction loads one handler directly by Bison production id.
     let mut code = String::from("static HANDLERS: &[Option<Handler>] = {\n");
@@ -290,6 +294,5 @@ fn main() {
     }
     code.push_str("    ]\n};\n");
     code.push_str(&dispatch.gotos);
-    let out = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("actions.rs");
-    fs::write(out, code).unwrap();
+    fs::write(out_dir.join("actions.rs"), code).unwrap();
 }

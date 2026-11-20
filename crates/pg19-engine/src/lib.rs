@@ -3,7 +3,7 @@
 
 use pg19_lexer::{Error, Kind, Options, Scanner, Token, Value};
 use pg19_nodes::Location;
-use pg19_tables::{goto, step, Action, Lookahead, Production, State, INITIAL_STATE};
+use pg19_tables::{goto, Action, Lookahead, Production, State, INITIAL_STATE};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ParseMode {
@@ -310,6 +310,13 @@ pub trait StackActions {
     type Value: Default;
     type Error;
 
+    const COMPILED_SHIFTS: Option<&'static [u8]> = None;
+
+    /// Construct a literal whose unconditional reductions were folded into the shift.
+    fn shift_literal(&mut self, _token: &mut Token, _location: Location) -> Self::Value {
+        unreachable!("dispatcher has no folded literal shifts")
+    }
+
     fn shift(&mut self, token: &mut Token) -> Self::Value;
     fn reduce_stack(
         &mut self,
@@ -408,7 +415,7 @@ fn run<A: StackActions>(
                 "memory exhausted",
             )));
         }
-        match step(state, symbol) {
+        match pg19_tables::step_with_shifts(state, symbol, A::COMPILED_SHIFTS) {
             Action::NeedToken => {
                 if scanner
                     .next_into(&mut lookahead)
@@ -421,19 +428,22 @@ fn run<A: StackActions>(
                 }
                 symbol = Some(Lookahead::new(lookahead.kind.id()));
             }
-            Action::Shift(next_state) => {
+            Action::Shift((next_state, literal)) => {
                 let previous = state;
                 state = next_state;
                 symbol = None;
+                let location = Location::from_byte_offset(span.0).unwrap();
                 let value = if lookahead.kind.id() == 0 {
                     A::Value::default()
+                } else if literal {
+                    context.shift_literal(&mut lookahead, location)
                 } else {
                     context.shift(&mut lookahead)
                 };
                 stack.frames.push(Frame {
                     previous,
                     value,
-                    location: Location::from_byte_offset(span.0).unwrap(),
+                    location,
                 });
             }
             Action::Reduce(rule) => {

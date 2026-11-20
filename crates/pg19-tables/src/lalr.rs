@@ -23,9 +23,9 @@ impl State {
 pub struct Production(u16);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Action {
+pub enum Action<S = State> {
     NeedToken,
-    Shift(State),
+    Shift(S),
     Reduce(Production),
     Accept,
     Error,
@@ -109,6 +109,22 @@ pub fn terminals() -> impl Iterator<Item = Lookahead> {
 // [spec:pgq:req:grammar.tables]
 #[inline]
 pub fn step(state: State, lookahead: Option<Lookahead>) -> Action {
+    step_using(state, lookahead, |slot| {
+        let entry = i16::from_le_bytes(bytes(YYTABLE, slot));
+        match entry {
+            n if n > 0 => Action::Shift(State(n as u16)),
+            n if n < 0 && i32::from(n) != YYTABLE_NINF => Action::Reduce(Production((-n) as u16)),
+            _ => Action::Error,
+        }
+    })
+}
+
+#[inline]
+fn step_using<S>(
+    state: State,
+    lookahead: Option<Lookahead>,
+    entry: impl FnOnce(usize) -> Action<S>,
+) -> Action<S> {
     if state.0 == YYFINAL as u16 {
         return Action::Accept;
     }
@@ -121,20 +137,91 @@ pub fn step(state: State, lookahead: Option<Lookahead>) -> Action {
         if token == u16::MAX {
             return Action::Error; // YYerror means the lexer has already reported an error.
         }
-        if let Some(entry) = checked_entry(base + i32::from(token), token) {
-            return match entry {
-                n if n > 0 => Action::Shift(State(n as u16)),
-                n if n < 0 && i32::from(n) != YYTABLE_NINF => {
-                    Action::Reduce(Production((-n) as u16))
-                }
-                _ => Action::Error,
-            };
+        let slot = base + i32::from(token);
+        if (0..=YYLAST).contains(&slot)
+            && i16::from_le_bytes(bytes(YYCHECK, slot as usize)) == token as i16
+        {
+            return entry(slot as usize);
         }
     }
     match u16::from_le_bytes(bytes(YYDEFACT, index)) {
         0 => Action::Error,
         rule => Action::Reduce(Production(rule)),
     }
+}
+
+/// A tagged shift constructs the literal produced by its folded grammar action.
+#[inline]
+pub fn step_with_shifts(
+    state: State,
+    lookahead: Option<Lookahead>,
+    entries: Option<&[u8]>,
+) -> Action<(State, bool)> {
+    step_using(state, lookahead, |slot| {
+        let entry = if let Some(entries) = entries {
+            let at = 4 * slot;
+            i32::from_le_bytes(entries[at..at + 4].try_into().unwrap())
+        } else {
+            let raw = i32::from(i16::from_le_bytes(bytes(YYTABLE, slot)));
+            if raw == YYTABLE_NINF {
+                0
+            } else {
+                raw
+            }
+        };
+        match entry {
+            n if n > 0 => Action::Shift((State(n as u16), n >> 16 != 0)),
+            n if n < 0 => Action::Reduce(Production((-n) as u16)),
+            _ => Action::Error,
+        }
+    })
+}
+
+/// Build a parallel YYTABLE for a semantic dispatcher. Bison can reuse a slot
+/// in several states. Keep its original shift if those states disagree on a fold.
+pub fn compile_shifts(mut fold: impl FnMut(State, State, Lookahead) -> (State, bool)) -> Vec<u8> {
+    let mut entries: Vec<i32> = (0..=YYLAST as usize)
+        .map(|i| {
+            let raw = i32::from(i16::from_le_bytes(bytes(YYTABLE, i)));
+            if raw == YYTABLE_NINF {
+                0
+            } else {
+                raw
+            }
+        })
+        .collect();
+    let mut seen = vec![false; entries.len()];
+    for previous in 0..STATE_COUNT {
+        let base = i32::from_le_bytes(bytes(YYPACT, previous));
+        if base == YYPACT_NINF {
+            continue;
+        }
+        let start = 0.max(-base);
+        let end = YYNTOKENS.min(YYLAST - base + 1);
+        for symbol in start..end {
+            let slot = (base + symbol) as usize;
+            if i16::from_le_bytes(bytes(YYCHECK, slot)) != symbol as i16 {
+                continue;
+            }
+            let raw = i16::from_le_bytes(bytes(YYTABLE, slot));
+            if raw <= 0 {
+                continue;
+            }
+            let (next, tag) = fold(
+                State(previous as u16),
+                State(raw as u16),
+                Lookahead(symbol as u16),
+            );
+            let packed = (i32::from(tag) << 16) | i32::from(next.0);
+            if !seen[slot] {
+                entries[slot] = packed;
+                seen[slot] = true;
+            } else if entries[slot] != packed {
+                entries[slot] = i32::from(raw);
+            }
+        }
+    }
+    entries.into_iter().flat_map(i32::to_le_bytes).collect()
 }
 
 #[inline]

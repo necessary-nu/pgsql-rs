@@ -2,10 +2,26 @@
 
 ## Ordinary release
 
-With the system allocator and ordinary Cargo release settings, Rust took
-0.313 µs on `SELECT 1`, 6.447 µs on the join and 2.365 µs per regression
-query on CPU 6. The optimized C reference took 0.433, 6.097 and 1.865 µs
-respectively. The join and corpus exceeded the latency target.
+At `f84a5d3`, seven paired rounds on CPU 7 measured the following median
+microseconds per query, including tree destruction. Rust used ordinary
+Cargo release settings. The patched C reference used GCC at `-O3`. Both
+used glibc. All 54,471 regression outcomes matched the pinned reference.
+
+| Raw parse workload | Rust µs | C µs | Rust/C |
+| --- | ---: | ---: | ---: |
+| `SELECT 1` | 0.318 | 0.432 | 0.737 |
+| Parameterized aggregate join | 6.538 | 6.216 | 1.052 |
+| 54,266 regression queries | 2.484 | 2.001 | 1.242 |
+
+The following percentages come from user-mode cycle sampling on CPU 4
+before the error-path change. Each column includes allocator time spent in
+that phase. The remaining samples belong to the harness or runtime.
+
+| Raw parse workload | Scanner, Rust / C | Parser and tree construction, Rust / C | Tree destruction, Rust / C |
+| --- | ---: | ---: | ---: |
+| `SELECT 1` | 4.8 / 26.6 | 73.2 / 67.9 | 19.0 / 4.8 |
+| Parameterized aggregate join | 13.0 / 38.4 | 69.6 / 61.0 | 17.1 / 0.5 |
+| Regression corpus | 15.4 / 42.5 | 68.3 / 56.0 | 15.6 / 1.1 |
 
 ## Historical profile-guided allocator experiment
 
