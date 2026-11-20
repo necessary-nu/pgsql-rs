@@ -269,8 +269,22 @@ RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Cprofile-use=$profile_dir/parser.profdata" 
 ```
 
 The training command uses the active toolchain's `llvm-tools-preview`
-component. Recreate the profile when the parser or compiler changes. To use it
-in an application, pass the same profile flag to the application's release
-build. For a timing comparison, use independent evaluation queries and pass
-the resulting example binary to `bench/compare.py` with a prepared benchmark
-directory.
+component. For an application that depends on `pg19-query`, pass its Cargo
+manifest when training. Cargo can assign the parser different symbol names
+in different workspaces, and LLVM matches profile counts by symbol.
+
+```sh
+app_manifest=/path/to/application/Cargo.toml
+sh tools/pg19/train-profile.sh "$profile_dir/train.sql0" "$profile_dir/app.profdata" "$app_manifest"
+(
+    cd "$(dirname "$app_manifest")"
+    app_host=$(rustc -vV | awk '$1 == "host:" {print $2}')
+    RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Cprofile-use=$profile_dir/app.profdata" \
+        cargo build --release --locked --target "$app_host"
+)
+```
+
+Use the same toolchain and release settings for training and deployment.
+Regenerate the profile when the compiler, parser, or resolved dependencies
+change. To benchmark the example binary, pass it to `bench/compare.py` with a
+prepared directory containing independent evaluation queries.

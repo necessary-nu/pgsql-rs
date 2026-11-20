@@ -193,6 +193,45 @@ executables with the same allocator. With glibc, median corpus time was
 2.151 µs for Rust and 1.955 µs for C. With mimalloc v3, those times were
 1.994 and 1.940 µs. The remaining corpus gap was 2.8% with that allocator.
 
+At `e8d58e0`, cycle sampling on CPU 6 with the same profiled Rust and
+mimalloc builds gave the following split. Each pair gives the Rust and C
+percentages of that executable's own samples. Other code accounts for the
+remainder.
+
+| Workload | Scanner, Rust / C | Parser and construction, Rust / C | Result cleanup, Rust / C |
+| --- | ---: | ---: | ---: |
+| `SELECT 1` | 3.8 / 27.0 | 76.6 / 68.0 | 11.9 / 4.6 |
+| Aggregate join | 10.9 / 37.6 | 76.7 / 61.9 | 11.5 / 0.4 |
+| Regression corpus | 17.1 / 42.6 | 71.1 / 55.8 | 10.0 / 1.1 |
+
+Of the samples in the Rust driver itself, 10.9%, 22.7% and 13.0% respectively
+landed on the same instruction in the sequence that writes a 56-byte shifted
+frame. Checking the lookahead in Bison's action table accounted for another 9.8% of
+driver samples on the corpus. Cycle sampling can attribute stalls to a
+nearby instruction.
+
+With mimalloc 3.3.2 built using initial-exec TLS and its optional AVX2
+configuration for both languages, and LLVM's extended TSP block placement
+enabled on the profiled Rust release, two independent seven-round comparisons
+still missed corpus parity. Rust and C took 1.919 and 1.907 µs on CPU 4 and
+2.024 and 1.918 µs on CPU 10. The release matched all 54,471 reference
+outcomes and all 72 boundary cases.
+
+In seven paired runs on CPU 13, writing a shifted value directly into its
+stack slot reduced retired instructions per corpus input by 3.4%, but median
+paired parse-and-free time rose 0.7%. Choosing the slot's variant before
+the write saved 3.9% of instructions and raised elapsed time 2.2%.
+
+### Matching a profile to a consuming application
+
+A separate application used the public `pg19-query` dependency and the same
+parser source as the benchmark. With the repository's profile,
+`llvm-profdata show --function` found no entry for the application's
+mangled `pg19_parser::parse_statements` symbol. Training on the same 263
+fixtures using the application's Cargo manifest produced a profile with
+counts for that exact symbol. The training helper accepts the manifest as
+its optional third argument.
+
 ## Reproducing the profiles
 
 Use a benchmark output directory containing `bench-c`, `bench-rust`, and the three `.sql0` inputs. This example profiles the join. For the full set, the perf repeat counts were 13,000,000 for `simple`, 850,000 for `join`, and 52 for `corpus`. The Callgrind repeat counts were 10,000, 1,000 and 1 respectively.

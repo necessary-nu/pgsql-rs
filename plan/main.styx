@@ -638,6 +638,13 @@ children (
                         kind @note
                         text "Grouping owned semantic values sped up the ordinary Rust release by 9.3% on the literal, 3.9% on the join and 2.7% on the corpus in seven paired runs. Ordinary and profiled releases matched all 54,471 reference outcomes and 72 additional boundaries. Raw Rust/C ratios with glibc were 0.737, 1.086 and 1.308 for the ordinary release, and 0.689, 0.912 and 1.146 for the profiled release. A separate allocator comparison using mimalloc v3 on both sides narrowed the profiled corpus gap to 2.8%."
                     }
+
+                    {
+                        at 2026-11-20T04:23:07.014220497Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The profile trainer now accepts a consuming application's Cargo manifest. For a separate pg19-query application, LLVM reported zero records matching its raw parser entry point in the repository-generated profile and one in the application-trained profile from identical SQL. The existing two-argument invocation still works and preserves an existing output profile when training SQL fails. On the current parser, raw cycle sampling with mimalloc assigned 71.1% of regression samples to the driver and tree construction and 10.0% to cleanup. Two independent seven-round runs still had Rust over C on the corpus."
+                    }
                 )
             }
         )
