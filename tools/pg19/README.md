@@ -231,16 +231,23 @@ After a PG19 reference import, schema generation, and regression capture, run
 sh tools/pg19/bench/check.sh "$run" "$corpus" /tmp/pg19-benchmark
 ```
 
-The command builds the Rust release example and links the matching PG19 JSON
-writer into the patched C backend. An import built with `CFLAGS=-O3` can be
-reused. For a debug import the script builds an optimized C reference in the
-output directory. Both programs parse in process, destroy each result before
-the next iteration, and exclude process startup, input loading and warmup
-from their timers.
+The command builds the public Rust parser with profile-guided optimization
+and `panic=abort`. Its executable links mimalloc statically. Training uses
+the 15 SQL files under `test/sql/deparse/` and requires the active Rust
+toolchain's `llvm-tools-preview` component. The patched PostgreSQL backend
+uses `CFLAGS=-O3` and the system allocator. The script reuses an optimized
+import or builds one in the output directory. Both programs parse in process,
+destroy each result before the next iteration, and exclude process startup,
+input loading and warmup from their timers.
 
-Pass a release `parse-bench` executable as the optional fourth argument to
-measure the compiler settings and allocator used by a deployment. The same
-C build, workloads and output checks apply.
+To build the Rust executable alone, run
+`sh tools/pg19/bench/build-release.sh /tmp/pg19-release`. It writes
+`bench-rust` and a SHA-256-named LLVM profile to that directory. Pass an
+executable as the fourth argument to `check.sh` to measure another release
+against the same C build and workloads. For example, use
+`cargo build --release --locked -p pg19-query --example parse-bench` and
+pass `target/release/examples/parse-bench` to measure ordinary Cargo release
+settings with the system allocator.
 
 The benchmark checks byte-identical JSON for every input, then runs seven
 paired rounds pinned to one allowed logical CPU. It alternates which
@@ -251,44 +258,45 @@ workload for either parse or parse plus JSON. The output directory holds the
 per-round measurements in `samples.csv`, the six ratios in `results.json`,
 and the input, binary and output digests in `machine-and-verification.json`.
 `toolchain.txt` records the Rust and C compiler versions, PostgreSQL build
-flags and CPU model.
+flags and CPU model. For measured release times and where both parsers spend
+their cycles, see the [raw parser profile](bench/raw-profile.md).
 
-### Build with a parser profile
+### Build a consuming application with a parser profile
 
-Rust can use execution counts from a separate SQL workload when optimizing
-the parser and its callers. From the repository root, this example trains on
-the checked-in deparser fixtures. Each file supplies one input to the ordinary
-raw parser. Applications can supply their own NUL-delimited UTF-8 SQL instead.
+The application owns its allocator and panic strategy. To use the benchmark
+configuration, add `mimalloc = "0.1.52"` to the application's dependencies
+and declare the allocator in its executable.
+
+```rust
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+```
+
+Use the application's Cargo manifest for training and deployment. Cargo can
+assign the parser different symbol names in different workspaces, and LLVM
+matches execution counts by symbol. This example runs from the repository
+root with a fresh profile directory on each invocation, so a new profile also
+changes Cargo's build fingerprint. Each SQL file is one training input.
+Applications can supply their own NUL-delimited UTF-8 SQL.
 
 ```sh
 profile_dir=$(mktemp -d)
+profile_build=$PWD/tools/pg19/profile-build.sh
+app_manifest=/path/to/application/Cargo.toml
+export CARGO_PROFILE_RELEASE_PANIC=abort
 for query in test/sql/deparse/*.sql; do
     cat "$query"
     printf '\0'
 done > "$profile_dir/train.sql0"
-sh tools/pg19/train-profile.sh "$profile_dir/train.sql0" "$profile_dir/parser.profdata"
-host=$(rustc -vV | awk '$1 == "host:" {print $2}')
-RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Cprofile-use=$profile_dir/parser.profdata" \
-    cargo build --release --locked --target "$host" -p pg19-query --lib --example parse-bench
-```
-
-The training command uses the active toolchain's `llvm-tools-preview`
-component. For an application that depends on `pg19-query`, pass its Cargo
-manifest when training. Cargo can assign the parser different symbol names
-in different workspaces, and LLVM matches profile counts by symbol.
-
-```sh
-app_manifest=/path/to/application/Cargo.toml
 sh tools/pg19/train-profile.sh "$profile_dir/train.sql0" "$profile_dir/app.profdata" "$app_manifest"
 (
     cd "$(dirname "$app_manifest")"
     app_host=$(rustc -vV | awk '$1 == "host:" {print $2}')
-    RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Cprofile-use=$profile_dir/app.profdata" \
-        cargo build --release --locked --target "$app_host"
+    sh "$profile_build" "-Cprofile-use=$profile_dir/app.profdata" --release --locked --target "$app_host"
 )
 ```
 
-Use the same toolchain and release settings for training and deployment.
-Regenerate the profile when the compiler, parser, or resolved dependencies
-change. To benchmark the example binary, pass it to `bench/compare.py` with a
-prepared directory containing independent evaluation queries.
+Use the same toolchain and release settings for both builds. Regenerate the
+profile when the compiler, parser, or resolved dependencies change. An
+unrecoverable Rust panic terminates the process with these settings. SQL
+syntax errors still return a parser diagnostic through the ordinary API.

@@ -1,13 +1,17 @@
 use std::hint::black_box;
 use std::time::Instant;
 
+#[cfg(feature = "bench-mimalloc")]
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 fn run(queries: &[&str], calls: usize, json: bool, dump: bool) -> usize {
     let mut total = 0;
     for query in queries.iter().cycle().take(calls) {
-        let tree = pg19_parser::parse_statements(query, Default::default()).unwrap();
+        let tree = pg19_query::parse_statements(query, Default::default()).unwrap();
         total += tree.len();
         if json {
-            let output = pg19_codec::statements_json(&tree).unwrap();
+            let output = pg19_query::codec::statements_json(&tree).unwrap();
             drop(tree);
             if dump {
                 println!("{output}");

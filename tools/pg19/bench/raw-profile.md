@@ -1,6 +1,55 @@
 # PostgreSQL 19 raw parser profile
 
-This profile compares the release binaries at `5809051` on an AMD Threadripper 2950X, with rustc 1.100.0 and GCC 14.2 at `-O3`. Each call builds and destroys an independently owned result. The corpus contains all 54,266 successful default-mode regression inputs. All three workloads use the `parse` mode of the [comparison benchmark](../README.md#compare-native-parser-performance-with-c).
+## Release results
+
+Each call builds and frees an independently owned raw tree. The table gives median
+microseconds per query over seven paired rounds on each core of an AMD Threadripper
+2950X. Rust 1.100.0 used a profile trained on the 15 checked-in deparser SQL files,
+`panic=abort`, and statically linked mimalloc 3.3.2. PostgreSQL 19.0 used GCC 14.2
+at `-O3` with glibc. None of the training inputs matched a timed input after
+normalizing case, whitespace and trailing semicolons. [Reproduce the comparison](../README.md#compare-native-parser-performance-with-c).
+
+| Workload | Rust, CPU 5 | C, CPU 5 | Rust, CPU 12 | C, CPU 12 |
+| --- | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 0.219 | 0.415 | 0.222 | 0.423 |
+| Parameterized aggregate join | 4.311 | 5.825 | 4.301 | 5.890 |
+| 54,266 regression queries | 1.619 | 1.812 | 1.616 | 1.826 |
+
+Every benchmark input produced byte-identical JSON. A probe linked with the
+release's parser and allocator matched all 54,471 reference outcomes across six
+parse modes and 72 additional boundary cases. A separately compiled application
+using the public API also matched every outcome and beat C on all three workloads
+on CPUs 7 and 14. The ordinary Cargo release with the system allocator measured
+0.313, 6.447 and 2.365 µs against C's 0.433, 6.097 and 1.865 µs on CPU 6.
+
+On CPU 5, giving C mimalloc as well brought its corpus median to 1.807 µs,
+against Rust's 1.650 µs. With the C backend also profile-trained on the same
+15 files, Rust and C measured 0.217 and 0.380 µs on the literal, 4.231 and
+4.945 µs on the join, and 1.602 and 1.639 µs on the corpus. Repeating the
+comparison on CPU 12 gave 1.602 and 1.632 µs on the corpus. On that core
+with C trained on a separate 12,396-query extension workload and its usual
+system allocator, corpus medians were within 0.5% (1.603 µs Rust, 1.611 µs C).
+
+### Where the release spends its cycles
+
+The table gives the percentage of user-mode cycle samples on CPU 3 for Rust
+and C respectively. Each phase includes its allocator calls. The remainder
+covers the benchmark loop and samples outside those phases.
+
+| Workload | Scanner, Rust / C | Parser and tree construction, Rust / C | Result cleanup, Rust / C |
+| --- | ---: | ---: | ---: |
+| `SELECT 1` | 4.2 / 26.5 | 79.5 / 67.6 | 12.2 / 5.1 |
+| Parameterized aggregate join | 15.0 / 38.1 | 73.4 / 61.5 | 11.2 / 0.3 |
+| Regression corpus | 19.1 / 41.1 | 68.6 / 57.2 | 11.0 / 1.4 |
+
+On the corpus the inlined Rust parser driver accounted for 31.0% of samples
+in its own instructions. Identifier scanning took 7.3%, the general scanner
+path took 6.0% and `mi_free` took 5.4%. PostgreSQL's `base_yyparse` and
+`core_yylex` accounted for 46.7% and 25.5% respectively.
+
+## Initial release at `5809051`
+
+The following measurements used the same processor, compilers and workloads.
 
 ## Where the instructions go
 

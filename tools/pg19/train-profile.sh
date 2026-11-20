@@ -29,9 +29,13 @@ work=$(mktemp -d "$output_dir/pg19-training.XXXXXXXX")
 trap 'rm -rf -- "$work"' EXIT
 trap 'exit 1' HUP INT TERM
 target=${CARGO_TARGET_DIR:-$project/target}/pg19-instrumented
-RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Cprofile-generate" \
-    cargo build --manifest-path "$manifest" --locked --release --target "$host" \
-    --target-dir "$target" -p pg19-query --example parse-bench
+set --
+if [ "$manifest" = "$repo/Cargo.toml" ] && [ "${PG19_BENCH_MIMALLOC:-0}" = 1 ]; then
+    set -- --features pg19-query/bench-mimalloc
+fi
+sh "$repo/tools/pg19/profile-build.sh" -Cprofile-generate \
+    --manifest-path "$manifest" --locked --release --target "$host" \
+    --target-dir "$target" -p pg19-query --example parse-bench "$@"
 LLVM_PROFILE_FILE="$work/%m-%p.profraw" \
     "$target/$host/release/examples/parse-bench" parse "$input" 4
 "$profdata" merge -o "$work/merged.profdata" "$work"/*.profraw

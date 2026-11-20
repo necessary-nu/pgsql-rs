@@ -108,10 +108,6 @@ derived_priorities (
     {id reference.probes, priority 1, derived_at 2026-11-19T17:11:55.315787638Z}
 )
 
-assertions (
-    {id delivery.parser-performance, kind @doing, author "brendan@necessary.nu", at 2026-11-19T22:03:14.5926943Z}
-)
-
 impl_evidence (
     {id codec.json, covered_rules (
         codec.json-envelope
@@ -153,7 +149,11 @@ impl_evidence (
     ), rule_versions_seen (
         {id api.native, version 0}
     )}
-    {id delivery.parser-performance}
+    {id delivery.parser-performance, covered_rules (
+        grammar.parse-speed
+    ), covered_claims (
+        {impl_name rust, rule grammar.parse-speed}
+    )}
     {id operations.deparse, covered_rules (
         deparse.comments
         deparse.pretty

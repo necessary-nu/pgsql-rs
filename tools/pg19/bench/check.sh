@@ -25,10 +25,8 @@ if [ "$optimization" != "-O3" ]; then
 fi
 cd "$repo"
 if [ "$#" -eq 3 ]; then
-    cargo build --release --locked -p pg19-query --example parse-bench --target-dir "$repo/target"
-    rust_bench=$repo/target/release/examples/parse-bench
-fi
-if [ ! "$rust_bench" -ef "$work/bench-rust" ]; then
+    sh "$repo/tools/pg19/bench/build-release.sh" "$work"
+elif [ ! "$rust_bench" -ef "$work/bench-rust" ]; then
     cp -- "$rust_bench" "$work/bench-rust"
 fi
 make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk" \
@@ -36,6 +34,12 @@ make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk"
 {
     "${RUSTC:-rustc}" -vV
     cargo -V
+    if [ "$#" -eq 3 ]; then
+        echo 'Rust release: profile-guided, panic=abort, statically linked mimalloc'
+        echo 'Profile inputs: test/sql/deparse/*.sql'
+    else
+        printf 'Rust executable supplied by caller: %s\n' "$rust_bench"
+    fi
     awk '/^#define PG_VERSION_STR / || /^#define CONFIGURE_ARGS /' "$build/src/include/pg_config.h"
     awk '/^CFLAGS = /' "$build/src/Makefile.global"
     awk '/^model name[[:space:]]*:/ {print; exit}' /proc/cpuinfo
