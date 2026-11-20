@@ -232,6 +232,26 @@ fixtures using the application's Cargo manifest produced a profile with
 counts for that exact symbol. The training helper accepts the manifest as
 its optional third argument.
 
+### Panic strategy and raw parse time
+
+At `a15f14c`, a Rust release trained on 263 separate SQL fixtures with
+`CARGO_PROFILE_RELEASE_PANIC=abort` passed the full comparison on two
+physical cores. Both programs used the same mimalloc 3.3.2 shared library.
+Each run verified every JSON tree before seven paired timing rounds. Times
+include destroying the result and are median microseconds per query.
+
+| Workload | Rust, CPU 5 | C, CPU 5 | Rust, CPU 12 | C, CPU 12 |
+| --- | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 0.232 | 0.451 | 0.234 | 0.445 |
+| Aggregate join | 4.473 | 6.199 | 4.413 | 6.162 |
+| Regression corpus | 1.767 | 1.928 | 1.818 | 1.891 |
+
+The release matched all 54,471 reference outcomes and 72 boundary cases.
+On CPU 5 with glibc, corpus time was 1.910 µs for Rust and 1.847 µs for C.
+On CPU 12 with mimalloc and additional LLVM BOLT optimization of the C
+binary on the same training inputs, corpus time was 1.815 µs for Rust and
+1.854 µs for C.
+
 ## Reproducing the profiles
 
 Use a benchmark output directory containing `bench-c`, `bench-rust`, and the three `.sql0` inputs. This example profiles the join. For the full set, the perf repeat counts were 13,000,000 for `simple`, 850,000 for `join`, and 52 for `corpus`. The Callgrind repeat counts were 10,000, 1,000 and 1 respectively.

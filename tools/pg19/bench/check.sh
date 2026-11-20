@@ -1,8 +1,8 @@
 #!/bin/sh
 # Run after pg19-reference import, check-schema and corpus capture.
 set -eu
-if [ "$#" -ne 3 ]; then
-    echo "usage: sh check.sh PG19_IMPORT CORPUS OUTPUT" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+    echo "usage: sh check.sh PG19_IMPORT CORPUS OUTPUT [RUST_BENCH]" >&2
     exit 2
 fi
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd -P)
@@ -10,6 +10,13 @@ pgimport=$(CDPATH= cd -- "$1" && pwd -P)
 corpus=$(CDPATH= cd -- "$2" && pwd -P)
 mkdir -p -- "$3"
 work=$(CDPATH= cd -- "$3" && pwd -P)
+if [ "$#" -eq 4 ]; then
+    rust_bench=$(realpath -- "$4")
+    if [ ! -f "$rust_bench" ] || [ ! -x "$rust_bench" ]; then
+        echo "Rust benchmark is not an executable file: $4" >&2
+        exit 2
+    fi
+fi
 build=$pgimport/patched
 optimization=$(awk '/^CFLAGS = / { for (i = 3; i <= NF; i++) if ($i ~ /^-O/) opt = $i; print opt }' "$build/src/Makefile.global")
 if [ "$optimization" != "-O3" ]; then
@@ -17,8 +24,13 @@ if [ "$optimization" != "-O3" ]; then
     CFLAGS=-O3 "$repo/tools/pg19/build-reference.sh" patched "$pgimport/patched-source" "$build"
 fi
 cd "$repo"
-cargo build --release --locked -p pg19-query --example parse-bench --target-dir "$repo/target"
-cp -- "$repo/target/release/examples/parse-bench" "$work/bench-rust"
+if [ "$#" -eq 3 ]; then
+    cargo build --release --locked -p pg19-query --example parse-bench --target-dir "$repo/target"
+    rust_bench=$repo/target/release/examples/parse-bench
+fi
+if [ ! "$rust_bench" -ef "$work/bench-rust" ]; then
+    cp -- "$rust_bench" "$work/bench-rust"
+fi
 make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk" \
     "repo=$repo" "schema=$pgimport/pg19-2-1" "work=$work" "$work/bench-c"
 {

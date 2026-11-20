@@ -238,6 +238,10 @@ output directory. Both programs parse in process, destroy each result before
 the next iteration, and exclude process startup, input loading and warmup
 from their timers.
 
+Pass a release `parse-bench` executable as the optional fourth argument to
+measure the compiler settings and allocator used by a deployment. The same
+C build, workloads and output checks apply.
+
 The benchmark checks byte-identical JSON for every input, then runs seven
 paired rounds pinned to one allowed logical CPU. It alternates which
 implementation runs first. Each mode measures `SELECT 1`, a parameterized

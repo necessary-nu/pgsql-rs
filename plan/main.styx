@@ -645,6 +645,13 @@ children (
                         kind @note
                         text "The profile trainer now accepts a consuming application's Cargo manifest. For a separate pg19-query application, LLVM reported zero records matching its raw parser entry point in the repository-generated profile and one in the application-trained profile from identical SQL. The existing two-argument invocation still works and preserves an existing output profile when training SQL fails. On the current parser, raw cycle sampling with mimalloc assigned 71.1% of regression samples to the driver and tree construction and 10.0% to cleanup. Two independent seven-round runs still had Rust over C on the corpus."
                     }
+
+                    {
+                        at 2026-11-20T04:41:03.373106356Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The performance harness can now accept a prebuilt public Rust runner. Its four-argument path verified all 54,266 corpus JSON trees and passed all six latency thresholds using the profiled panic-abort release and mimalloc for both programs. Two further seven-round runs on CPUs 5 and 12 independently passed. On CPU 5 with glibc the corpus still exceeded the C median by 3.4%. The same abort release matched every one of 54,471 oracle outcomes and 72 boundary cases."
+                    }
                 )
             }
         )
