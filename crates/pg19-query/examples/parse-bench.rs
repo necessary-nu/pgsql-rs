@@ -1,10 +1,6 @@
 use std::hint::black_box;
 use std::time::Instant;
 
-#[cfg(feature = "bench-mimalloc")]
-#[global_allocator]
-static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 fn run(queries: &[&str], calls: usize, json: bool, dump: bool) -> usize {
     let mut total = 0;
     for query in queries.iter().cycle().take(calls) {

@@ -7,14 +7,14 @@ With the system allocator and ordinary Cargo release settings, Rust took
 query on CPU 6. The optimized C reference took 0.433, 6.097 and 1.865 µs
 respectively. The join and corpus exceeded the latency target.
 
-## Profile-guided allocator experiment
+## Historical profile-guided allocator experiment
 
 Each call builds and frees an independently owned raw tree. The table gives median
 microseconds per query over seven paired rounds on each core of an AMD Threadripper
 2950X. Rust 1.100.0 used a profile trained on the 15 checked-in deparser SQL files,
 `panic=abort`, and statically linked mimalloc 3.3.2. PostgreSQL 19.0 used GCC 14.2
 at `-O3` with glibc. None of the training inputs matched a timed input after
-normalizing case, whitespace and trailing semicolons. [Reproduce the comparison](../README.md#compare-native-parser-performance-with-c).
+normalizing case, whitespace and trailing semicolons. The experimental build is recorded in commit `ae8629b`.
 
 | Workload | Rust, CPU 5 | C, CPU 5 | Rust, CPU 12 | C, CPU 12 |
 | --- | ---: | ---: | ---: | ---: |

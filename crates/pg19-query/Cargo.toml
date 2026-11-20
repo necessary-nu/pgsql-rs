@@ -6,11 +6,7 @@ publish = false
 license = "BSD-3-Clause AND PostgreSQL"
 description = "Native PostgreSQL 19 parsing and libpg_query operations"
 
-[features]
-bench-mimalloc = ["dep:mimalloc"]
-
 [dependencies]
-mimalloc = { version = "0.1.52", optional = true }
 pg19-codec = { path = "../pg19-codec" }
 pg19-lexer = { path = "../pg19-lexer" }
 pg19-nodes = { path = "../pg19-nodes" }

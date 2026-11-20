@@ -238,14 +238,8 @@ import or builds one in the output directory. Both programs parse in process,
 destroy each result before the next iteration, and exclude process startup,
 input loading and warmup from their timers.
 
-For a separate profile-guided allocator experiment, run
-`sh tools/pg19/bench/build-release.sh /tmp/pg19-release`. It writes
-`bench-rust` and a SHA-256-named LLVM profile to that directory. Pass an
-executable as the fourth argument to `check.sh` to measure another release
-against the same C build and workloads. For example, use
-`cargo build --release --locked -p pg19-query --example parse-bench` and
-pass `target/release/examples/parse-bench` to measure ordinary Cargo release
-settings with the system allocator.
+Pass an existing benchmark executable as the fourth argument to compare a
+separate build on the same inputs.
 
 The benchmark checks byte-identical JSON for every input, then runs seven
 paired rounds pinned to one allowed logical CPU. It alternates which
@@ -258,43 +252,3 @@ and the input, binary and output digests in `machine-and-verification.json`.
 `toolchain.txt` records the Rust and C compiler versions, PostgreSQL build
 flags and CPU model. For measured release times and where both parsers spend
 their cycles, see the [raw parser profile](bench/raw-profile.md).
-
-### Build a consuming application with a parser profile
-
-The application owns its allocator and panic strategy. To use the benchmark
-configuration, add `mimalloc = "0.1.52"` to the application's dependencies
-and declare the allocator in its executable.
-
-```rust
-#[global_allocator]
-static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
-```
-
-Use the application's Cargo manifest for training and deployment. Cargo can
-assign the parser different symbol names in different workspaces, and LLVM
-matches execution counts by symbol. This example runs from the repository
-root with a fresh profile directory on each invocation, so a new profile also
-changes Cargo's build fingerprint. Each SQL file is one training input.
-Applications can supply their own NUL-delimited UTF-8 SQL.
-
-```sh
-profile_dir=$(mktemp -d)
-profile_build=$PWD/tools/pg19/profile-build.sh
-app_manifest=/path/to/application/Cargo.toml
-export CARGO_PROFILE_RELEASE_PANIC=abort
-for query in test/sql/deparse/*.sql; do
-    cat "$query"
-    printf '\0'
-done > "$profile_dir/train.sql0"
-sh tools/pg19/train-profile.sh "$profile_dir/train.sql0" "$profile_dir/app.profdata" "$app_manifest"
-(
-    cd "$(dirname "$app_manifest")"
-    app_host=$(rustc -vV | awk '$1 == "host:" {print $2}')
-    sh "$profile_build" "-Cprofile-use=$profile_dir/app.profdata" --release --locked --target "$app_host"
-)
-```
-
-Use the same toolchain and release settings for both builds. Regenerate the
-profile when the compiler, parser, or resolved dependencies change. An
-unrecoverable Rust panic terminates the process with these settings. SQL
-syntax errors still return a parser diagnostic through the ordinary API.
