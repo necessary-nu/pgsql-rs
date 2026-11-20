@@ -43,7 +43,57 @@ impl<'a> Scanner<'a> {
         Ok(self.read_into(&mut token)?.then_some(token))
     }
 
+    #[inline]
     pub(crate) fn read_into(&mut self, token: &mut Token) -> Result<bool, Error> {
+        let bytes = self.sql.as_bytes();
+        let mut start = self.cursor;
+        while matches!(
+            bytes.get(start),
+            Some(b' ' | b'\t' | b'\n' | b'\r' | 11 | 12)
+        ) {
+            start += 1;
+        }
+        self.cursor = start;
+        let input = &bytes[start..];
+        let Some(&first) = input.first() else {
+            return Ok(false);
+        };
+        let (len, kind, value, keyword) = if let Some(len) = crate::dfa::ordinary_word(input) {
+            let (kind, value, keyword) = identifier(&self.sql[start..start + len], input);
+            (len, kind, value, keyword)
+        } else if matches!(first, b'(' | b')' | b',' | b';' | b'[' | b']') {
+            (1, Kind(u16::from(first)), Value::None, None)
+        } else if first.is_ascii_digit() {
+            let mut len = 0;
+            let mut integer = 0;
+            while len < 9 && input.get(len).is_some_and(u8::is_ascii_digit) {
+                integer = 10 * integer + i32::from(input[len] - b'0');
+                len += 1;
+            }
+            // A delimiter or EOF terminates a decimal integer. Leave possible
+            // prefixes, float exponents, overflow and trailing junk to Flex.
+            if !matches!(
+                input.get(len),
+                None | Some(b' ' | b'\t' | b'\r' | b'\n' | b')' | b']' | b',' | b';')
+            ) {
+                return self.read_slow(token);
+            }
+            (len, Kind::ICONST, Value::Integer(integer), None)
+        } else {
+            return self.read_slow(token);
+        };
+        self.cursor = start + len;
+        *token = Token {
+            kind,
+            value,
+            keyword,
+            start,
+            end: self.cursor,
+        };
+        Ok(true)
+    }
+
+    fn read_slow(&mut self, token: &mut Token) -> Result<bool, Error> {
         while self.cursor < self.sql.len() {
             let start = self.cursor;
             let (action, mut end) = longest(State::Initial, self.sql.as_bytes(), start);
@@ -74,7 +124,7 @@ impl<'a> Scanner<'a> {
                     } else {
                         text
                     };
-                    let (k, v, category) = identifier(word);
+                    let (k, v, category) = identifier(word, word.as_bytes());
                     keyword = category;
                     (k, v)
                 }
@@ -189,8 +239,8 @@ fn block_comment(sql: &str, start: usize) -> Result<usize, Error> {
 }
 
 // [spec:pgq:req:lex.keywords]
-fn identifier(word: &str) -> (Kind, Value, Option<crate::KeywordKind>) {
-    match crate::keyword_case_insensitive(word) {
+fn identifier(word: &str, input: &[u8]) -> (Kind, Value, Option<crate::KeywordKind>) {
+    match crate::identifier_keyword(word, input) {
         Some((word, kind, category)) => (kind, Value::Keyword(word), Some(category)),
         None => (
             Kind::IDENT,
@@ -251,5 +301,57 @@ fn operator_kind(text: &str) -> Kind {
             Kind(text.as_bytes()[0].into())
         }
         _ => Kind::OP,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn common_tokens_follow_flex_at_every_ascii_boundary() {
+        for prefix in [
+            " ",
+            "\t",
+            "\n",
+            "\r",
+            "\x0b",
+            "\x0c",
+            "(",
+            ")",
+            "[",
+            "]",
+            ",",
+            ";",
+            "a",
+            "U",
+            "E",
+            "B",
+            "n",
+            "x",
+            "ab_9",
+            "Ä",
+            "0",
+            "123456789",
+            "1234567890",
+        ] {
+            for suffix in 1..=127u8 {
+                let sql = format!("{prefix}{}z", char::from(suffix));
+                let mut fast = Scanner::new(&sql);
+                let mut flex = Scanner::new(&sql);
+                let mut left = Token::default();
+                let mut right = Token::default();
+                loop {
+                    let actual = fast.read_into(&mut left);
+                    let expected = flex.read_slow(&mut right);
+                    assert_eq!(actual, expected, "{sql:?}");
+                    assert_eq!(fast.offset(), flex.offset(), "{sql:?}");
+                    if actual != Ok(true) {
+                        break;
+                    }
+                    assert_eq!(left, right, "{sql:?}");
+                }
+            }
+        }
     }
 }

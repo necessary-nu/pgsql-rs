@@ -29,6 +29,59 @@ pub fn keyword(word: &str) -> Option<(&'static str, Kind, KeywordKind)> {
     keyword_case_insensitive(word).filter(|row| row.0 == word)
 }
 
+const SHORT_KEYWORDS: usize = 2048;
+
+const fn short_keyword_slot(key: u64) -> usize {
+    (key.wrapping_mul(0x9e37_79b9_7f4a_7c15) >> (u64::BITS - SHORT_KEYWORDS.ilog2())) as usize
+}
+
+// The scanner supplies a complete identifier, so setting bit 5 can only fold
+// letters onto a keyword spelling. The length mask removes bytes of the next token.
+#[inline]
+fn identifier_keyword(word: &str, input: &[u8]) -> Option<(&'static str, Kind, KeywordKind)> {
+    static SLOTS: [(u64, u16); SHORT_KEYWORDS] = {
+        let mut slots = [(0, 0); SHORT_KEYWORDS];
+        let mut i = 0;
+        assert!(catalog::KEYWORDS.len() < SHORT_KEYWORDS);
+        while i < catalog::KEYWORDS.len() {
+            let word = catalog::KEYWORDS[i].0.as_bytes();
+            if word.len() <= 8 {
+                let mut key = 0;
+                let mut pos = 0;
+                while pos < word.len() {
+                    key |= ((word[pos] | 32) as u64) << (8 * pos);
+                    pos += 1;
+                }
+                let mut slot = short_keyword_slot(key);
+                while slots[slot].0 != 0 {
+                    slot = (slot + 1) % SHORT_KEYWORDS;
+                }
+                slots[slot] = (key, i as u16);
+            }
+            i += 1;
+        }
+        slots
+    };
+    if word.len() <= 8 {
+        if let Some(bytes) = input.first_chunk::<8>() {
+            let mask = u64::MAX >> (8 * (8 - word.len()));
+            let key = (u64::from_le_bytes(*bytes) | 0x2020_2020_2020_2020) & mask;
+            let mut slot = short_keyword_slot(key);
+            loop {
+                let (candidate, index) = SLOTS[slot];
+                if candidate == key {
+                    return Some(catalog::KEYWORDS[usize::from(index)]);
+                }
+                if candidate == 0 {
+                    return None;
+                }
+                slot = (slot + 1) % SHORT_KEYWORDS;
+            }
+        }
+    }
+    keyword_case_insensitive(word)
+}
+
 fn keyword_case_insensitive(word: &str) -> Option<(&'static str, Kind, KeywordKind)> {
     const TABLE: &[u8] = include_bytes!("../data/keyword-buckets.bin");
     #[inline]
@@ -50,6 +103,25 @@ fn keyword_case_insensitive(word: &str) -> Option<(&'static str, Kind, KeywordKi
 #[cfg(test)]
 mod keyword_tests {
     use super::*;
+
+    #[test]
+    fn packed_lookup_matches_keywords_at_token_boundaries() {
+        for &(word, _, _) in catalog::KEYWORDS {
+            let upper = word.to_ascii_uppercase();
+            for spelling in [word, &upper] {
+                let input = format!("{spelling},abcdefgh");
+                assert_eq!(
+                    identifier_keyword(spelling, input.as_bytes()),
+                    keyword_case_insensitive(spelling),
+                    "{input}"
+                );
+            }
+        }
+        for word in ["select$", "_select", "selec7", "ordér", "a_B", "x9"] {
+            let input = format!("{word} order by");
+            assert_eq!(identifier_keyword(word, input.as_bytes()), None);
+        }
+    }
 
     #[test]
     fn buckets_verify_every_keyword_and_reject_collisions() {

@@ -46,27 +46,6 @@ pub(crate) enum State {
 pub(crate) fn longest(state: State, sql: &[u8], start: usize) -> (u8, usize) {
     let mut state = state as usize;
     let mut end = start;
-    if state == State::Initial as usize && end < sql.len() {
-        let first = usize::from(EDGES[state][usize::from(sql[end])]);
-        if first != 0 {
-            state = first;
-            end += 1;
-            // Ordinary identifiers share a single continuing Flex state. Its
-            // byte class can be tested without a loop-carried state lookup.
-            const WORD: usize = EDGES[EDGES[State::Initial as usize][b'a' as usize] as usize]
-                [b'a' as usize] as usize;
-            if ACTION[state] == 71
-                && end < sql.len()
-                && EDGES[state][usize::from(sql[end])] as usize == WORD
-            {
-                end += 1;
-                while end < sql.len() && EDGES[WORD][usize::from(sql[end])] as usize == WORD {
-                    end += 1;
-                }
-                state = WORD;
-            }
-        }
-    }
     for &byte in &sql[end..] {
         let next = EDGES[state][usize::from(byte)];
         if next == 0 {
@@ -76,4 +55,34 @@ pub(crate) fn longest(state: State, sql: &[u8], start: usize) -> (u8, usize) {
         end += 1;
     }
     (ACTION[state], end)
+}
+
+/// Recognize the identifier loop without indexing the next DFA row for each byte.
+/// Prefixes with special Flex transitions (such as U& and E') stay with the full scanner.
+#[inline]
+pub(crate) fn ordinary_word(bytes: &[u8]) -> Option<usize> {
+    const WORD: usize =
+        EDGES[EDGES[State::Initial as usize][b'a' as usize] as usize][b'a' as usize] as usize;
+    let (&first, rest) = bytes.split_first()?;
+    let state = usize::from(EDGES[State::Initial as usize][usize::from(first)]);
+    if ACTION[state] != 71 {
+        return None;
+    }
+    let Some((&second, rest)) = rest.split_first() else {
+        return Some(1);
+    };
+    match usize::from(EDGES[state][usize::from(second)]) {
+        0 => return Some(1),
+        WORD => {}
+        _ => return None,
+    }
+    let mut len = 2;
+    for &byte in rest {
+        match usize::from(EDGES[WORD][usize::from(byte)]) {
+            WORD => len += 1,
+            0 => return Some(len),
+            _ => return None,
+        }
+    }
+    Some(len)
 }

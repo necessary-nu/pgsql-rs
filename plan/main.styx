@@ -589,6 +589,13 @@ children (
                         kind @note
                         text "Forward the first indirection element through the grammar so qualified columns construct their final field vector in one allocation. The join now uses one realloc per parse instead of eight and requests 3,803 bytes instead of 4,643. Raw retired instructions fell from 68,752 to 64,390 on the join and 17,784 to 17,583 on the corpus. SELECT 1 moved from 4,887 to 4,907. All 54,471 reference results and every successful benchmark JSON byte matched. The raw latency target remains open."
                     }
+
+                    {
+                        at 2026-11-20T00:58:35.952558065Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Scan common words using the pinned Flex transitions, and recognize short keywords using the generated PostgreSQL catalog. Raw Rust retired 4,574 instructions on SELECT 1, 59,260 on the aggregate join and 16,072 per successful corpus input, down from 4,907, 64,390 and 17,583. Core and grammar token streams matched on 97,356 inputs with both string settings, and all 54,471 parser outcomes matched the PG19 reference. Seven paired release rounds on CPU 13 gave raw Rust/C medians of 0.577/0.521, 13.048/10.422 and 3.922/2.336 microseconds respectively. All three raw latency targets remain open."
+                    }
                 )
             }
         )
