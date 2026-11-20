@@ -603,6 +603,13 @@ children (
                         kind @note
                         text "Bison now supplies the lookahead sets for reducing omitted trailing SELECT and aggregate clauses in one action. On seven paired release rounds pinned to CPU 17, raw Rust/C medians were 0.350/0.430 microseconds for SELECT 1, 6.979/6.038 for the aggregate join and 2.722/1.888 per corpus query. SELECT 1 meets the target. The join and corpus remain 15.6% and 44.2% above C. All 54,471 pinned outcomes matched, all benchmark JSON bytes matched, and 72 extra inputs agreed with C, including 28 stack-limit diagnostics. Rust retired 3,441, 57,271 and 15,532 instructions per input respectively."
                     }
+
+                    {
+                        at 2026-11-20T02:19:26.200582073Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The parser now finishes a statement list directly when the pinned grammar proves its remaining reductions. All 54,471 reference outcomes matched, as did 72 stack and clause edge cases and the exact JSON bytes for all timing inputs. Across seven paired raw runs the corpus improved in every pair against the previous Rust binary, with a 7.7% median reduction, while the join's paired median rose 1.2%. Seven separate rounds against optimized C on CPU 31 gave Rust/C raw medians of 0.663/0.858 microseconds for SELECT 1, 13.058/10.275 for the aggregate join and 5.281/3.421 per corpus input. Only SELECT 1 meets the raw latency requirement. Hardware samples on the preceding release attributed the full join cycle gap and 46% of the corpus cycle gap to releasing the result."
+                    }
                 )
             }
         )

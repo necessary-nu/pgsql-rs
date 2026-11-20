@@ -57,7 +57,25 @@ Folding the omitted SELECT and aggregate clauses reduced handler work on `SELECT
 
 Releasing the join tree costs Rust 10,969 more instructions than C, or 77% of their total instruction difference. On the corpus the corresponding figures are 2,258 instructions and 62%. On the join, Rust makes 90 allocations, one reallocation and 90 frees per query. On the corpus it averages 20.35 allocations, 0.71 reallocations and 20.35 frees. The C memory context needs zero system allocator calls on the join and averages 0.009 allocations and frees per corpus input after warmup.
 
+Hardware cycle sampling on logical CPU 20 gives a different split. The cleanup estimates multiply the fraction of samples in result destruction by the median hardware cycle count per query. Driver self-time includes inlined scanning. Each of these six profiles had 10,342–17,425 samples.
+
+| Workload | C cycles | Rust cycles | C cleanup cycles | Rust cleanup cycles | Rust driver | Rust reduction handlers |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 1,781 | 1,403 | 88 | 221 | 32.6% | 35.6% |
+| Aggregate join | 24,261 | 28,012 | 84 | 4,438 | 32.3% | 39.3% |
+| Regression corpus | 7,602 | 10,692 | 89 | 1,495 | 27.6% | 41.1% |
+
+The extra 4,354 cycles spent releasing the join tree account for the entire measured gap. Before cleanup Rust saves about 600 cycles on that input. For the corpus, cleanup accounts for about 1,406 of the 3,090 excess cycles per query (46%). Scanning, building the tree and caller bookkeeping account for the other 1,684.
+
 In a separate timing run, grouping the corpus by leading SQL keyword put 18,934 inputs under SELECT and 9,714 under CREATE. Together they accounted for 22.1 ms of the 35.2 ms Rust–C difference across groups, weighted by input count. Each group had seven paired rounds pinned to CPU 6. Grouping changes the order in which the parser sees statements, so the full-corpus row above remains the latency comparison.
+
+## Finishing a statement list
+
+Of the 54,266 corpus inputs, 54,013 end with a semicolon. When the grammar tables prove that only the empty trailing statement and end-of-input reductions remain, Rust can set the preceding statement's byte length and finish the list. All 54,471 reference outcomes matched, as did 72 additional cases covering omitted clauses, errors and the stack limit.
+
+In seven paired raw runs on CPU 2, the new release binary retired 3,343 instructions on `SELECT 1`, 57,243 on the join and 15,057 per corpus input. The previous release binary retired 3,429, 57,270 and 15,560 respectively. Corpus time fell in all seven pairs, with a median reduction of 7.7%. The join's median paired time rose 1.2%, with individual times varying from 7.6 to 16.2 µs across both binaries.
+
+The separate seven-round comparison with optimized C on CPU 31 verified identical JSON bytes for every input. Median Rust and C parse-and-free times were 0.663 and 0.858 µs for `SELECT 1`, 13.058 and 10.275 µs for the join, and 5.281 and 3.421 µs per corpus input. The join and corpus still exceed the C target.
 
 ## Reproducing the profiles
 

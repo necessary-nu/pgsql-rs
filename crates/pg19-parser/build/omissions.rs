@@ -1,7 +1,57 @@
 use super::{ranges, Arcs};
-use pg19_tables::{goto, productions, step, terminals, Action, Production, State};
+use pg19_tables::{
+    goto, productions, step, terminals, Action, Lookahead, Production, State, INITIAL_STATE,
+};
 use std::collections::BTreeMap;
 use std::fmt::Write;
+
+pub(super) struct SqlEnd {
+    pub list: State,
+    pub before_eof: State,
+    pub accept: State,
+    pub append: Production,
+    pub semicolon: u16,
+}
+
+/// Check both paths from a completed SQL statement list to Bison's accepting
+/// state. A final semicolon sets the preceding statement's byte length.
+pub(super) fn sql_end(handlers: &[Option<&str>]) -> Option<SqlEnd> {
+    let rule = |text, op| {
+        productions()
+            .find(|r| r.info().production == text && handlers[usize::from(r.number())] == Some(op))
+    };
+    let root = rule("parse_toplevel: stmtmulti", "Take(1)")?;
+    let append = rule("stmtmulti: stmtmulti ';' toplevel_stmt", "Query(Q::Next)")?;
+    let top = rule("toplevel_stmt: stmt", "Take(1)")?;
+    let empty = rule("stmt: %empty", "Empty")?;
+    let list = goto(INITIAL_STATE, append);
+    let eof = Lookahead::new(0);
+    let semicolon = Lookahead::new(u16::from(b';'));
+    let Action::Shift(after_semicolon) = step(list, Some(semicolon)) else {
+        return None;
+    };
+    for (state, reduction) in [
+        (after_semicolon, empty),
+        (goto(after_semicolon, empty), top),
+        (goto(after_semicolon, top), append),
+        (list, root),
+    ] {
+        if step(state, Some(eof)) != Action::Reduce(reduction) {
+            return None;
+        }
+    }
+    let before_eof = goto(INITIAL_STATE, root);
+    let Action::Shift(accept) = step(before_eof, Some(eof)) else {
+        return None;
+    };
+    (step(accept, None) == Action::Accept).then_some(SqlEnd {
+        list,
+        before_eof,
+        accept,
+        append,
+        semicolon: semicolon.symbol(),
+    })
+}
 
 // Each value must match the initialization that the shortened parent action uses.
 const SELECT_TAIL: &[(&str, &str)] = &[

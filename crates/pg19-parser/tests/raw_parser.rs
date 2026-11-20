@@ -4,6 +4,36 @@ use serde_json::Value;
 use std::path::Path;
 
 #[test]
+fn final_semicolon_preserves_postgres_statement_spans() {
+    for (sql, spans) in [
+        (";;;", &[][..]),
+        ("SELECT 1", &[(0, 0)][..]),
+        ("SELECT é;", &[(0, 9)][..]),
+        (" SELECT 1;;", &[(1, 8)][..]),
+        (" SELECT 1; /* tail */", &[(1, 8)][..]),
+        (" SELECT 1;\0ignored", &[(1, 8)][..]),
+        (" SELECT 1; SELECT 2;", &[(1, 8), (11, 8)][..]),
+    ] {
+        let statements = parse_statements(sql, Options::default()).unwrap();
+        assert_eq!(
+            statements
+                .iter()
+                .map(|s| (s.stmt_location.as_pg(), s.stmt_len))
+                .collect::<Vec<_>>(),
+            spans,
+            "{sql:?}"
+        );
+    }
+    let Err(Error::Diagnostic(error)) = parse_statements("SELECT 1; /*", Options::default()) else {
+        panic!("expected an unterminated comment");
+    };
+    assert_eq!(
+        (error.message.as_str(), error.position),
+        ("unterminated /* comment at or near \"/*\"", 11)
+    );
+}
+
+#[test]
 fn omitted_clauses_observe_bisons_stack_limit() {
     for (opens, message) in [
         (9987, "syntax error at end of input"),

@@ -74,6 +74,13 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> Dispatch {
     }
     let mut code = String::new();
     let mut used = std::collections::BTreeSet::new();
+    let sql_end = omissions::sql_end(handlers);
+    if let Some(end) = &sql_end {
+        code.push_str(&format!(
+            "const SQL_END: SqlEnd = SqlEnd {{ list: State::from_number({}).unwrap(), before_eof: State::from_number({}).unwrap(), accept: State::from_number({}).unwrap(), append: Production::from_number({}).unwrap(), semicolon: {} }};\n",
+            end.list.number(), end.before_eof.number(), end.accept.number(), end.append.number(), end.semicolon
+        ));
+    }
     for (id, row) in arcs.iter().enumerate().filter(|(_, r)| !r.is_empty()) {
         let mut targets = BTreeMap::<(u16, Vec<usize>), Vec<u16>>::new();
         for (&previous, &edge) in row {
@@ -104,7 +111,14 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> Dispatch {
             for rule in seq {
                 body.push_str(&format!("unit_{rule}(_stack, _span)?; "));
             }
-            body.push_str(&format!("Ok(State::from_number({state}).unwrap())"));
+            if sql_end
+                .as_ref()
+                .is_some_and(|end| end.list.number() == *state)
+            {
+                body.push_str("SQL_END.finish(_stack, _span)");
+            } else {
+                body.push_str(&format!("Ok(State::from_number({state}).unwrap())"));
+            }
             body
         };
         if targets.is_empty() {

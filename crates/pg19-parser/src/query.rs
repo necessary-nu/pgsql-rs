@@ -36,18 +36,17 @@ pub(super) enum Query {
     Group(bool),
 }
 
-fn push_statement(
-    list: &mut StatementList,
-    value: Value,
-    location: Location,
-) -> Result<(), Failure> {
-    let node = match value {
-        Value::Empty => None,
-        Value::Node(node) => Some(node),
-        _ => return Err("expected nullable node".into()),
-    };
-    list.push(node, location);
-    Ok(())
+fn statement(value: Value) -> Result<Option<Node>, Failure> {
+    match value {
+        Value::Empty => Ok(None),
+        Value::Node(node) => Ok(Some(node)),
+        _ => Err("expected nullable node".into()),
+    }
+}
+
+pub(super) fn terminate(list: &mut StatementList, position: Location) -> Result<(), Failure> {
+    list.terminate_last_at(position)
+        .map_err(|_| Failure::Value("invalid statement delimiter location"))
 }
 
 // [spec:pgq:sem:grammar.query-actions]
@@ -255,16 +254,14 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             Value::Node(relation.into())
         }
         Query::TypeStart => Value::List(vec![rhs.take(2).node()?]),
-        Query::First => {
-            let mut list = StatementList::default();
-            push_statement(&mut list, rhs.take(1), rhs.location(1))?;
-            Value::Statements(list)
-        }
+        Query::First => Value::Statements(StatementList::from_first(
+            statement(rhs.take(1))?,
+            rhs.location(1),
+        )),
         Query::Next => {
             let mut list = rhs.take(1).statements()?;
-            list.terminate_last_at(rhs.location(2))
-                .map_err(|_| "invalid statement delimiter location")?;
-            push_statement(&mut list, rhs.take(3), rhs.location(3))?;
+            terminate(&mut list, rhs.location(2))?;
+            list.push(statement(rhs.take(3))?, rhs.location(3));
             Value::Statements(list)
         }
         Query::Target(alias) => {

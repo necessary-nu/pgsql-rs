@@ -9,6 +9,7 @@ pub enum StatementSpanError {
 }
 
 impl RawStmt {
+    #[inline]
     pub fn new(stmt: Node, start: Location) -> Self {
         Self {
             stmt: Some(Box::new(stmt)),
@@ -51,6 +52,14 @@ pub struct StatementList(Vec<RawStmt>);
 
 // [spec:pgq:req:tree.statement-spans]
 impl StatementList {
+    #[inline]
+    pub fn from_first(statement: Option<Node>, start: Location) -> Self {
+        Self(match statement {
+            Some(stmt) => vec![RawStmt::new(stmt, start)],
+            None => Vec::new(),
+        })
+    }
+
     pub fn push(&mut self, statement: Option<Node>, start: Location) {
         if let Some(stmt) = statement {
             self.0.push(RawStmt::new(stmt, start));

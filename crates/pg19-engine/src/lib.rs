@@ -125,6 +125,7 @@ impl<V: Default> Reduction<'_, V> {
 pub struct ParseStack<V> {
     frames: Vec<Frame<V>>,
     lookahead: Option<Lookahead>,
+    input_len: usize,
 }
 
 const MAX_DEPTH: usize = 10_000;
@@ -140,6 +141,7 @@ impl<V> ParseStack<V> {
         Self {
             frames: Vec::new(),
             lookahead: None,
+            input_len: 0,
         }
     }
 
@@ -165,6 +167,27 @@ impl<V> ParseStack<V> {
 }
 
 impl<V: Default> ParseStack<V> {
+    /// Complete a reduced start symbol when its last token reaches the end of
+    /// the scanner's input. The accept action expects an EOF frame above it.
+    #[inline]
+    pub fn finish_root<E>(
+        &mut self,
+        end: usize,
+        before_eof: State,
+        update: impl FnOnce(&mut V) -> Result<(), E>,
+    ) -> Result<bool, E> {
+        if end != self.input_len || self.frames.len() != 2 {
+            return Ok(false);
+        }
+        update(&mut self.frames[1].value)?;
+        self.frames.push(Frame {
+            previous: before_eof,
+            value: V::default(),
+            location: Location::from_byte_offset(end).unwrap(),
+        });
+        Ok(true)
+    }
+
     /// Apply an unconditional unit action. Its only stack cell stays in place.
     #[cfg_attr(not(debug_assertions), inline(always))]
     pub fn map_top<E>(
@@ -363,6 +386,7 @@ fn run<A: StackActions>(
         )));
     }
     let mut scanner = scanner.grammar();
+    stack.input_len = sql.len();
     stack.frames.reserve(32);
     stack.frames.push(Frame {
         previous: INITIAL_STATE,

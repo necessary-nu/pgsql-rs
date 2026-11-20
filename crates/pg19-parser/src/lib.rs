@@ -92,6 +92,45 @@ include!(concat!(env!("OUT_DIR"), "/actions.rs"));
 type Handler =
     fn(&mut ParseStack<Value>, State, (usize, usize)) -> Result<State, Box<(Production, Failure)>>;
 
+struct SqlEnd {
+    list: State,
+    before_eof: State,
+    accept: State,
+    append: Production,
+    semicolon: u16,
+}
+
+impl SqlEnd {
+    fn finish(
+        &self,
+        stack: &mut ParseStack<Value>,
+        span: (usize, usize),
+    ) -> Result<State, Box<(Production, Failure)>> {
+        let Some(token) = stack.lookahead() else {
+            return Ok(self.list);
+        };
+        let separator = token.symbol() == self.semicolon;
+        if !separator && token.symbol() != 0 {
+            return Ok(self.list);
+        }
+        let finished = stack
+            .finish_root(span.1, self.before_eof, |value| {
+                if separator {
+                    let Value::Statements(statements) = value else {
+                        return Err(Failure::Value("expected statements"));
+                    };
+                    query::terminate(
+                        statements,
+                        pg19_nodes::Location::from_byte_offset(span.0).unwrap(),
+                    )?;
+                }
+                Ok(())
+            })
+            .map_err(|failure| Box::new((self.append, failure)))?;
+        Ok(if finished { self.accept } else { self.list })
+    }
+}
+
 #[cfg_attr(not(debug_assertions), inline(always))]
 fn apply(op: Op, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(match op {
