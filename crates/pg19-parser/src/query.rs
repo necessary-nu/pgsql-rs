@@ -51,30 +51,41 @@ fn push_statement(
 }
 
 // [spec:pgq:sem:grammar.query-actions]
-fn select(distinct: bool, rhs: &mut Reduction<'_, Value>) -> Result<SelectStmt, Failure> {
-    let targets = rhs.take(3).list()?;
-    let (group_clause, group_distinct) = rhs.take(7).group()?;
-    let into_clause = match rhs.take(4) {
-        Value::Empty => None,
-        Value::Node(Node::IntoClause(n)) => Some(n.into_box()),
-        _ => return Err("expected INTO clause".into()),
-    };
-    Ok(SelectStmt {
-        distinct_clause: if distinct {
-            rhs.take(2).list()?
-        } else {
-            Vec::new()
-        },
-        target_list: targets,
-        into_clause,
-        from_clause: rhs.take(5).list()?,
-        where_clause: rhs.take(6).optional()?,
-        group_clause,
-        group_distinct,
-        having_clause: rhs.take(8).optional()?,
-        window_clause: rhs.take(9).list()?,
+#[inline(always)]
+pub(super) fn select<const PRESENT: usize>(
+    distinct: bool,
+    rhs: &mut Reduction<'_, Value>,
+) -> Result<Value, Failure> {
+    let mut stmt = SelectStmt {
+        target_list: rhs.take(3).list()?,
         ..Default::default()
-    })
+    };
+    if distinct {
+        stmt.distinct_clause = rhs.take(2).list()?;
+    }
+    if PRESENT >= 4 {
+        stmt.into_clause = match rhs.take(4) {
+            Value::Empty => None,
+            Value::Node(Node::IntoClause(n)) => Some(n.into_box()),
+            _ => return Err("expected INTO clause".into()),
+        };
+    }
+    if PRESENT >= 5 {
+        stmt.from_clause = rhs.take(5).list()?;
+    }
+    if PRESENT >= 6 {
+        stmt.where_clause = rhs.take(6).optional()?;
+    }
+    if PRESENT >= 7 {
+        (stmt.group_clause, stmt.group_distinct) = rhs.take(7).group()?;
+    }
+    if PRESENT >= 8 {
+        stmt.having_clause = rhs.take(8).optional()?;
+    }
+    if PRESENT >= 9 {
+        stmt.window_clause = rhs.take(9).list()?;
+    }
+    Ok(Value::Node(stmt.into()))
 }
 
 #[cfg_attr(not(debug_assertions), inline(always))]
@@ -283,7 +294,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 .into(),
             )
         }
-        Query::Select(distinct) => Value::Node(select(distinct, rhs)?.into()),
+        Query::Select(distinct) => return select::<9>(distinct, rhs),
         Query::Set(op) => Value::Node(
             SelectStmt {
                 op,

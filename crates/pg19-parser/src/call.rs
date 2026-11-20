@@ -41,10 +41,19 @@ pub(super) fn function_name(
     Ok(Value::List(names))
 }
 
-fn aggregate(rhs: &mut Reduction<'_, Value>) -> Result<Node, Failure> {
+#[inline]
+pub(super) fn aggregate<const DECORATED: bool>(
+    rhs: &mut Reduction<'_, Value>,
+) -> Result<Value, Failure> {
     let Node::FuncCall(mut call) = rhs.take(1).node()? else {
         return Err("expected FuncCall".into());
     };
+    if !DECORATED {
+        call.agg_filter = None;
+        call.ignore_nulls = 0;
+        call.over = None;
+        return Ok(Value::Node(call.into()));
+    }
     let within = rhs.take(2).list()?;
     if !within.is_empty() {
         let error = if !call.agg_order.is_empty() {
@@ -69,7 +78,7 @@ fn aggregate(rhs: &mut Reduction<'_, Value>) -> Result<Node, Failure> {
         Value::Node(Node::WindowDef(w)) => Some(w.into_box()),
         _ => return Err("expected window definition".into()),
     };
-    Ok(call.into())
+    Ok(Value::Node(call.into()))
 }
 
 #[cfg_attr(not(debug_assertions), inline(always))]
@@ -113,7 +122,7 @@ pub(super) fn reduce(op: Call, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             location: rhs.location(1),
         }
         .into(),
-        Call::Aggregate => aggregate(rhs)?,
+        Call::Aggregate => return aggregate::<true>(rhs),
         Call::Sort => SortBy {
             node: Some(Box::new(rhs.take(1).node()?)),
             sortby_dir: SortByDir(rhs.take(2).integer()?),

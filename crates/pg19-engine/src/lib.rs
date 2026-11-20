@@ -122,7 +122,12 @@ impl<V: Default> Reduction<'_, V> {
 
 /// The LR stack available to generated semantic actions. Its operations apply
 /// the same Bison location, goto and ownership rules as the callback driver.
-pub struct ParseStack<V>(Vec<Frame<V>>);
+pub struct ParseStack<V> {
+    frames: Vec<Frame<V>>,
+    lookahead: Option<Lookahead>,
+}
+
+const MAX_DEPTH: usize = 10_000;
 
 impl<V> Default for ParseStack<V> {
     fn default() -> Self {
@@ -132,15 +137,29 @@ impl<V> Default for ParseStack<V> {
 
 impl<V> ParseStack<V> {
     pub const fn new() -> Self {
-        Self(Vec::new())
+        Self {
+            frames: Vec::new(),
+            lookahead: None,
+        }
+    }
+
+    /// The current lookahead, if Bison has already requested a token.
+    pub fn lookahead(&self) -> Option<Lookahead> {
+        self.lookahead
+    }
+
+    /// Every intermediate state must stay below YYMAXDEPTH when combining reductions.
+    pub fn has_room(&self, additional: usize) -> bool {
+        self.frames.len().saturating_add(additional) < MAX_DEPTH
     }
 
     /// Release all semantic values. Stacks larger than 256 cells also release their buffer.
     pub fn clear(&mut self) {
-        if self.0.capacity() > 256 {
-            self.0 = Vec::new();
+        self.lookahead = None;
+        if self.frames.capacity() > 256 {
+            self.frames = Vec::new();
         } else {
-            self.0.clear();
+            self.frames.clear();
         }
     }
 }
@@ -153,8 +172,8 @@ impl<V: Default> ParseStack<V> {
         span: (usize, usize),
         action: impl FnOnce(&mut Reduction<'_, V>) -> Result<V, E>,
     ) -> Result<(), E> {
-        let stack = &mut self.0;
-        if stack.len() >= 10_000 {
+        let stack = &mut self.frames;
+        if stack.len() >= MAX_DEPTH {
             return Ok(());
         }
         let start = stack.len() - 1;
@@ -181,8 +200,21 @@ impl<V: Default> ParseStack<V> {
         next_state: impl FnOnce(State) -> State,
         action: impl FnOnce(&mut Reduction<'_, V>) -> Result<V, E>,
     ) -> Result<State, E> {
-        let stack = &mut self.0;
-        let length = rule.rhs_len();
+        self.reduce_prefix(rule.rhs_len(), current, span, next_state, action)
+    }
+
+    /// Reduce the materialized prefix when the remaining RHS symbols all derive
+    /// the empty string. Their unknown locations do not affect the LHS location.
+    #[cfg_attr(not(debug_assertions), inline(always))]
+    pub fn reduce_prefix<E>(
+        &mut self,
+        length: usize,
+        current: State,
+        span: (usize, usize),
+        next_state: impl FnOnce(State) -> State,
+        action: impl FnOnce(&mut Reduction<'_, V>) -> Result<V, E>,
+    ) -> Result<State, E> {
+        let stack = &mut self.frames;
         let start = stack.len() - length;
         let previous = if length == 0 {
             current
@@ -223,7 +255,7 @@ impl<V: Default> ParseStack<V> {
         current: State,
         next_state: impl FnOnce(State) -> State,
     ) -> State {
-        let stack = &mut self.0;
+        let stack = &mut self.frames;
         let length = rule.rhs_len();
         let start = stack.len() - length;
         let previous = if length == 0 {
@@ -331,8 +363,8 @@ fn run<A: StackActions>(
         )));
     }
     let mut scanner = scanner.grammar();
-    stack.0.reserve(32);
-    stack.0.push(Frame {
+    stack.frames.reserve(32);
+    stack.frames.push(Frame {
         previous: INITIAL_STATE,
         value: A::Value::default(),
         location: Location::default(),
@@ -344,7 +376,7 @@ fn run<A: StackActions>(
     let mut state = INITIAL_STATE;
     loop {
         // Bison's generated skeleton checks YYMAXDEPTH on entry to each state.
-        if stack.0.len() >= 10_000 {
+        if stack.frames.len() >= MAX_DEPTH {
             return Err(ParseError::Diagnostic(Error::near(
                 sql,
                 span.0,
@@ -374,20 +406,21 @@ fn run<A: StackActions>(
                 } else {
                     context.shift(&mut lookahead)
                 };
-                stack.0.push(Frame {
+                stack.frames.push(Frame {
                     previous,
                     value,
                     location: Location::from_byte_offset(span.0).unwrap(),
                 });
             }
             Action::Reduce(rule) => {
+                stack.lookahead = symbol;
                 state = context
                     .reduce_stack(rule, stack, state, span)
                     .map_err(ParseError::Action)?;
             }
             Action::Accept => {
-                stack.0.pop(); // The accepting state is reached by shifting EOF after parse_toplevel.
-                return Ok(stack.0.pop().unwrap().value);
+                stack.frames.pop(); // The accepting state is reached by shifting EOF after parse_toplevel.
+                return Ok(stack.frames.pop().unwrap().value);
             }
             Action::Error => {
                 return Err(ParseError::Diagnostic(Error::near(

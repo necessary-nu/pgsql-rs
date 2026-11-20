@@ -596,6 +596,13 @@ children (
                         kind @note
                         text "Scan common words using the pinned Flex transitions, and recognize short keywords using the generated PostgreSQL catalog. Raw Rust retired 4,574 instructions on SELECT 1, 59,260 on the aggregate join and 16,072 per successful corpus input, down from 4,907, 64,390 and 17,583. Core and grammar token streams matched on 97,356 inputs with both string settings, and all 54,471 parser outcomes matched the PG19 reference. Seven paired release rounds on CPU 13 gave raw Rust/C medians of 0.577/0.521, 13.048/10.422 and 3.922/2.336 microseconds respectively. All three raw latency targets remain open."
                     }
+
+                    {
+                        at 2026-11-20T01:22:57.485384944Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Bison now supplies the lookahead sets for reducing omitted trailing SELECT and aggregate clauses in one action. On seven paired release rounds pinned to CPU 17, raw Rust/C medians were 0.350/0.430 microseconds for SELECT 1, 6.979/6.038 for the aggregate join and 2.722/1.888 per corpus query. SELECT 1 meets the target. The join and corpus remain 15.6% and 44.2% above C. All 54,471 pinned outcomes matched, all benchmark JSON bytes matched, and 72 extra inputs agreed with C, including 28 stack-limit diagnostics. Rust retired 3,441, 57,271 and 15,532 instructions per input respectively."
+                    }
                 )
             }
         )

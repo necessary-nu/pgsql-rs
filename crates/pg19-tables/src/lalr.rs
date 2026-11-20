@@ -85,6 +85,10 @@ pub fn terminal(external: u16) -> u16 {
 pub struct Lookahead(u16);
 
 impl Lookahead {
+    pub fn symbol(self) -> u16 {
+        self.0
+    }
+
     #[inline]
     pub fn new(external: u16) -> Self {
         // Token 256 is Bison's lexer-error signal, even in a state with a
@@ -95,6 +99,11 @@ impl Lookahead {
             Self(terminal(external))
         }
     }
+}
+
+/// All terminal symbols in the pinned grammar, including end of input.
+pub fn terminals() -> impl Iterator<Item = Lookahead> {
+    (0..YYNTOKENS as u16).map(Lookahead)
 }
 
 // [spec:pgq:req:grammar.tables]

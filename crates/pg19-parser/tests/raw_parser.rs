@@ -3,6 +3,20 @@ use pg19_parser::{parse, parse_statements, Error, Options, ParseMode};
 use serde_json::Value;
 use std::path::Path;
 
+#[test]
+fn omitted_clauses_observe_bisons_stack_limit() {
+    for (opens, message) in [
+        (9987, "syntax error at end of input"),
+        (9988, "memory exhausted at or near \")\""),
+    ] {
+        let sql = format!("SELECT {}SELECT 1)", "(".repeat(opens));
+        let Err(Error::Diagnostic(error)) = parse_statements(&sql, Options::default()) else {
+            panic!("expected a PG19 diagnostic at nesting depth {opens}");
+        };
+        assert_eq!((error.message.as_str(), error.position), (message, 10004));
+    }
+}
+
 fn snapshot(name: &str, mode: ParseMode) -> Vec<Node> {
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/pg19/fixtures");
     let sql = std::fs::read_to_string(fixtures.join(format!("{name}.sql"))).unwrap();

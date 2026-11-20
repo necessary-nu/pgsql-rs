@@ -2,6 +2,28 @@
 // Bison rule numbers can change when an unrelated production is inserted.
 use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
+#[path = "build/omissions.rs"]
+mod omissions;
+
+type Arcs = [BTreeMap<u16, (u16, usize)>];
+
+struct Dispatch {
+    gotos: String,
+    lhs: Vec<usize>,
+    omissions: BTreeMap<usize, String>,
+}
+
+fn ranges(numbers: &[u16]) -> String {
+    numbers
+        .chunk_by(|a, b| *a + 1 == *b)
+        .map(|run| match run {
+            [one] => one.to_string(),
+            _ => format!("{}..={}", run[0], run[run.len() - 1]),
+        })
+        .collect::<Vec<_>>()
+        .join("|")
+}
+
 fn entries(source: &str) -> BTreeMap<&str, (&str, &str)> {
     let mut entries = BTreeMap::new();
     for line in source
@@ -23,7 +45,7 @@ fn entries(source: &str) -> BTreeMap<&str, (&str, &str)> {
 /// Follow Bison's unconditional one-symbol reductions from each viable goto.
 /// Pass-through rules keep the value in place. Other actions run in order
 /// against the same stack cell, before the driver requests another token.
-fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> (String, Vec<usize>) {
+fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> Dispatch {
     let symbols = "../pg19-tables/data/symbols.txt";
     let edges = "../pg19-tables/data/gotos.bin";
     println!("cargo:rerun-if-changed={symbols}");
@@ -90,17 +112,7 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> (String, Vec<usize>) 
         } else {
             code.push_str("match _previous.number() {\n");
             for (target, from) in targets {
-                let pattern = from
-                    .chunk_by(|a, b| *a + 1 == *b)
-                    .map(|run| {
-                        if run.len() == 1 {
-                            run[0].to_string()
-                        } else {
-                            format!("{}..={}", run[0], run[run.len() - 1])
-                        }
-                    })
-                    .collect::<Vec<_>>()
-                    .join("|");
+                let pattern = ranges(&from);
                 code.push_str(&format!("{pattern} => {{ {} }},\n", finish(&target)));
             }
             code.push_str(&format!("_ => {{ {} }} }}\n", finish(&default)));
@@ -113,7 +125,11 @@ fn folded_gotos(handlers: &[Option<&str>], rules: &str) -> (String, Vec<usize>) 
         code.push_str(ACTION_IMPORTS);
         code.push_str(&format!("stack.map_top(span, |rhs| apply({op}, rhs)).map_err(|f| Box::new((Production::from_number({id}).unwrap(), f))) }}\n"));
     }
-    (code, lhs)
+    Dispatch {
+        gotos: code,
+        lhs,
+        omissions: omissions::guards(handlers, &arcs),
+    }
 }
 
 const ACTION_IMPORTS: &str = "#[allow(unused_imports)] use Op::*;\n#[allow(unused_imports)] use crate::{expr::Expr as E,query::Query as Q,value::Quantifier as Qu};\n#[allow(unused_imports)] use pg19_nodes::{AExprKind,BoolExprType,BoolTestType,NullTestType,SetOperation};\n";
@@ -182,9 +198,10 @@ fn main() {
     let mut code = String::from("static HANDLERS: &[Option<Handler>] = {\n");
     code.push_str(ACTION_IMPORTS);
     code.push_str("&[\n");
-    let (gotos, lhs) = folded_gotos(&handlers, &table);
+    let dispatch = folded_gotos(&handlers, &table);
     for (id, handler) in handlers.into_iter().enumerate() {
-        let goto = format!("goto_{}", lhs[id]);
+        let goto = format!("goto_{}", dispatch.lhs[id]);
+        let guard = dispatch.omissions.get(&id).map_or("", String::as_str);
         // The accepting state ends parsing before Bison reduces this rule.
         if id == 1 {
             code.push_str("None,\n");
@@ -193,16 +210,16 @@ fn main() {
         let rule = format!("Production::from_number({id}).unwrap()");
         match handler {
             Some("Take(1)") => code.push_str(&format!(
-                "        Some(|stack, current, span| {{ let previous = stack.reduce_default({rule}, current, |p| p); {goto}(previous, stack, span) }}),\n"
+                "        Some(|stack, current, span| {{ {guard}let previous = stack.reduce_default({rule}, current, |p| p); {goto}(previous, stack, span) }}),\n"
             )),
             Some(op) => code.push_str(&format!(
-                "        Some(|stack, current, span| {{ let previous = stack.reduce({rule}, current, span, |p| p, |rhs| apply({op}, rhs)).map_err(|f| Box::new(({rule}, f)))?; {goto}(previous, stack, span) }}),\n"
+                "        Some(|stack, current, span| {{ {guard}let previous = stack.reduce({rule}, current, span, |p| p, |rhs| apply({op}, rhs)).map_err(|f| Box::new(({rule}, f)))?; {goto}(previous, stack, span) }}),\n"
             )),
             None => code.push_str("        None,\n"),
         }
     }
     code.push_str("    ]\n};\n");
-    code.push_str(&gotos);
+    code.push_str(&dispatch.gotos);
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("actions.rs");
     fs::write(out, code).unwrap();
 }
