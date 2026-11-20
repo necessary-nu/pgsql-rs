@@ -2,13 +2,13 @@
 
 ## Arena-backed raw parser
 
-Seven alternating Rust/C pairs ran on logical CPU 1 of an AMD Threadripper 2950X. Rust 1.100.0 used ordinary `cargo build --release` settings and PostgreSQL 19.0 used GCC 14.2 with `-O3`. Both used the system allocator. Times are median microseconds per query, including result destruction. Rust parsed through `pg19_query::parse_raw` and serialized the same tree through `RawTree::json`.
+At `9bcf758`, seven alternating Rust/C pairs ran on logical CPU 3 of an AMD Threadripper 2950X. Rust 1.100.0 used ordinary `cargo build --release` settings and PostgreSQL 19.0 used GCC 14.2 with `-O3`. Both used the system allocator. Times are median microseconds per query, including result destruction. Rust parsed through `pg19_query::parse_raw` and serialized the same tree through `RawTree::json`.
 
 | Workload | Rust raw | C raw | Rust/C raw | Rust with JSON | C with JSON |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `SELECT 1` | 0.195 | 0.418 | 0.466 | 0.389 | 1.091 |
-| Parameterized aggregate join | 3.565 | 5.904 | 0.604 | 6.187 | 13.903 |
-| 54,266 successful regression queries | 1.333 | 1.805 | 0.739 | 2.301 | 4.153 |
+| `SELECT 1` | 0.199 | 0.425 | 0.469 | 0.395 | 1.105 |
+| Parameterized aggregate join | 3.698 | 5.921 | 0.625 | 6.325 | 14.058 |
+| 54,266 successful regression queries | 1.356 | 1.814 | 0.748 | 2.305 | 4.216 |
 
 Every benchmark input produced byte-identical JSON. All 54,471 pinned parser outcomes and 72 additional boundary cases matched patched PostgreSQL.
 
@@ -18,9 +18,9 @@ User-mode cycle samples on CPU 5 put the largest share of time in grammar reduct
 
 | Workload | Scanner | Parser and tree construction | Result release |
 | --- | ---: | ---: | ---: |
-| `SELECT 1` | 13.6% / 27.0% | 80.4% / 67.2% | 4.1% / 5.1% |
-| Parameterized aggregate join | 31.8% / 38.1% | 67.7% / 61.4% | 0.4% / 0.4% |
-| 54,266 successful regression queries | 37.3% / 41.9% | 61.6% / 56.5% | 0.4% / 1.1% |
+| `SELECT 1` | 14.7% / 26.7% | 81.3% / 68.3% | 2.7% / 4.5% |
+| Parameterized aggregate join | 32.1% / 37.6% | 67.7% / 61.8% | 0.1% / 0.4% |
+| 54,266 successful regression queries | 37.8% / 42.1% | 61.5% / 56.2% | 0.4% / 1.4% |
 
 A separate glibc allocation count measured zero system allocations per warmed `SELECT 1` or aggregate join in both implementations. Rust averaged 0.73 allocations and 0.03 reallocations per corpus query. The previous independently allocated Rust tree averaged 20.35 allocations and 0.71 reallocations per corpus query and used 90 allocations per join.
 

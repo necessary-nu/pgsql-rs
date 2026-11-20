@@ -708,6 +708,14 @@ children (
                         kind @note
                         text "Seven paired rounds on CPU 1 with ordinary Rust release and optimized C measured Rust/C raw medians of 0.195/0.418 µs for SELECT 1, 3.565/5.904 µs for the aggregate join and 1.333/1.805 µs per corpus input. Raw plus JSON also passed all three. All 54,471 pinned outcomes and 72 boundary checks matched, and Miri passed concurrent result use, nested unwind and the DML tests."
                     }
+
+                    {
+                        at 2026-11-20T11:37:13.957668114Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Rebuilt commit 9bcf758 and repeated the complete gate on CPU 3. Median raw Rust/C times were 0.199/0.425 µs, 3.698/5.921 µs and 1.356/1.814 µs. All six performance checks passed. The final native probe matched all 54,471 reference outcomes and all 72 boundary cases. The warmed simple query and join each incurred zero system allocations."
+                        after_done true
+                    }
                 )
             }
         )
