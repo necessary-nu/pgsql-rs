@@ -24,9 +24,9 @@ The executable uses the actual patched PG19 procedural grammar, scanner
 and compiler with the repository's `pg_query_parse_plpgsql` entry point
 and `plpgsqlToJSON` writer. The builder invokes the PG19 PL/pgSQL makefile
 to generate the procedural-language headers and objects. It compiles
-temporary copies of the catalog-dependent functions with the existing
-embedding adapters from [libpg_query mocks](../libpg_query/scripts/mocks) and the extracted inline mock
-bodies. It exposes the compiler callback to the same synthetic `pg_proc`
+temporary copies of the catalog-dependent functions using the inline
+replacements in [build.py](build.py) and the [libpg_query mocks](../libpg_query/scripts/mocks).
+It exposes the compiler callback to the same synthetic `pg_proc`
 tuple used by libpg_query. The built-in type table comes from the PG19
 build's `postgres.bki`, type OID and collation headers. Compiled bodies are
 inspected without executing SQL, starting a server or connecting to a

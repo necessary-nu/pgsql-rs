@@ -11,25 +11,35 @@ MOCKS = LIBPG_QUERY / "scripts/mocks"
 PL = Path("src/pl/plpgsql/src")
 BACKEND = Path("src/backend")
 
-# The PG19 compiler uses libpg_query’s offline replacements for catalog lookups.
+# None selects the named C file in scripts/mocks. Inline bodies match
+# libpg_query's catalog replacements in 27112f8:scripts/extract_source.rb.
 ADAPTERS = {
-    PL / "pl_comp.c": ["build_datatype", "plpgsql_parse_wordtype", "plpgsql_parse_wordrowtype",
-                       "plpgsql_parse_cwordtype", "plpgsql_parse_cwordrowtype"],
-    BACKEND / "utils/cache/syscache.c": ["SearchSysCache1", "GetSysCacheOid", "ReleaseSysCache",
-                                         "SysCacheGetAttr", "SysCacheGetAttrNotNull"],
-    BACKEND / "utils/cache/funccache.c": ["cfunc_resolve_polymorphic_argtypes"],
-    BACKEND / "utils/fmgr/funcapi.c": ["get_func_arg_info"],
-    BACKEND / "commands/functioncmds.c": ["interpret_function_parameter_list"],
-    BACKEND / "catalog/namespace.c": ["recomputeNamespacePath", "LookupExplicitNamespace",
-                                      "DeconstructQualifiedName", "TypeIsVisible", "get_collation_oid"],
-    BACKEND / "parser/parse_type.c": ["typenameTypeMod", "LookupTypeNameExtended"],
-    BACKEND / "parser/parse_expr.c": ["transformExpr"],
-    BACKEND / "parser/parse_coerce.c": ["coerce_to_specific_type"],
-    BACKEND / "parser/parse_collate.c": ["assign_expr_collations"],
-    BACKEND / "optimizer/util/var.c": ["contain_var_clause"],
-    BACKEND / "utils/adt/regproc.c": ["format_procedure"],
-    BACKEND / "utils/adt/format_type.c": ["printTypmod"],
-    BACKEND / "catalog/pg_proc.c": ["function_parse_error_transpose"],
+    PL / "pl_comp.c": {
+        "build_datatype": None, "plpgsql_parse_wordtype": None, "plpgsql_parse_wordrowtype": None,
+        "plpgsql_parse_cwordtype": None, "plpgsql_parse_cwordrowtype": None,
+    },
+    BACKEND / "utils/cache/syscache.c": {
+        "SearchSysCache1": None, "GetSysCacheOid": None, "ReleaseSysCache": "\t/* Do nothing */",
+        "SysCacheGetAttr": None, "SysCacheGetAttrNotNull": None,
+    },
+    BACKEND / "utils/cache/funccache.c": {"cfunc_resolve_polymorphic_argtypes": None},
+    BACKEND / "utils/fmgr/funcapi.c": {"get_func_arg_info": None},
+    BACKEND / "commands/functioncmds.c": {"interpret_function_parameter_list": None},
+    BACKEND / "catalog/namespace.c": {
+        "recomputeNamespacePath": "activeSearchPath = list_make2_oid(PG_CATALOG_NAMESPACE, PG_PUBLIC_NAMESPACE);",
+        "LookupExplicitNamespace": None,
+        "DeconstructQualifiedName": None,
+        "TypeIsVisible": "return true;",
+        "get_collation_oid": "return DEFAULT_COLLATION_OID;",
+    },
+    BACKEND / "parser/parse_type.c": {"typenameTypeMod": "return -1;", "LookupTypeNameExtended": None},
+    BACKEND / "parser/parse_expr.c": {"transformExpr": "return expr;"},
+    BACKEND / "parser/parse_coerce.c": {"coerce_to_specific_type": "return node;"},
+    BACKEND / "parser/parse_collate.c": {"assign_expr_collations": "\t/* Do nothing */"},
+    BACKEND / "optimizer/util/var.c": {"contain_var_clause": "return false;"},
+    BACKEND / "utils/adt/regproc.c": {"format_procedure": 'return pstrdup("plpgsql_function");'},
+    BACKEND / "utils/adt/format_type.c": {"printTypmod": 'return psprintf("%s(%d)", typname, (int) typmod);'},
+    BACKEND / "catalog/pg_proc.c": {"function_parse_error_transpose": "return false;"},
 }
 
 
@@ -42,16 +52,13 @@ def function(text, name):
 
 def adapt(source, relative, work):
     original = (source / relative).read_text()
-    for name in ADAPTERS[relative]:
+    for name, body in ADAPTERS[relative].items():
         target = function(original, name)
-        mock = MOCKS / (name + ".c")
-        if mock.exists():
-            template = mock.read_text()
+        if body is None:
+            template = (MOCKS / (name + ".c")).read_text()
+            replacement = function(template, name).group().split("\n{", 1)[1]
         else:
-            extracted = "src_" + str(relative.relative_to("src")).replace("/", "_")
-            template = (LIBPG_QUERY / "src/postgres" / extracted).read_text()
-            template = re.sub(r";\}(?=\n)", ";\n}", template)
-        replacement = function(template, name).group().split("\n{", 1)[1]
+            replacement = "\n" + body + "\n}"
         args = target.group().split("\n{", 1)[0]
         original = original[:target.start()] + args + "\n{" + replacement + original[target.end():]
     if relative.name == "syscache.c":

@@ -794,6 +794,36 @@ children (
                     }
                 )
             }
+
+            {
+                id delivery.workspace-audit
+                title "Remove unused fixtures and duplicate files from the Rust workspace"
+                kind @chore
+                deps (delivery.workspace)
+                sealed true
+                log (
+                    {
+                        at 2026-11-23T13:22:05.588177926Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+
+                    {
+                        at 2026-11-23T13:26:03.598019935Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Compared the 14 adapted PG19 compiler inputs before and after removing the extracted C source files. All were byte-identical. Both fingerprint implementations use the version 3 vectors, and the original PostgreSQL 18.6 fixture remains in Git at 27112f8."
+                    }
+
+                    {
+                        at 2026-11-23T13:27:17.055946229Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Doing → Done (nplan complete)"
+                    }
+                )
+            }
         )
     }
 )

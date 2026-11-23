@@ -64,7 +64,6 @@ update:
 	@cp "$(TMP)"/upb/port/def.inc "$(TMP)"/upb/port/undef.inc upb/port/
 	@cp "$(TMP)"/third_party/utf8_range/utf8_range.c "$(TMP)"/third_party/utf8_range/utf8_range.h third_party/utf8_range/
 	@cp "$(TMP)"/third_party/utf8_range/*.inc third_party/utf8_range/ 2>/dev/null || true
-	@cp "$(TMP)"/third_party/utf8_range/utf8_validity.h third_party/utf8_range/ 2>/dev/null || true
 	@cp "$(TMP)"/LICENSE LICENSE
 	@cp "$(TMP)"/third_party/utf8_range/LICENSE third_party/utf8_range/LICENSE 2>/dev/null || true
 	@echo "==> Applying local patches to upb.c"
