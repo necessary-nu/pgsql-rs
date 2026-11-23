@@ -1,0 +1,60 @@
+GrantStmt {
+    is_grant: true,
+    targtype: AclTargetObject,
+    objtype: ObjectTable,
+    objects: [
+        Node {
+            node: Some(
+                RangeVar(
+                    RangeVar {
+                        catalogname: "",
+                        schemaname: "",
+                        relname: "mytable",
+                        inh: true,
+                        relpersistence: "p",
+                        alias: None,
+                        location: 24,
+                    },
+                ),
+            ),
+        },
+    ],
+    privileges: [
+        Node {
+            node: Some(
+                AccessPriv(
+                    AccessPriv {
+                        priv_name: "insert",
+                        cols: [],
+                    },
+                ),
+            ),
+        },
+        Node {
+            node: Some(
+                AccessPriv(
+                    AccessPriv {
+                        priv_name: "update",
+                        cols: [],
+                    },
+                ),
+            ),
+        },
+    ],
+    grantees: [
+        Node {
+            node: Some(
+                RoleSpec(
+                    RoleSpec {
+                        roletype: RolespecCstring,
+                        rolename: "myuser",
+                        location: 35,
+                    },
+                ),
+            ),
+        },
+    ],
+    grant_option: false,
+    grantor: None,
+    behavior: DropRestrict,
+}

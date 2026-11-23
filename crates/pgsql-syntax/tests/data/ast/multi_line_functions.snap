@@ -1,0 +1,167 @@
+CreateFunctionStmt {
+    is_procedure: false,
+    replace: true,
+    funcname: [
+        Node {
+            node: Some(
+                String(
+                    String {
+                        sval: "thing",
+                    },
+                ),
+            ),
+        },
+    ],
+    parameters: [
+        Node {
+            node: Some(
+                FunctionParameter(
+                    FunctionParameter {
+                        name: "parameter_thing",
+                        arg_type: Some(
+                            TypeName {
+                                names: [
+                                    Node {
+                                        node: Some(
+                                            String(
+                                                String {
+                                                    sval: "text",
+                                                },
+                                            ),
+                                        ),
+                                    },
+                                ],
+                                type_oid: 0,
+                                setof: false,
+                                pct_type: false,
+                                typmods: [],
+                                typemod: -1,
+                                array_bounds: [],
+                                location: 49,
+                            },
+                        ),
+                        mode: FuncParamDefault,
+                        defexpr: None,
+                        location: 33,
+                    },
+                ),
+            ),
+        },
+    ],
+    return_type: Some(
+        TypeName {
+            names: [
+                Node {
+                    node: Some(
+                        String(
+                            String {
+                                sval: "pg_catalog",
+                            },
+                        ),
+                    ),
+                },
+                Node {
+                    node: Some(
+                        String(
+                            String {
+                                sval: "int8",
+                            },
+                        ),
+                    ),
+                },
+            ],
+            type_oid: 0,
+            setof: false,
+            pct_type: false,
+            typmods: [],
+            typemod: -1,
+            array_bounds: [],
+            location: 65,
+        },
+    ),
+    options: [
+        Node {
+            node: Some(
+                DefElem(
+                    DefElem {
+                        defnamespace: "",
+                        defname: "as",
+                        arg: Some(
+                            Node {
+                                node: Some(
+                                    List(
+                                        List {
+                                            items: [
+                                                Node {
+                                                    node: Some(
+                                                        String(
+                                                            String {
+                                                                sval: "\nDECLARE\n        local_thing_id BIGINT := 0;\nBEGIN\n        SELECT thing_id INTO local_thing_id FROM thing_map\n        WHERE\n                thing_map_field = parameter_thing\n        ORDER BY 1 LIMIT 1;\n\n        IF NOT FOUND THEN\n                local_thing_id = 0;\n        END IF;\n        RETURN local_thing_id;\nEND;\n",
+                                                            },
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                        defaction: DefelemUnspec,
+                        location: 72,
+                        arg_location: 75,
+                    },
+                ),
+            ),
+        },
+        Node {
+            node: Some(
+                DefElem(
+                    DefElem {
+                        defnamespace: "",
+                        defname: "language",
+                        arg: Some(
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "plpgsql",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                        defaction: DefelemUnspec,
+                        location: 407,
+                        arg_location: -1,
+                    },
+                ),
+            ),
+        },
+        Node {
+            node: Some(
+                DefElem(
+                    DefElem {
+                        defnamespace: "",
+                        defname: "volatility",
+                        arg: Some(
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "stable",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ),
+                        defaction: DefelemUnspec,
+                        location: 424,
+                        arg_location: -1,
+                    },
+                ),
+            ),
+        },
+    ],
+    sql_body: None,
+}

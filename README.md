@@ -4,10 +4,12 @@ This repository provides a standalone PostgreSQL 19 parser in Rust and the Postg
 
 ## PostgreSQL 19 in Rust
 
-Add `pg19-query` as a Cargo path dependency pointing to `crates/pg19-query` in this checkout. The Rust parser runs without a database connection. `parse_raw` returns a tree that owns its arena. Inspect statement tags and spans or call `tree.json()` directly. Call `tree.into_owned()` when you need independently mutable records. This example reads the index named in a PostgreSQL 19 `REPACK` statement.
+For the high-level `pg_query.rs` API, add `pgsql-syntax` as a path dependency pointing to `crates/pgsql-syntax`. It provides owned, editable PostgreSQL 19 protobuf trees, query analysis, deparsing and fingerprinting through the native Rust parser. [API and usage](crates/pgsql-syntax/README.md)
+
+Add `pgsql-parser` as a Cargo path dependency pointing to `crates/pgsql-parser` in this checkout. The Rust parser runs without a database connection. `parse_raw` returns a tree that owns its arena. Inspect statement tags and spans or call `tree.json()` directly. Call `tree.into_owned()` when you need independently mutable records. This example reads the index named in a PostgreSQL 19 `REPACK` statement.
 
 ```rust
-use pg19_query::{nodes::Node, parse_raw, Options, ParseError};
+use pgsql_parser::{nodes::Node, parse_raw, Options, ParseError};
 
 fn main() -> Result<(), ParseError> {
     let tree = parse_raw("REPACK accounts USING INDEX accounts_pkey", Options::default())?;
@@ -19,7 +21,7 @@ fn main() -> Result<(), ParseError> {
 }
 ```
 
-Run `cargo test --locked --release -p pg19-query` to exercise the public Rust API. The [PostgreSQL 19 import guide](tools/pg19/README.md) explains how to update the pinned release, regenerate the grammar and compare Rust results with stock and patched PostgreSQL.
+Run `cargo test --locked --release -p pgsql-parser` to exercise the public Rust API. The [PostgreSQL 19 import guide](tools/pg19/README.md) explains how to update the pinned release, regenerate the grammar and compare Rust results with stock and patched PostgreSQL.
 
 The performance comparison uses ordinary Cargo release settings and the system allocator. [Benchmark instructions](tools/pg19/README.md#compare-native-parser-performance-with-c) · [Measurements](tools/pg19/bench/raw-profile.md)
 

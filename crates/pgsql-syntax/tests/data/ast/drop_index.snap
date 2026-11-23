@@ -1,0 +1,27 @@
+DropStmt {
+    objects: [
+        Node {
+            node: Some(
+                List(
+                    List {
+                        items: [
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "myindex",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                ),
+            ),
+        },
+    ],
+    remove_type: ObjectIndex,
+    behavior: DropRestrict,
+    missing_ok: false,
+    concurrent: true,
+}

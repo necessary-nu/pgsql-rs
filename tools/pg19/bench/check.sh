@@ -25,7 +25,7 @@ if [ "$optimization" != "-O3" ]; then
 fi
 cd "$repo"
 if [ "$#" -eq 3 ]; then
-    cargo build --release --locked -p pg19-query --example parse-bench --target-dir "$repo/target"
+    cargo build --release --locked -p pgsql-parser --example parse-bench --target-dir "$repo/target"
     rust_bench=$repo/target/release/examples/parse-bench
 fi
 if [ ! "$rust_bench" -ef "$work/bench-rust" ]; then
@@ -37,7 +37,7 @@ make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk"
     "${RUSTC:-rustc}" -vV
     cargo -V
     if [ "$#" -eq 3 ]; then
-        echo 'Rust build: cargo build --release --locked -p pg19-query --example parse-bench'
+        echo 'Rust build: cargo build --release --locked -p pgsql-parser --example parse-bench'
     else
         printf 'Rust executable supplied by caller: %s\n' "$rust_bench"
     fi

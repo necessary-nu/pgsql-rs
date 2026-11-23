@@ -2,7 +2,7 @@
 
 ## Arena-backed raw parser
 
-At `9bcf758`, seven alternating Rust/C pairs ran on logical CPU 3 of an AMD Threadripper 2950X. Rust 1.100.0 used ordinary `cargo build --release` settings and PostgreSQL 19.0 used GCC 14.2 with `-O3`. Both used the system allocator. Times are median microseconds per query, including result destruction. Rust parsed through `pg19_query::parse_raw` and serialized the same tree through `RawTree::json`.
+At `9bcf758`, seven alternating Rust/C pairs ran on logical CPU 3 of an AMD Threadripper 2950X. Rust 1.100.0 used ordinary `cargo build --release` settings and PostgreSQL 19.0 used GCC 14.2 with `-O3`. Both used the system allocator. Times are median microseconds per query, including result destruction. The Rust measurements cover the arena-backed `parse_raw` entry point and serialization of the same tree through `RawTree::json`. The current import is `pgsql_parser::parse_raw`.
 
 | Workload | Rust raw | C raw | Rust/C raw | Rust with JSON | C with JSON |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -326,7 +326,7 @@ the write saved 3.9% of instructions and raised elapsed time 2.2%.
 
 ### Matching a profile to a consuming application
 
-A separate application used the public `pg19-query` dependency and the same
+A separate application used the public Rust parser crate and the same
 parser source as the benchmark. With the repository's profile,
 `llvm-profdata show --function` found no entry for the application's
 mangled `pg19_parser::parse_statements` symbol. Training on the same 263

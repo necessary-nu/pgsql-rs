@@ -1,0 +1,42 @@
+ColumnDef {
+    colname: "a",
+    type_name: Some(
+        TypeName {
+            names: [
+                Node {
+                    node: Some(
+                        String(
+                            String {
+                                sval: "int4",
+                            },
+                        ),
+                    ),
+                },
+            ],
+            type_oid: 0,
+            setof: false,
+            pct_type: false,
+            typmods: [],
+            typemod: -1,
+            array_bounds: [],
+            location: 21,
+        },
+    ),
+    compression: "",
+    inhcount: 0,
+    is_local: true,
+    is_not_null: false,
+    is_from_type: false,
+    storage: "",
+    storage_name: "",
+    raw_default: None,
+    cooked_default: None,
+    identity: "",
+    identity_sequence: None,
+    generated: "",
+    coll_clause: None,
+    coll_oid: 0,
+    constraints: [],
+    fdwoptions: [],
+    location: 19,
+}

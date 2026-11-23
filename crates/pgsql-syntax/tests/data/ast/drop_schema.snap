@@ -1,0 +1,17 @@
+DropStmt {
+    objects: [
+        Node {
+            node: Some(
+                String(
+                    String {
+                        sval: "myschema",
+                    },
+                ),
+            ),
+        },
+    ],
+    remove_type: ObjectSchema,
+    behavior: DropRestrict,
+    missing_ok: false,
+    concurrent: false,
+}

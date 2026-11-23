@@ -1,0 +1,45 @@
+DropStmt(
+    DropStmt {
+        objects: [
+            Node {
+                node: Some(
+                    TypeName(
+                        TypeName {
+                            names: [
+                                Node {
+                                    node: Some(
+                                        String(
+                                            String {
+                                                sval: "repack",
+                                            },
+                                        ),
+                                    ),
+                                },
+                                Node {
+                                    node: Some(
+                                        String(
+                                            String {
+                                                sval: "pk_something",
+                                            },
+                                        ),
+                                    ),
+                                },
+                            ],
+                            type_oid: 0,
+                            setof: false,
+                            pct_type: false,
+                            typmods: [],
+                            typemod: -1,
+                            array_bounds: [],
+                            location: 20,
+                        },
+                    ),
+                ),
+            },
+        ],
+        remove_type: ObjectType,
+        behavior: DropRestrict,
+        missing_ok: true,
+        concurrent: false,
+    },
+)

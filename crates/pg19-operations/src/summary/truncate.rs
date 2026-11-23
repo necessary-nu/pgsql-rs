@@ -40,7 +40,7 @@ fn wrapped(node: Node) -> RawStmt {
     }
 }
 
-fn candidates(tree: &[RawStmt]) -> Result<(Vec<Path>, Vec<Candidate>), Error> {
+fn candidates(tree: &[RawStmt], style: Style) -> Result<(Vec<Path>, Vec<Candidate>), Error> {
     let mut paths = Vec::new();
     let mut pending = Vec::new();
     for (i, stmt) in tree.iter().enumerate().rev() {
@@ -57,7 +57,7 @@ fn candidates(tree: &[RawStmt]) -> Result<(Vec<Path>, Vec<Candidate>), Error> {
             let length = statements(&[wrapped(wrapper)])?
                 .len()
                 .saturating_sub(overhead);
-            if length > 3 {
+            if length > 3 || matches!(style, Style::PgQueryRs) {
                 found.push(Candidate {
                     path,
                     attr,
@@ -90,7 +90,11 @@ fn candidates(tree: &[RawStmt]) -> Result<(Vec<Path>, Vec<Candidate>), Error> {
                         values_lists: s.values_lists.clone(),
                         ..Default::default()
                     };
-                    add(Attr::Values, query.into(), 9)?;
+                    let overhead = match style {
+                        Style::Summary => 9,
+                        Style::PgQueryRs => 7,
+                    };
+                    add(Attr::Values, query.into(), overhead)?;
                 }
             }
             RawRef::InsertStmt(s) if !s.cols.is_empty() => {
@@ -230,18 +234,43 @@ fn at_path<'a>(
 
 // [spec:pgq:req:summary.truncation]
 pub(super) fn truncate(nodes: Vec<Node>, limit: i32) -> Result<String, Error> {
-    let mut tree: Vec<_> = nodes
+    let tree: Vec<_> = nodes
         .into_iter()
         .map(|n| match n {
             Node::RawStmt(s) => Ok(s.into_inner()),
             _ => Err(Error::InvalidField("RawStmt")),
         })
         .collect::<Result<_, _>>()?;
+    truncate_summary_statements(tree, limit)
+}
+
+/// Apply the summary API’s truncation rules to an already parsed SQL tree.
+pub fn truncate_summary_statements(tree: Vec<RawStmt>, limit: i32) -> Result<String, Error> {
+    shorten(tree, limit, Style::Summary)
+}
+
+#[derive(Clone, Copy)]
+enum Style {
+    Summary,
+    PgQueryRs,
+}
+
+/// Shorten an owned tree using pg_query.rs clause selection. It allows eliding
+/// short clauses as well, e.g. an INSERT with a single VALUES parameter.
+pub fn truncate_statements(tree: Vec<RawStmt>, limit: usize) -> Result<String, Error> {
+    shorten(
+        tree,
+        i32::try_from(limit).unwrap_or(i32::MAX),
+        Style::PgQueryRs,
+    )
+}
+
+fn shorten(mut tree: Vec<RawStmt>, limit: i32, style: Style) -> Result<String, Error> {
     let mut output = statements(&tree)?;
     if output.len() as i64 <= i64::from(limit) {
         return Ok(output);
     }
-    let (paths, candidates) = candidates(&tree)?;
+    let (paths, candidates) = candidates(&tree, style)?;
     let mut edges = Vec::new();
     for candidate in candidates {
         if let Some(node) = at_path(&mut tree, &paths, candidate.path, &mut edges) {

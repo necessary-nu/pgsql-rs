@@ -50,6 +50,15 @@ macro_rules! raw_records {
             fn from(n: &'a $record) -> Self { Self::$record(n) }
         })*
 
+        impl<'a> From<crate::summary::tree::TreeRef<'a>> for RawRef<'a> {
+            fn from(node: crate::summary::tree::TreeRef<'a>) -> Self {
+                use crate::summary::tree::TreeRef;
+                match node {
+                    $(TreeRef::$record(value) => Self::$record(value),)*
+                    _ => Self::Leaf,
+                }
+            }
+        }
         impl<'a> From<&'a Node> for RawRef<'a> {
             fn from(n: &'a Node) -> Self {
                 match n {

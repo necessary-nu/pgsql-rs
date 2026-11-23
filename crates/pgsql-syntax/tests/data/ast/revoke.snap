@@ -1,0 +1,31 @@
+GrantRoleStmt {
+    granted_roles: [
+        Node {
+            node: Some(
+                AccessPriv(
+                    AccessPriv {
+                        priv_name: "admins",
+                        cols: [],
+                    },
+                ),
+            ),
+        },
+    ],
+    grantee_roles: [
+        Node {
+            node: Some(
+                RoleSpec(
+                    RoleSpec {
+                        roletype: RolespecCstring,
+                        rolename: "joe",
+                        location: 19,
+                    },
+                ),
+            ),
+        },
+    ],
+    is_grant: false,
+    opt: [],
+    grantor: None,
+    behavior: DropRestrict,
+}

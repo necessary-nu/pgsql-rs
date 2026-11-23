@@ -1,5 +1,6 @@
 use pg19_operations::summary::{
-    summarize_with_limit, summary_protobuf_with_limit, Summary, SummaryError,
+    analyze_statements, summarize_with_limit, summary_protobuf_with_limit, Context, Summary,
+    SummaryError,
 };
 use pg19_parser::{Error, Options, ParseMode};
 use prost::Message;
@@ -69,6 +70,55 @@ fn postgres_reference_summary() {
         }
     }
     assert!(mismatches.is_empty(), "{}", mismatches.join("\n"));
+}
+
+#[test]
+fn pg_query_truncation_considers_short_values_lists() {
+    let sql = "INSERT INTO x (a, b, c, d, e, f) VALUES ($1)";
+    let stmts = pg19_parser::parse_statements(sql, Options::default()).unwrap();
+    assert_eq!(
+        pg19_operations::summary::truncate_statements(stmts, 32).unwrap(),
+        "INSERT INTO x (...) VALUES (...)"
+    );
+    let summary = summarize_with_limit(sql, ParseMode::Sql, Options::default(), 32).unwrap();
+    assert_eq!(
+        summary.truncated_query.as_deref(),
+        Some("INSERT INTO x (...) VALUES ($1)")
+    );
+}
+
+#[test]
+fn scoped_analysis_retains_separate_statement_bindings() {
+    let sql = "WITH t AS (SELECT 1) SELECT * FROM t; SELECT * FROM t";
+    let stmts = pg19_parser::parse_statements(sql, Options::default()).unwrap();
+    let report = analyze_statements(&stmts);
+    assert_eq!(report.cte_names, ["t"]);
+    assert_eq!(report.tables.len(), 1);
+    let table = &report.tables[0];
+    assert_eq!(table.name, "t");
+    assert_eq!(table.context(), Context::Select);
+    let wire = summarize_with_limit(sql, ParseMode::Sql, Options::default(), -1).unwrap();
+    assert!(wire.tables.is_empty());
+}
+
+#[test]
+fn scoped_analysis_handles_deep_set_operations() {
+    std::thread::Builder::new()
+        .stack_size(2 * 1024 * 1024)
+        .spawn(|| {
+            let mut sql = "WITH t AS (SELECT * FROM physical) SELECT * FROM t".to_string();
+            for _ in 0..4500 {
+                sql.push_str(" UNION ALL SELECT 1 FROM t");
+            }
+            let statements = pg19_parser::parse_statements(&sql, Options::default()).unwrap();
+            let report = analyze_statements(&statements);
+            assert_eq!(report.tables.len(), 1);
+            assert_eq!(report.tables[0].name, "physical");
+            assert_eq!(report.statement_types, ["SelectStmt"]);
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }
 
 #[test]

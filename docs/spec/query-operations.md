@@ -111,3 +111,11 @@ These contracts carry the public libpg_query operations into Rust. Examples use 
 
 > [spec:pgq:req:plpgsql.errors]
 > Outer SQL errors and PL/pgSQL body errors MUST surface through the public error result. A body error MUST retain the context and cursor position when the PL/pgSQL reference supplies them. Parsing a later valid routine MUST be independent of the failure.
+
+## Rust pg_query API
+
+> [spec:pgq:req:api.pg-query+2]
+> The pgsql-syntax workspace crate MUST provide the pg_query.rs 18.1.0 query operations on the native PostgreSQL 19 backend. Callers MUST be able to inspect and edit the PostgreSQL 19 protobuf tree, traverse its nodes, and deparse the edited tree. Building the crate MUST use the pinned descriptor without invoking a C compiler or protoc.
+> SQL summaries and edited-tree analysis MUST share query-block CTE visibility rules and traverse all expression fields. Each DML target and schema-qualified table reference MUST remain physical. The compatibility parse result MUST snapshot metadata at construction.
+> The immutable and mutable visitors MUST reach all protobuf record fields and lend mutable records for one callback. Wire import MUST require the exact PG19 version. Operations on typed trees MUST reject incompatible explicit versions.
+> Callers MUST be able to select one grammar mode independently of scanner flags, and obtain SQLSTATE, character cursor and available PL/pgSQL context through structured errors. Existing parser options and legacy error categories MUST remain supported.

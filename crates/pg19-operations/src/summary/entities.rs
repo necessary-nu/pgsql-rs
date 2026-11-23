@@ -13,7 +13,7 @@ struct Relation<'a> {
 
 #[derive(Default)]
 pub(super) struct State<'a> {
-    summary: Summary,
+    pub(super) summary: Summary,
     ranges: Vec<Relation<'a>>,
     names: HashSet<&'a str>,
     own_ranges: HashSet<*const RangeVar>,
@@ -57,7 +57,7 @@ impl<'a> State<'a> {
         self.summary
     }
 
-    fn range(&mut self, r: Option<&'a RangeVar>, context: Context) {
+    pub(super) fn range(&mut self, r: Option<&'a RangeVar>, context: Context) {
         if let Some(r) = r {
             self.ranges.push(Relation {
                 name: r.relname.as_deref().unwrap_or_default(),
@@ -69,7 +69,7 @@ impl<'a> State<'a> {
         }
     }
 
-    fn ranges(&mut self, items: &'a [Node], context: Context) {
+    pub(super) fn ranges(&mut self, items: &'a [Node], context: Context) {
         let mut todo: Vec<_> = items.iter().rev().collect();
         while let Some(item) = todo.pop() {
             match item {
@@ -115,7 +115,7 @@ impl<'a> State<'a> {
         }
     }
 
-    fn function(&mut self, parts: &[Node], context: Context) {
+    pub(super) fn function(&mut self, parts: &[Node], context: Context) {
         let names: Vec<_> = parts.iter().filter_map(text).collect();
         let Some(&last) = names.last() else { return };
         let schema = match names.as_slice() {
@@ -130,6 +130,21 @@ impl<'a> State<'a> {
         });
     }
 
+    pub(super) fn column(&mut self, c: &ColumnRef) {
+        if let Some(column) = c.fields.last().and_then(text) {
+            let (schema, table) = match c.fields.as_slice() {
+                [s, t, _] => (text(s), text(t)),
+                [t, _] => (None, text(t)),
+                _ => (None, None),
+            };
+            self.summary.filter_columns.push(FilterColumn {
+                schema_name: schema.unwrap_or_default().into(),
+                table_name: table.unwrap_or_default().into(),
+                column: column.into(),
+            });
+        }
+    }
+
     // [spec:pgq:req:summary.nested-filters]
     fn filters(&mut self, root: &'a Node) {
         let mut jobs = vec![root.into()];
@@ -138,18 +153,7 @@ impl<'a> State<'a> {
                 RawRef::SelectStmt(_) => break,
                 RawRef::FuncCall(f) => self.function(&f.funcname, Context::Call),
                 RawRef::ColumnRef(c) => {
-                    if let Some(column) = c.fields.last().and_then(text) {
-                        let (schema, table) = match c.fields.as_slice() {
-                            [s, t, _] => (text(s), text(t)),
-                            [t, _] => (None, text(t)),
-                            _ => (None, None),
-                        };
-                        self.summary.filter_columns.push(FilterColumn {
-                            schema_name: schema.unwrap_or_default().into(),
-                            table_name: table.unwrap_or_default().into(),
-                            column: column.into(),
-                        });
-                    }
+                    self.column(c);
                 }
                 _ => {}
             }
@@ -200,12 +204,31 @@ impl<'a> State<'a> {
                     self.range(n.relation.as_deref(), Context::Select);
                     jobs.extend(n.query.as_deref().map(RawRef::from));
                 }
-                _ => self.utility(r, &mut jobs),
+                _ => {
+                    self.utility(r);
+                    match r {
+                        RawRef::CreateTableAsStmt(n) => {
+                            jobs.extend(n.query.as_deref().map(RawRef::from))
+                        }
+                        RawRef::ViewStmt(n) => jobs.extend(n.query.as_deref().map(RawRef::from)),
+                        RawRef::ExplainStmt(n) => jobs.extend(n.query.as_deref().map(RawRef::from)),
+                        RawRef::PrepareStmt(n) => jobs.extend(n.query.as_deref().map(RawRef::from)),
+                        RawRef::IndexStmt(n) => {
+                            jobs.extend(n.where_clause.as_deref().map(RawRef::from));
+                            for elem in n.index_params.iter().rev() {
+                                if let Node::IndexElem(i) = elem {
+                                    jobs.extend(i.expr.as_deref().map(RawRef::from));
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
     }
 
-    fn utility(&mut self, r: RawRef<'a>, jobs: &mut Vec<RawRef<'a>>) {
+    pub(super) fn utility(&mut self, r: RawRef<'a>) {
         let ddl = Context::Ddl;
         match r {
             RawRef::AlterTableStmt(n) if n.objtype != ObjectType::OBJECT_INDEX => {
@@ -214,21 +237,13 @@ impl<'a> State<'a> {
             RawRef::CreateStmt(n) => self.range(n.relation.as_deref(), ddl),
             RawRef::CreateTableAsStmt(n) => {
                 self.range(n.into.as_ref().and_then(|i| i.rel.as_deref()), ddl);
-                jobs.extend(n.query.as_deref().map(RawRef::from));
             }
             RawRef::TruncateStmt(n) => self.ranges(&n.relations, ddl),
             RawRef::ViewStmt(n) => {
                 self.range(n.view.as_deref(), ddl);
-                jobs.extend(n.query.as_deref().map(RawRef::from));
             }
             RawRef::IndexStmt(n) => {
                 self.range(n.relation.as_deref(), ddl);
-                jobs.extend(n.where_clause.as_deref().map(RawRef::from));
-                for elem in n.index_params.iter().rev() {
-                    if let Node::IndexElem(i) = elem {
-                        jobs.extend(i.expr.as_deref().map(RawRef::from));
-                    }
-                }
             }
             RawRef::CreateTrigStmt(n) => self.range(n.relation.as_deref(), ddl),
             RawRef::RuleStmt(n) => self.range(n.relation.as_deref(), ddl),
@@ -241,8 +256,6 @@ impl<'a> State<'a> {
             }
             RawRef::RefreshMatViewStmt(n) => self.range(n.relation.as_deref(), ddl),
             RawRef::LockStmt(n) => self.ranges(&n.relations, ddl),
-            RawRef::ExplainStmt(n) => jobs.extend(n.query.as_deref().map(RawRef::from)),
-            RawRef::PrepareStmt(n) => jobs.extend(n.query.as_deref().map(RawRef::from)),
             RawRef::CreateFunctionStmt(n) => self.function(&n.funcname, ddl),
             RawRef::DropStmt(n) => self.drop_objects(n),
             RawRef::RenameStmt(n) => self.rename(n),

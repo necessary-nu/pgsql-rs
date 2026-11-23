@@ -1,0 +1,46 @@
+DropStmt {
+    objects: [
+        Node {
+            node: Some(
+                List(
+                    List {
+                        items: [
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "myview",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                ),
+            ),
+        },
+        Node {
+            node: Some(
+                List(
+                    List {
+                        items: [
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "myview2",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                ),
+            ),
+        },
+    ],
+    remove_type: ObjectView,
+    behavior: DropRestrict,
+    missing_ok: false,
+    concurrent: false,
+}

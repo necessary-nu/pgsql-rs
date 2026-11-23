@@ -1,0 +1,36 @@
+TruncateStmt {
+    relations: [
+        Node {
+            node: Some(
+                RangeVar(
+                    RangeVar {
+                        catalogname: "",
+                        schemaname: "",
+                        relname: "bigtable",
+                        inh: true,
+                        relpersistence: "p",
+                        alias: None,
+                        location: 9,
+                    },
+                ),
+            ),
+        },
+        Node {
+            node: Some(
+                RangeVar(
+                    RangeVar {
+                        catalogname: "",
+                        schemaname: "",
+                        relname: "fattable",
+                        inh: true,
+                        relpersistence: "p",
+                        alias: None,
+                        location: 19,
+                    },
+                ),
+            ),
+        },
+    ],
+    restart_seqs: true,
+    behavior: DropRestrict,
+}

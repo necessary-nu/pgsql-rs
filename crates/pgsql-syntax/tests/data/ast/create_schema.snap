@@ -1,0 +1,12 @@
+CreateSchemaStmt {
+    schemaname: "test",
+    authrole: Some(
+        RoleSpec {
+            roletype: RolespecCstring,
+            rolename: "joe",
+            location: 47,
+        },
+    ),
+    schema_elts: [],
+    if_not_exists: true,
+}

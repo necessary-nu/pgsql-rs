@@ -1,0 +1,26 @@
+[package]
+name = "pgsql-syntax"
+version = "19.0.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "PostgreSQL SQL syntax trees, analysis, and rewriting"
+
+[dependencies]
+pgsql-parser = { path = "../pgsql-parser" }
+prost = "0.13.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+
+[build-dependencies]
+heck = "0.5"
+prost = "0.13.5"
+prost-build = "0.13.5"
+prost-types = "0.13.5"
+
+[dev-dependencies]
+itertools = "0.10"
+easy-parallel = "3"
+pretty_assertions = "1"
+regex = "1"

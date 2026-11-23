@@ -1,0 +1,30 @@
+CopyStmt {
+    relation: Some(
+        RangeVar {
+            catalogname: "",
+            schemaname: "",
+            relname: "test",
+            inh: true,
+            relpersistence: "p",
+            alias: None,
+            location: 5,
+        },
+    ),
+    query: None,
+    attlist: [
+        Node {
+            node: Some(
+                String(
+                    String {
+                        sval: "id",
+                    },
+                ),
+            ),
+        },
+    ],
+    is_from: false,
+    is_program: false,
+    filename: "",
+    options: [],
+    where_clause: None,
+}

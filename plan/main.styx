@@ -718,6 +718,52 @@ children (
                     }
                 )
             }
+
+            {
+                id delivery.pg-query
+                title "Port the pg_query.rs API to the native PostgreSQL 19 backend"
+                kind @feat
+                implements {
+                    rust ([spec:pgq:req:api.pg-query])
+                }
+                deps (delivery.native)
+                log (
+                    {
+                        at 2026-11-22T20:42:19.201904968Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+
+                    {
+                        at 2026-11-22T20:45:34.745671819Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Ported pg_query.rs 18.1.0 at c1f97cd to the PostgreSQL 19 native backend. The public prost trees match the native wire codec and deparser on 54,280 successful corpus inputs, with matching diagnostics on 191 rejected inputs. The PG19 C fingerprint probe confirms the changed FETCH digest."
+                    }
+
+                    {
+                        at 2026-11-23T01:41:31.960446604Z
+                        author "brendan@necessary.nu"
+                        kind @decision
+                        text "Use one scope-aware native analyzer for SQL and edited trees. Add descriptor-generated borrowing visitors, version-checked wire import, typed grammar selection, and opt-in structured diagnostics alongside the upstream entry points."
+                    }
+
+                    {
+                        at 2026-11-23T01:50:54.285645659Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "Verified 54,280 accepted corpus inputs for typed tree, deparse, and SQL-versus-imported-tree analysis, and matched 191 diagnostics. The native C-compatible summary also matched the PG19 C probe on every case."
+                    }
+
+                    {
+                        at 2026-11-23T12:01:21.036421842Z
+                        author "brendan@necessary.nu"
+                        kind @decision
+                        text "Use pgsql-syntax for the editable SQL syntax API and pgsql-parser for the native raw parser. Both packages use their Cargo-derived Rust import names."
+                    }
+                )
+            }
         )
     }
 )

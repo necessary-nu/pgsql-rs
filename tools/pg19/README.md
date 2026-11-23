@@ -236,7 +236,7 @@ settings and the patched PostgreSQL backend with `CFLAGS=-O3`. Both use the
 system allocator. The script reuses an optimized
 import or builds one in the output directory. Both programs parse in process,
 destroy each result before the next iteration, and exclude process startup,
-input loading and warmup from their timers. Rust calls `pg19_query::parse_raw`. JSON encoding reads that same arena tree before its release. `parse_statements` also materializes independently mutable records, which is a separate operation.
+input loading and warmup from their timers. Rust calls `pgsql_parser::parse_raw`. JSON encoding reads that same arena tree before its release. `parse_statements` also materializes independently mutable records, which is a separate operation.
 
 Pass an existing benchmark executable as the fourth argument to compare a
 separate build on the same inputs.

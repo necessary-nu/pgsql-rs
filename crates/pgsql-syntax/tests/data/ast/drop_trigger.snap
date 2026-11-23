@@ -1,0 +1,36 @@
+DropStmt {
+    objects: [
+        Node {
+            node: Some(
+                List(
+                    List {
+                        items: [
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "mytable",
+                                        },
+                                    ),
+                                ),
+                            },
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "mytrigger",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                ),
+            ),
+        },
+    ],
+    remove_type: ObjectTrigger,
+    behavior: DropRestrict,
+    missing_ok: true,
+    concurrent: false,
+}

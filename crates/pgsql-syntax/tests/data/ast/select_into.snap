@@ -1,0 +1,20 @@
+IntoClause {
+    rel: Some(
+        RangeVar {
+            catalogname: "",
+            schemaname: "",
+            relname: "test",
+            inh: true,
+            relpersistence: "t",
+            alias: None,
+            location: 18,
+        },
+    ),
+    col_names: [],
+    access_method: "",
+    options: [],
+    on_commit: OncommitNoop,
+    table_space_name: "",
+    view_query: None,
+    skip_data: false,
+}

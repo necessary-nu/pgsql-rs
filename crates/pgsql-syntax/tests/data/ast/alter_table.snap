@@ -1,0 +1,64 @@
+AlterTableCmd {
+    subtype: AtAddConstraint,
+    name: "",
+    num: 0,
+    newowner: None,
+    def: Some(
+        Node {
+            node: Some(
+                Constraint(
+                    Constraint {
+                        contype: ConstrPrimary,
+                        conname: "",
+                        deferrable: false,
+                        initdeferred: false,
+                        is_enforced: false,
+                        skip_validation: false,
+                        initially_valid: false,
+                        is_no_inherit: false,
+                        raw_expr: None,
+                        cooked_expr: "",
+                        generated_when: "",
+                        generated_kind: "",
+                        nulls_not_distinct: false,
+                        keys: [
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "gid",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                        without_overlaps: false,
+                        including: [],
+                        exclusions: [],
+                        options: [],
+                        indexname: "",
+                        indexspace: "",
+                        reset_default_tblspc: false,
+                        access_method: "",
+                        where_clause: None,
+                        pktable: None,
+                        fk_attrs: [],
+                        pk_attrs: [],
+                        fk_with_period: false,
+                        pk_with_period: false,
+                        fk_matchtype: "",
+                        fk_upd_action: "",
+                        fk_del_action: "",
+                        fk_del_set_cols: [],
+                        old_conpfeqop: [],
+                        old_pktable_oid: 0,
+                        location: 21,
+                    },
+                ),
+            ),
+        },
+    ),
+    behavior: DropRestrict,
+    missing_ok: false,
+    recurse: false,
+}

@@ -1,5 +1,8 @@
 //! Query entities and statement types from the PostgreSQL raw tree.
 mod entities;
+mod scoped;
+pub(crate) mod tree;
+pub use scoped::analyze_statements;
 mod model;
 mod truncate;
 use crate::raw_walk::{is_summary_statement, summary_walks_children, RawRef};
@@ -7,7 +10,9 @@ pub use model::*;
 use pg19_nodes::*;
 use pg19_parser::{parse, Error, Options, ParseMode};
 use prost::Message;
+pub use truncate::{truncate_statements, truncate_summary_statements};
 
+/// Match the C summary wire API. Use [analyze_statements] for query-block-aware metadata.
 pub fn summarize(sql: &str, mode: ParseMode, options: Options) -> Result<Summary, Error> {
     let nodes = parse(sql, mode, options)?;
     Ok(summarize_nodes(&nodes))

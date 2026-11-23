@@ -1,0 +1,36 @@
+DropStmt {
+    objects: [
+        Node {
+            node: Some(
+                List(
+                    List {
+                        items: [
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "mytable",
+                                        },
+                                    ),
+                                ),
+                            },
+                            Node {
+                                node: Some(
+                                    String(
+                                        String {
+                                            sval: "myrule",
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                ),
+            ),
+        },
+    ],
+    remove_type: ObjectRule,
+    behavior: DropCascade,
+    missing_ok: false,
+    concurrent: false,
+}
