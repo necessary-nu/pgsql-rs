@@ -1,0 +1,11 @@
+[package]
+name = "pg19-reference"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+pg19-nodes.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

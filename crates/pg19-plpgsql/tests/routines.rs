@@ -238,9 +238,11 @@ fn native_entrypoint_matches_upstream_routines() {
 
 #[test]
 fn native_entrypoint_matches_the_complete_project_sample() {
-    let expected: Vec<Value> =
-        serde_json::from_str(include_str!("../../../test/plpgsql_samples.expected.json")).unwrap();
-    let sql = include_str!("../../../test/plpgsql_samples.sql");
+    let expected: Vec<Value> = serde_json::from_str(include_str!(
+        "../../../tools/pg19/libpg_query/test/plpgsql_samples.expected.json"
+    ))
+    .unwrap();
+    let sql = include_str!("../../../tools/pg19/libpg_query/test/plpgsql_samples.sql");
     assert_eq!(
         outcome(parse_routines(sql, Options::default())),
         json!({"functions":expected,"error":null})

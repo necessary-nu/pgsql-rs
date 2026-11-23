@@ -13,13 +13,13 @@ AlterSubscriptionStmt CreateUserMappingStmt AlterUserMappingStmt NotifyStmt""".s
 
 
 def summary_tags():
-    source = (ROOT / "src/pg_query_summary_statement_type.c").read_text()
+    source = (ROOT / "tools/pg19/libpg_query/src/pg_query_summary_statement_type.c").read_text()
     statements = set(re.findall(r'add_stmt_type_if_needed\(summary, "(\w+)"\)', source))
     statements.remove("ClusterStmt")
     statements.update(("RepackStmt", "WaitStmt"))
-    entities = (ROOT / "src/pg_query_summary.c").read_text()
+    entities = (ROOT / "tools/pg19/libpg_query/src/pg_query_summary.c").read_text()
     visited = set(re.findall(r"case T_(\w+):", entities))
-    supported = set(re.findall(r"case T_(\w+):", (ROOT / "src/pg_query_raw_tree_walker_supports.c").read_text()))
+    supported = set(re.findall(r"case T_(\w+):", (ROOT / "tools/pg19/libpg_query/src/pg_query_raw_tree_walker_supports.c").read_text()))
     return statements, visited, supported
 
 

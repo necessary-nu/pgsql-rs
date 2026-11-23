@@ -6,13 +6,12 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
-MOCKS = REPO / "scripts/mocks"
+LIBPG_QUERY = HERE.parent / "libpg_query"
+MOCKS = LIBPG_QUERY / "scripts/mocks"
 PL = Path("src/pl/plpgsql/src")
 BACKEND = Path("src/backend")
 
-# The named files are taken from the PG19 import. Only catalog-dependent
-# operations receive the same replacements as scripts/extract_source.rb.
+# The PG19 compiler uses libpg_query’s offline replacements for catalog lookups.
 ADAPTERS = {
     PL / "pl_comp.c": ["build_datatype", "plpgsql_parse_wordtype", "plpgsql_parse_wordrowtype",
                        "plpgsql_parse_cwordtype", "plpgsql_parse_cwordrowtype"],
@@ -50,7 +49,7 @@ def adapt(source, relative, work):
             template = mock.read_text()
         else:
             extracted = "src_" + str(relative.relative_to("src")).replace("/", "_")
-            template = (REPO / "src/postgres" / extracted).read_text()
+            template = (LIBPG_QUERY / "src/postgres" / extracted).read_text()
             template = re.sub(r";\}(?=\n)", ";\n}", template)
         replacement = function(template, name).group().split("\n{", 1)[1]
         args = target.group().split("\n{", 1)[0]
@@ -72,17 +71,16 @@ def build(run, work):
         raise ValueError("expected the patched PG19.0 import")
     subprocess.run(["make", "-s", "-j4", "-C", build / PL, "all"], check=True)
     cat = build / "src/include/catalog"
-    subprocess.run(["ruby", "-r", str(REPO / "scripts/extract_pg_types.rb"), "-e",
-                    'ts = extract_pg_types(ARGV[0]); File.write(ARGV[3], generate_helper_c(ts, parse_oid_macros(ARGV[1]), parse_collation_macros(ARGV[2])))',
-                    cat / "postgres.bki", cat / "pg_type_d.h", cat / "pg_collation_d.h", work / "pg_query_pg_type.c"], check=True)
+    subprocess.run(["ruby", LIBPG_QUERY / "scripts/extract_pg_types.rb",
+                    cat, work / "pg_query_pg_type.c"], check=True)
     # The public 18.6 API header also carries release constants. The probe
     # uses its declarations with the configured 19.0 backend constants.
-    api = (REPO / "pg_query.h").read_text()
+    api = (LIBPG_QUERY / "pg_query.h").read_text()
     api = re.sub(r"^#define (?:PG_MAJORVERSION|PG_VERSION|PG_VERSION_NUM) .+$", "", api, flags=re.M)
     (work / "pg_query.h").write_text(api)
     units = [adapt(source, relative, work) for relative in ADAPTERS]
-    units += [HERE / "probe.c", HERE / "routine-inputs.c", REPO / "src/pg_query_parse_plpgsql.c", REPO / "src/pg_query_json_plpgsql.c"]
-    flags = [work, REPO, REPO / "src", REPO / "src/include", source / PL, build / PL]
+    units += [HERE / "probe.c", HERE / "routine-inputs.c", LIBPG_QUERY / "src/pg_query_parse_plpgsql.c", LIBPG_QUERY / "src/pg_query_json_plpgsql.c"]
+    flags = [work, LIBPG_QUERY, LIBPG_QUERY / "src", LIBPG_QUERY / "src/include", source / PL, build / PL]
     # Preserve quoted includes of sibling/generator headers in copied source files.
     flags += sorted({root / f.parent for root in [source, build] for f in ADAPTERS})
     makefile = ["include Makefile", ".PHONY: plpgsql-reference",

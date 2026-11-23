@@ -31,8 +31,19 @@ fi
 if [ ! "$rust_bench" -ef "$work/bench-rust" ]; then
     cp -- "$rust_bench" "$work/bench-rust"
 fi
+schema=
+for candidate in "$pgimport"/pg19-*; do
+    if cmp -s "$candidate/protobuf/inputs.sha256" "$repo/protobuf/pg19/inputs.sha256"; then
+        schema=$candidate
+        break
+    fi
+done
+if [ -z "$schema" ]; then
+    echo "Run 'cargo run -p pg19-reference -- check-schema $pgimport' to generate the pinned C field writers." >&2
+    exit 1
+fi
 make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk" \
-    "repo=$repo" "schema=$pgimport/pg19-2-1" "work=$work" "$work/bench-c"
+    "repo=$repo" "schema=$schema" "work=$work" "$work/bench-c"
 {
     "${RUSTC:-rustc}" -vV
     cargo -V

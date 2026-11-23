@@ -2,7 +2,7 @@ use pg19_operations::split_with_scanner;
 use serde_json::Value;
 
 // The ranges and diagnostics were captured from src/pg_query_split.c linked
-// to the patched 19.0 backend. The first eight inputs also occur in test/split_tests.c.
+// to the patched 19.0 backend. The first eight inputs also occur in libpg_query’s split_tests.c.
 // [spec:pgq:req:split.scanner/test]
 #[test]
 fn matches_c_scanner_splitter() {

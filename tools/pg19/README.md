@@ -20,22 +20,16 @@ The run directory holds the original archive, `stock-source`, `patched-source`,
 and the `stock/probe` and `patched/probe` executables. Both source trees
 retain `gram.y`, `scan.l`, the parser lookahead code, and node and keyword
 headers. The patched tree uses the [PG19 compatibility series](patches/README.md).
-The C library at the repository root continues to build against its 18.6 snapshot.
+The libpg_query compatibility sources, generators and fixtures used by these checks live in [libpg_query/](libpg_query/).
 
 ### How upstream changes reach this repository
 
-The original C workflow updates PostgreSQL through maintainer commits. Its
-Makefile pins both the archive version and the numeric release. The
-`tmp/postgres` target downloads that release into a fixed directory, applies
-14 project patches, configures PostgreSQL and invokes its generators.
-`make extract_source` replaces `src/postgres` with the C dependency closure
-selected by the Ruby/libclang extractor and copies the upstream regression SQL.
-The recipe assumes Apple's libclang location and BSD `sed`. C builds and CI
-consume the committed snapshot. The repository history shows a major upgrade
-in `bd17fe2` and a point release in `e087c65`. [Legacy extraction recipe](../../Makefile)
+The importer pins the official PostgreSQL release archive and overlays the reviewed
+patch series. The reference inputs under `libpg_query/` come from the project's
+18.6 baseline and subsequent compatibility changes. Git retains the original
+extraction recipe at `27112f8:Makefile`.
 
-For the Rust port, the release archive and the reviewed patch series are the
-source of truth. The scanner imports Flex's transitions and the keyword
+The scanner imports Flex's transitions and the keyword
 catalog. The parser imports Bison's resolved tables and inventories each
 production and semantic action. The raw node generator reads the patched
 headers with Clang. The 19.0 Rust parser implements all 2,326 explicit
@@ -102,7 +96,7 @@ and review changes in node fields, locations, errors and tokens before
 replacing snapshots. Regenerate parser tables and review Rust reductions
 when a production or its upstream C action changes.
 
-`make -j4 test` exercises the existing C library. `cargo test --workspace`
+`cargo test --locked --workspace`
 runs the Rust tests. `python3 tools/pg19/tests/check-fixtures.py` checks
 stored outcomes and token boundaries without building the probes. CI also
 rebuilds both references when their inputs change. To run the full build through Cargo's test
@@ -154,7 +148,7 @@ The arguments are the fingerprint option bits and PostgreSQL raw parse mode.
 
 Normalization uses the patched raw expression walker's field order. After an
 upstream update, run `python3 tools/pg19/generate-raw-walk.py "$run"` and
-review the ordered child fields alongside `src/pg_query_normalize.c`.
+review the ordered child fields alongside [the C normalizer](libpg_query/src/pg_query_normalize.c).
 The clean reference test runs the full and utility normalization fixtures
 against the C operation linked to PG19. The Rust tests exercise the same
 inputs through the native SQL parser.
@@ -179,7 +173,7 @@ PG19_REFERENCE_DIR="$run" cargo test -p pg19-reference --test native_tree -- --i
 Omit `--check` to regenerate. The generator reads the patched backend's
 `outfuncs.funcs.c`, `outfuncs.switch.c` and `outfuncs.c`. When the recorded
 `outfuncs.c` digest changes, review its token, scalar and custom node writers
-against the Rust code in `tools/pg19/src/tree`.
+against the Rust code in `crates/pg19-reference/src/tree`.
 
 For full upstream SQL statement coverage, the [PG19 regression corpus](regress/README.md)
 extracts source spans with the pinned psql lexer, captures trees and errors

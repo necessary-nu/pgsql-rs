@@ -11,11 +11,11 @@ ROOT = HERE.parents[2]
 
 def build(run, work):
     work.mkdir(parents=True, exist_ok=True)
-    header = re.sub(r"^#define (?:PG_MAJORVERSION|PG_VERSION|PG_VERSION_NUM) .+$", "", (ROOT / "pg_query.h").read_text(), flags=re.M)
+    header = re.sub(r"^#define (?:PG_MAJORVERSION|PG_VERSION|PG_VERSION_NUM) .+$", "", (ROOT / "tools/pg19/libpg_query/pg_query.h").read_text(), flags=re.M)
     (work / "pg_query.h").write_text(header)
     build = run / "patched/src"
     tags = set(re.findall(r"\bT_(\w+)", (build / "include/nodes/nodetags.h").read_text()))
-    source = (ROOT / "src/pg_query_summary_statement_type.c").read_text()
+    source = (ROOT / "tools/pg19/libpg_query/src/pg_query_summary_statement_type.c").read_text()
     # PG19 removes some planner/executor-only tags from the catch-all group.
     handler, unused = source.split("All the cases below here", maxsplit=1)
     old = 'case T_ClusterStmt:\n\t\t\tadd_stmt_type_if_needed(summary, "ClusterStmt");'
@@ -28,7 +28,7 @@ def build(run, work):
     unused = re.sub(r"^\s*case T_(\w+):$", lambda m: m[0] if m[1] in tags else "", unused, flags=re.M)
     (work / "statements.c").write_text(handler + "All the cases below here" + unused)
     subprocess.run(["patch", "--silent", "-o", str(work / "deparse.c"),
-                    str(ROOT / "src/postgres_deparse.c"), str(HERE / "summary-deparse-pg19.patch")], check=True)
+                    str(ROOT / "tools/pg19/libpg_query/src/postgres_deparse.c"), str(HERE / "summary-deparse-pg19.patch")], check=True)
     subprocess.run(["make", "-s", "-j" + os.environ.get("PG19_JOBS", "4"), "-C", build / "backend", "-f", "Makefile", "-f",
                     HERE / "summary-probe.mk", f"repo={ROOT}", f"work={work}", work / "summary-probe"], check=True)
 

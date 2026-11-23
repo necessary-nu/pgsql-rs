@@ -1,3 +1,21 @@
 [workspace]
-members = ["tools/pg19", "crates/*"]
+members = ["crates/*"]
 resolver = "2"
+
+[workspace.package]
+edition = "2021"
+publish = false
+
+[workspace.dependencies]
+pg19-codec = { path = "crates/pg19-codec" }
+pg19-engine = { path = "crates/pg19-engine" }
+pg19-lexer = { path = "crates/pg19-lexer" }
+pg19-nodes = { path = "crates/pg19-nodes" }
+pg19-operations = { path = "crates/pg19-operations" }
+pg19-parser = { path = "crates/pg19-parser" }
+pg19-plpgsql = { path = "crates/pg19-plpgsql" }
+pg19-reference = { path = "crates/pg19-reference" }
+pg19-tables = { path = "crates/pg19-tables" }
+pgsql-parser = { path = "crates/pgsql-parser" }
+itoa = "1"
+serde_json = "1"

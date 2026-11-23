@@ -1,15 +1,15 @@
 [package]
 name = "pgsql-parser"
 version = "0.1.0"
-edition = "2021"
-publish = false
+edition.workspace = true
+publish.workspace = true
 license = "BSD-3-Clause AND PostgreSQL"
 description = "Native PostgreSQL 19 parsing and libpg_query operations"
 
 [dependencies]
-pg19-codec = { path = "../pg19-codec" }
-pg19-lexer = { path = "../pg19-lexer" }
-pg19-nodes = { path = "../pg19-nodes" }
-pg19-operations = { path = "../pg19-operations" }
-pg19-parser = { path = "../pg19-parser" }
-pg19-plpgsql = { path = "../pg19-plpgsql" }
+pg19-codec.workspace = true
+pg19-lexer.workspace = true
+pg19-nodes.workspace = true
+pg19-operations.workspace = true
+pg19-parser.workspace = true
+pg19-plpgsql.workspace = true

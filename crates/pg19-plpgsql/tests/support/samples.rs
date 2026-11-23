@@ -51,9 +51,9 @@ impl EmbeddedSql for SqlReference {
 #[ignore = "uses PG19 reference SQL trees and types to isolate native PL/pgSQL body actions"]
 fn compare_project_sample_routines() {
     let run = PathBuf::from(std::env::var_os("PG19_REFERENCE_DIR").unwrap());
-    let sample = include_str!("../../../../test/plpgsql_samples.sql");
+    let sample = include_str!("../../../../tools/pg19/libpg_query/test/plpgsql_samples.sql");
     let expected: Vec<Value> = serde_json::from_str(include_str!(
-        "../../../../test/plpgsql_samples.expected.json"
+        "../../../../tools/pg19/libpg_query/test/plpgsql_samples.expected.json"
     ))
     .unwrap();
     let signatures = query(&run.join("plpgsql-probe"), &["--routine-inputs", sample]);

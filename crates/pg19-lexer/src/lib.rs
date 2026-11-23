@@ -1,5 +1,5 @@
 //! UTF-8 PostgreSQL 19 scanner and parser lookahead, derived from the patched
-//! scan.l and parser.c. See src/postgres/COPYRIGHT in the repository.
+//! scan.l and parser.c. See LICENSE-PostgreSQL in the repository.
 mod dfa;
 mod grammar;
 mod literal;

@@ -3,7 +3,7 @@
 The production crate reads Bison's packed LALR action, default reduction and
 goto tables directly from little-endian data. Building it requires only Rust.
 The tables and symbol names derive from the PostgreSQL 19.0 grammar with the
-patches in `tools/pg19/patches`. See `src/postgres/COPYRIGHT` for the license
+patches in `tools/pg19/patches`. See `LICENSE-PostgreSQL` for the license
 and upstream copyright notice.
 
 From the repository root, pass the patched-source directory printed by the

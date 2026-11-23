@@ -19,7 +19,7 @@ def c_string(expr):
 def original_inputs():
     # Backslash-newline splicing precedes C tokenization. These tests use only
     # string literals or local names assigned concatenated string literals.
-    code = (ROOT / "test/summary_tests.c").read_text().replace("\\\n", "")
+    code = (ROOT / "tools/pg19/libpg_query/test/summary_tests.c").read_text().replace("\\\n", "")
     functions = list(re.finditer(r"^void (\w+)\(TestState\* test_state\)", code, re.M))
     assignments = rf'\b(?P<var>sql|query)\s*=\s*(?P<value>{LITERALS})\s*;'
     calls = rf'\bsummary(?:_internal)?\(\s*(?P<arg>{LITERALS}|sql|query)\s*,\s*0\s*,\s*-1\s*\)'
@@ -61,7 +61,7 @@ def inputs():
 
 
 def truncation_inputs():
-    code = (ROOT / "test/summary_truncate.c").read_text().replace("\\\n", "")
+    code = (ROOT / "tools/pg19/libpg_query/test/summary_truncate.c").read_text().replace("\\\n", "")
     functions = list(re.finditer(r"\bvoid\s+(\w+)\(TestState \* test_state\)", code))
     for i, function in enumerate(functions):
         body = code[function.end():functions[i+1].start() if i+1 < len(functions) else len(code)]

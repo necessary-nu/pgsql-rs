@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[3]
 def legacy(mode):
     filename = "normalize_tests.c" if mode == "full" else "normalize_utility_tests.c"
     strings = [ast.literal_eval(line.strip().removesuffix(",")) for line in
-               (ROOT / "test" / filename).read_text().splitlines() if line.lstrip().startswith('"')]
+               (ROOT / "tools/pg19/libpg_query/test" / filename).read_text().splitlines() if line.lstrip().startswith('"')]
     if len(strings) % 2:
         raise ValueError(f"incomplete fixture in {filename}")
     return dict(zip(strings[::2], strings[1::2]))

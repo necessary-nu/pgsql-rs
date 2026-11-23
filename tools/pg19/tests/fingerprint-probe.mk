@@ -1,17 +1,18 @@
-pgq_fingerprint_includes = -I$(work)/src/include -I$(repo)/src/include -I$(repo)/src -I$(repo)/vendor -I$(repo)
-$(work)/fingerprint-probe.o: $(repo)/tools/pg19/tests/fingerprint-probe.c $(repo)/src/pg_query_fingerprint.c $(repo)/tools/pg19/tests/fingerprint-probe.mk $(work)/src/include/pg_query_fingerprint_defs.c $(work)/src/include/pg_query_fingerprint_conds.c $(work)/src/include/pg_query_enum_defs.c
+libpg_query = $(repo)/tools/pg19/libpg_query
+pgq_fingerprint_includes = -I$(work)/src/include -I$(libpg_query)/src/include -I$(libpg_query)/src -I$(libpg_query)/vendor -I$(libpg_query)
+$(work)/fingerprint-probe.o: $(repo)/tools/pg19/tests/fingerprint-probe.c $(libpg_query)/src/pg_query_fingerprint.c $(repo)/tools/pg19/tests/fingerprint-probe.mk $(work)/src/include/pg_query_fingerprint_defs.c $(work)/src/include/pg_query_fingerprint_conds.c $(work)/src/include/pg_query_enum_defs.c
 	$(COMPILE.c) -fvisibility=hidden -ffunction-sections -Wno-unused-function $(pgq_fingerprint_includes) $< -o $@
 
-$(work)/xxhash.o: $(repo)/vendor/xxhash/xxhash.c $(repo)/vendor/xxhash/xxhash.h
+$(work)/xxhash.o: $(libpg_query)/vendor/xxhash/xxhash.c $(libpg_query)/vendor/xxhash/xxhash.h
 	$(COMPILE.c) $< -o $@
 
 $(work)/fingerprint-probe: $(OBJS) $(work)/fingerprint-probe.o $(work)/xxhash.o
 	$(CC) $(CFLAGS) $(call expand_subsys,$^) $(LDFLAGS) -Wl,--wrap=main,--gc-sections $(LIBS) -o $@
 
-$(work)/normalize-probe.o: $(repo)/tools/pg19/tests/normalize-probe.c $(repo)/src/pg_query_normalize.c
+$(work)/normalize-probe.o: $(repo)/tools/pg19/tests/normalize-probe.c $(libpg_query)/src/pg_query_normalize.c
 	$(COMPILE.c) -fvisibility=hidden -ffunction-sections $(pgq_fingerprint_includes) $< -o $@
 
-$(work)/normalize-fingerprint.o: $(repo)/src/pg_query_fingerprint.c $(work)/src/include/pg_query_fingerprint_defs.c $(work)/src/include/pg_query_fingerprint_conds.c $(work)/src/include/pg_query_enum_defs.c
+$(work)/normalize-fingerprint.o: $(libpg_query)/src/pg_query_fingerprint.c $(work)/src/include/pg_query_fingerprint_defs.c $(work)/src/include/pg_query_fingerprint_conds.c $(work)/src/include/pg_query_enum_defs.c
 	$(COMPILE.c) -fvisibility=hidden -ffunction-sections -Wno-unused-function $(pgq_fingerprint_includes) $< -o $@
 
 $(work)/normalize-probe: $(OBJS) $(work)/normalize-probe.o $(work)/normalize-fingerprint.o $(work)/xxhash.o

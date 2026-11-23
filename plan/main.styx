@@ -764,6 +764,36 @@ children (
                     }
                 )
             }
+
+            {
+                id delivery.workspace
+                title "Organize Rust crates and retain only the inputs needed for PostgreSQL reference checks"
+                kind @refactor
+                deps (delivery.pg-query)
+                sealed true
+                log (
+                    {
+                        at 2026-11-23T12:31:28.762685116Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+
+                    {
+                        at 2026-11-23T12:40:18.772627653Z
+                        author "brendan@necessary.nu"
+                        kind @decision
+                        text "All Cargo packages live under crates/. Keep the libpg_query sources, schema baseline and test fixtures needed for PG19 comparisons under tools/pg19/libpg_query/. The original 18.6 C distribution is available at 27112f8."
+                    }
+
+                    {
+                        at 2026-11-23T12:41:09.266712284Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Doing → Done (nplan complete)"
+                    }
+                )
+            }
         )
     }
 )

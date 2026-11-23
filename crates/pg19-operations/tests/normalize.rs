@@ -19,9 +19,12 @@ fn pg19_normalization_matches_in_both_modes() {
 fn original_c_normalization_vectors() {
     let mut failures = Vec::new();
     for (cases, utility) in [
-        (include_str!("../../../test/normalize_tests.c"), false),
         (
-            include_str!("../../../test/normalize_utility_tests.c"),
+            include_str!("../../../tools/pg19/libpg_query/test/normalize_tests.c"),
+            false,
+        ),
+        (
+            include_str!("../../../tools/pg19/libpg_query/test/normalize_utility_tests.c"),
             true,
         ),
     ] {

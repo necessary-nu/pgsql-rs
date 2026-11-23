@@ -1,4 +1,4 @@
-//! PostgreSQL 19 PL/pgSQL body grammar. See src/postgres/COPYRIGHT.
+//! PostgreSQL 19 PL/pgSQL body grammar. See LICENSE-PostgreSQL.
 #![forbid(unsafe_code)]
 mod body;
 mod catalog;

@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def check(run, work):
     work = work.resolve()
-    subprocess.run(["ruby", ROOT / "scripts/generate_fingerprint_outfuncs.rb"], cwd=work, check=True)
+    subprocess.run(["ruby", ROOT / "tools/pg19/libpg_query/scripts/generate_fingerprint_outfuncs.rb"], cwd=work, check=True)
     subprocess.run(["python3", ROOT / "crates/pg19-operations/generate-fingerprint.py",
                     work, "--check"], check=True)
     probe = work / "fingerprint-probe"

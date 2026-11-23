@@ -9,6 +9,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
+LIBPG_QUERY = HERE.parent / "libpg_query"
 RELEASE = "postgresql-19.0"
 ARCHIVE_SHA256 = "a89fd70efbad6a08c7dbed8d4872e3af30170d9e5ca9dc7906523be95b4e692d"
 MODES = ("default", "type-name", "plpgsql-expr", "plpgsql-assign1", "plpgsql-assign2", "plpgsql-assign3")
@@ -122,7 +123,7 @@ def inventory(run, out):
 
         for name in ("parse_tests.c", "parse_opts_tests.c", "scan_tests.c", "split_tests.c"):
             path = Path("test", name)
-            data = (REPO / path).read_bytes()
+            data = (LIBPG_QUERY / path).read_bytes()
             inputs[f"libpg_query:{path}"] = digest(data)
             for row in fixture_rows(path, data):
                 record("libpg_query", path, data, row)

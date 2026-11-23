@@ -1,13 +1,13 @@
 [package]
 name = "pg19-engine"
 version = "0.1.0"
-edition = "2021"
-publish = false
+edition.workspace = true
+publish.workspace = true
 
 [dependencies]
-pg19-lexer = { path = "../pg19-lexer" }
-pg19-nodes = { path = "../pg19-nodes" }
-pg19-tables = { path = "../pg19-tables" }
+pg19-lexer.workspace = true
+pg19-nodes.workspace = true
+pg19-tables.workspace = true
 
 [dev-dependencies]
-serde_json = "1"
+serde_json.workspace = true

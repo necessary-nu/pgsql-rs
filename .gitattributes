@@ -3,9 +3,6 @@
 *.sql -text
 *.psql -text
 
-# Contains WIN1252-encoded (non-UTF-8) data
-test/sql/postgres_regress/collate.windows.win1252.sql binary
-
 # Semantic merge for nplan plan / state / lock files at any depth under plan/.
 plan/**/*.styx merge=nplan
 plan/architecture.styx merge=text

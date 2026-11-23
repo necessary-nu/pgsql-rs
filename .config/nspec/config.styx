@@ -6,8 +6,8 @@ specs (
             {
                 name rust
                 languages (@rust)
-                include ("tools/pg19/src/**/*.rs" "crates/**/*.rs")
-                test_include ("tools/**/tests/**/*.rs" "crates/**/tests/**/*.rs")
+                include ("crates/**/*.rs")
+                test_include ("crates/**/tests/**/*.rs")
                 exclude ("**/target/**")
             }
         )

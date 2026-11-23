@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative '../../../scripts/extract_pg_types'
+require_relative '../libpg_query/scripts/extract_pg_types'
 require 'optparse'
 require 'open3'
 

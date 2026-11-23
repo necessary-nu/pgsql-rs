@@ -1,7 +1,7 @@
 # PostgreSQL 19.0 raw parser patches
 
-These patches adapt the numbered libpg_query patches in the repository's
-top-level `patches/` directory to the PostgreSQL 19.0 release. Apply the
+These patches adapt the numbered libpg_query patches from the PostgreSQL 18.6
+baseline (`27112f8:patches/`) to the PostgreSQL 19.0 release. Apply the
 series in filename order to a fresh source tree, before generating the
 parser, scanner or node support files. Run this loop from the repository
 root with `pgsrc` pointing to the unpacked release.

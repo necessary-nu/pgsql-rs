@@ -6,18 +6,6 @@ on:
       - 'tools/pg19/**'
       - 'crates/**'
       - 'protobuf/pg19/**'
-      - 'protobuf/pg_query.proto'
-      - 'scripts/extract_headers.rb'
-      - 'scripts/generate_fingerprint_outfuncs.rb'
-      - 'pg_query.h'
-      - 'src/pg_query*.c'
-      - 'src/pg_query*.h'
-      - 'src/postgres_deparse.c'
-      - 'src/include/**'
-      - 'test/**'
-      - 'vendor/upb/**'
-      - 'vendor/xxhash/**'
-      - 'scripts/generate_protobuf_and_funcs.rb'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/pg19-reference.yml'
@@ -26,18 +14,6 @@ on:
       - 'tools/pg19/**'
       - 'crates/**'
       - 'protobuf/pg19/**'
-      - 'protobuf/pg_query.proto'
-      - 'scripts/extract_headers.rb'
-      - 'scripts/generate_fingerprint_outfuncs.rb'
-      - 'pg_query.h'
-      - 'src/pg_query*.c'
-      - 'src/pg_query*.h'
-      - 'src/postgres_deparse.c'
-      - 'src/include/**'
-      - 'test/**'
-      - 'vendor/upb/**'
-      - 'vendor/xxhash/**'
-      - 'scripts/generate_protobuf_and_funcs.rb'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - '.github/workflows/pg19-reference.yml'
@@ -51,8 +27,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y bison flex clang ruby ruby-bundler protobuf-compiler python3-protobuf
       - run: python3 tools/pg19/tests/check-fixtures.py
       - run: /usr/bin/python3 tools/pg19/tests/check-schema.py
-      - run: cargo test --locked --workspace
-      - run: cargo test --locked --release -p pgsql-parser -p pgsql-syntax
       - run: cargo build --release --locked -p pg19-parser --example pg19-native -p pg19-operations --example deparse-corpus
       - run: cargo test --locked -p pg19-reference --test reference -- --ignored
         env:

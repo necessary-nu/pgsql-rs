@@ -1,6 +1,6 @@
 use pg19_codec::protobuf::statements_protobuf;
 use pg19_operations::deparse::{comments, protobuf_with_options, statements_with_options, Options};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn rendered(sql: &str, pretty: bool) -> Result<String, Box<dyn std::error::Error>> {
     let tree = pg19_parser::parse_statements(sql, Default::default())?;
@@ -22,7 +22,7 @@ fn rendered(sql: &str, pretty: bool) -> Result<String, Box<dyn std::error::Error
 
 #[test]
 fn compact_c_goldens() {
-    let corpus = include_str!("../../../test/deparse_tests.c");
+    let corpus = include_str!("../../../tools/pg19/libpg_query/test/deparse_tests.c");
     let mut failures = Vec::new();
     let mut count = 0;
     for (i, row) in corpus.lines().enumerate() {
@@ -44,30 +44,33 @@ fn compact_c_goldens() {
     );
 }
 
+fn pretty_fixtures(dir: &Path) -> std::io::Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if entry.file_type()?.is_dir() {
+            files.extend(pretty_fixtures(&path)?);
+        } else if matches!(
+            path.extension().and_then(|ext| ext.to_str()),
+            Some("sql" | "psql")
+        ) {
+            files.push(path);
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
 #[test]
 fn pretty_c_goldens() {
-    let suite = include_str!("../../../test/deparse.c");
-    let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../test/sql");
+    let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/pg19/libpg_query/test/sql");
     let mut failures = Vec::new();
-    for (array, subdir) in [
-        ("deparseFilenames", "deparse"),
-        ("deparseDepeszFilenames", "deparse-depesz"),
-    ] {
-        let start = format!("const char* {array}[] =");
-        let rows = suite
-            .split_once(&start)
-            .unwrap()
-            .1
-            .split_once("};")
-            .unwrap()
-            .0;
-        for row in rows.lines().map(str::trim).filter(|s| s.starts_with('"')) {
-            let file = serde_json::Deserializer::from_str(row)
-                .into_iter::<String>()
-                .next()
-                .unwrap()
-                .unwrap();
-            let sql = std::fs::read_to_string(base.join(subdir).join(&file)).unwrap();
+    for (suite, count) in [("deparse", 15), ("deparse-depesz", 141)] {
+        let files = pretty_fixtures(&base.join(suite)).unwrap();
+        assert_eq!(files.len(), count, "fixture count for {suite}");
+        for file in files {
+            let sql = std::fs::read_to_string(&file).unwrap();
             for span in pg19_operations::split_with_scanner(&sql).unwrap() {
                 let expected = &sql[span.clone()];
                 let actual = rendered(expected, true).unwrap_or_else(|error| error.to_string());
