@@ -5,6 +5,10 @@ use pgsql_nodes::{
 use pgsql_plpgsql::{compile_routines, parse_routines, NativeSql, Options, Routine, RoutineError};
 use serde_json::{json, Value};
 
+const SAMPLE_SQL: &str = include_str!("../../../tools/pg19/plpgsql/fixtures/plpgsql_samples.sql");
+const SAMPLE_TREE: &str =
+    include_str!("../../../tools/pg19/plpgsql/fixtures/plpgsql_samples.expected.json");
+
 fn rows() -> impl Iterator<Item = Value> {
     include_str!("routines.jsonl")
         .lines()
@@ -238,13 +242,9 @@ fn native_entrypoint_matches_upstream_routines() {
 
 #[test]
 fn native_entrypoint_matches_the_complete_project_sample() {
-    let expected: Vec<Value> = serde_json::from_str(include_str!(
-        "../../../tools/pg19/libpg_query/test/plpgsql_samples.expected.json"
-    ))
-    .unwrap();
-    let sql = include_str!("../../../tools/pg19/libpg_query/test/plpgsql_samples.sql");
+    let expected: Vec<Value> = serde_json::from_str(SAMPLE_TREE).unwrap();
     assert_eq!(
-        outcome(parse_routines(sql, Options::default())),
+        outcome(parse_routines(SAMPLE_SQL, Options::default())),
         json!({"functions":expected,"error":null})
     );
 }

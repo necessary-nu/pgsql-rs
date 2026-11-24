@@ -31,6 +31,6 @@ cargo test --locked --workspace
 
 The workspace tests use `protoc` for wire-format checks. The public parser and syntax crates build from the checked-in grammar and schema.
 
-The release importer, compatibility patches, C reference inputs and benchmarks live in `tools/pg19/`. The PG19 protobuf schema and its wire compatibility report live in `protobuf/pg19/`. [Grammar maintenance](tools/pg19/README.md) · [Schema history](protobuf/pg19/README.md) · [Rust and C benchmarks](tools/pg19/README.md#compare-native-parser-performance-with-c)
+The release importer, comparison probes and benchmarks live in `tools/pg19/`. Running the optional reference import checks out pinned libpg_query sources and builds PostgreSQL in the supplied work directory. The PG19 protobuf schema and its wire compatibility report live in `protobuf/pg19/`. [Grammar maintenance](tools/pg19/README.md) · [Schema history](protobuf/pg19/README.md) · [Rust and C benchmarks](tools/pg19/README.md#compare-native-parser-performance-with-c)
 
 The workspace includes code from PostgreSQL, libpg_query and pg_query.rs. [PostgreSQL license](LICENSE-PostgreSQL) · [libpg_query license](LICENSE) · [pgsql-syntax license](crates/pgsql-syntax/LICENSE)

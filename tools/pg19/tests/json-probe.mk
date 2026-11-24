@@ -1,4 +1,3 @@
-libpg_query = $(repo)/tools/pg19/libpg_query
 # Included after the patched PostgreSQL backend's configured Makefile.
 $(work)/json-probe.o: $(repo)/tools/pg19/tests/json-probe.c
 	$(COMPILE.c) $< -o $@

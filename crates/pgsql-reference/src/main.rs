@@ -222,6 +222,9 @@ fn main() -> Result<()> {
             let dir = fresh_directory(Path::new(parent))?;
             eprintln!("PostgreSQL 19.0 reference directory: {}", dir.display());
             let tarball = get_archive(&dir, archive.first())?;
+            run(Command::new("sh")
+                .arg(Path::new(TOOLS).join("prepare-libpg-query.sh"))
+                .arg(&dir))?;
             for flavor in FLAVORS {
                 build_probe(&dir, &tarball, flavor)?;
             }

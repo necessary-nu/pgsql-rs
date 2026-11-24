@@ -114,7 +114,7 @@ assertions (
     {id delivery.workspace, kind @complete, author "brendan@necessary.nu", at 2026-11-23T12:41:09.266712284Z}
     {id delivery.workspace-audit, kind @complete, author "brendan@necessary.nu", at 2026-11-23T13:27:17.055946229Z}
     {id delivery.crate-names, kind @complete, author "brendan@necessary.nu", at 2026-11-24T11:07:09.321938416Z}
-    {id delivery.external-reference, kind @doing, author "brendan@necessary.nu", at 2026-11-24T11:09:01.55772949Z}
+    {id delivery.external-reference, kind @complete, author "brendan@necessary.nu", at 2026-11-24T11:15:08.089046228Z}
 )
 
 impl_evidence (

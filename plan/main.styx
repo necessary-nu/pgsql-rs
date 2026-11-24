@@ -853,12 +853,27 @@ children (
                 title "Build the C reference from pinned upstream source outside the Rust checkout"
                 kind @refactor
                 deps (delivery.workspace-audit delivery.crate-names)
+                sealed true
                 log (
                     {
                         at 2026-11-24T11:09:01.55772949Z
                         author "brendan@necessary.nu"
                         kind @status
                         text "Todo → Doing (nplan start)"
+                    }
+
+                    {
+                        at 2026-11-24T11:14:51.625157363Z
+                        author "brendan@necessary.nu"
+                        kind @decision
+                        text "The reference importer checks out libpg_query at 27112f8 into the import directory and patches its four Ruby generators. Native Cargo tests own their SQL and expected results. Their upstream comparison checks the copied fixtures against the pinned revision."
+                    }
+
+                    {
+                        at 2026-11-24T11:15:08.089046228Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Doing → Done (nplan complete)"
                     }
                 )
             }

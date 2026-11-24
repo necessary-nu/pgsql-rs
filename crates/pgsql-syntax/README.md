@@ -4,7 +4,7 @@ This crate ports the pg_query.rs 18.1.0 API to the native Rust `pgsql-parser` ba
 
 ```toml
 [dependencies]
-pgsql-syntax = { path = "path/to/libpg_query/crates/pgsql-syntax" }
+pgsql-syntax = { path = "path/to/pgsql-rs/crates/pgsql-syntax" }
 ```
 
 ```rust

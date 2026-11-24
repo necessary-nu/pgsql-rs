@@ -1,4 +1,4 @@
-use super::{projected_type, raw};
+use super::{projected_type, raw, SAMPLE_SQL, SAMPLE_TREE};
 use pgsql_plpgsql::{
     compile_routines, Builtin, CompileError, DataType, EmbeddedSql, NativeSql, Options, ParseMode,
 };
@@ -51,12 +51,22 @@ impl EmbeddedSql for SqlReference {
 #[ignore = "uses PG19 reference SQL trees and types to isolate native PL/pgSQL body actions"]
 fn compare_project_sample_routines() {
     let run = PathBuf::from(std::env::var_os("PG19_REFERENCE_DIR").unwrap());
-    let sample = include_str!("../../../../tools/pg19/libpg_query/test/plpgsql_samples.sql");
-    let expected: Vec<Value> = serde_json::from_str(include_str!(
-        "../../../../tools/pg19/libpg_query/test/plpgsql_samples.expected.json"
-    ))
-    .unwrap();
-    let signatures = query(&run.join("plpgsql-probe"), &["--routine-inputs", sample]);
+    let upstream = run.join("libpg_query/test");
+    for (name, fixture) in [
+        ("plpgsql_samples.sql", SAMPLE_SQL),
+        ("plpgsql_samples.expected.json", SAMPLE_TREE),
+    ] {
+        let original = std::fs::read_to_string(upstream.join(name)).unwrap();
+        assert_eq!(
+            fixture, original,
+            "offline fixture differs from upstream: {name}"
+        );
+    }
+    let expected: Vec<Value> = serde_json::from_str(SAMPLE_TREE).unwrap();
+    let signatures = query(
+        &run.join("plpgsql-probe"),
+        &["--routine-inputs", SAMPLE_SQL],
+    );
     let signatures = signatures.as_array().unwrap();
     assert_eq!(expected.len(), signatures.len());
     let mut sql = SqlReference { run };

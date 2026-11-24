@@ -16,10 +16,10 @@ def c_string(expr):
     return "".join(ast.literal_eval(m[0]) for m in re.finditer(STRING, expr))
 
 
-def original_inputs():
+def original_inputs(upstream):
     # Backslash-newline splicing precedes C tokenization. These tests use only
     # string literals or local names assigned concatenated string literals.
-    code = (ROOT / "tools/pg19/libpg_query/test/summary_tests.c").read_text().replace("\\\n", "")
+    code = (upstream / "test/summary_tests.c").read_text().replace("\\\n", "")
     functions = list(re.finditer(r"^void (\w+)\(TestState\* test_state\)", code, re.M))
     assignments = rf'\b(?P<var>sql|query)\s*=\s*(?P<value>{LITERALS})\s*;'
     calls = rf'\bsummary(?:_internal)?\(\s*(?P<arg>{LITERALS}|sql|query)\s*,\s*0\s*,\s*-1\s*\)'
@@ -41,8 +41,8 @@ def original_inputs():
             raise ValueError(f"unknown summary fixture syntax in {function[1]}")
 
 
-def inputs():
-    yield from original_inputs()
+def inputs(upstream):
+    yield from original_inputs(upstream)
     yield from [
         ("qualified-function-and-filter", 0, "SELECT s.f(a) FROM s.t WHERE s.t.a = 1"),
         ("nested-filter-only", 0, "SELECT * FROM t WHERE a = (SELECT b FROM u WHERE c = 1)"),
@@ -60,8 +60,8 @@ def inputs():
     ]
 
 
-def truncation_inputs():
-    code = (ROOT / "tools/pg19/libpg_query/test/summary_truncate.c").read_text().replace("\\\n", "")
+def truncation_inputs(upstream):
+    code = (upstream / "test/summary_truncate.c").read_text().replace("\\\n", "")
     functions = list(re.finditer(r"\bvoid\s+(\w+)\(TestState \* test_state\)", code))
     for i, function in enumerate(functions):
         body = code[function.end():functions[i+1].start() if i+1 < len(functions) else len(code)]
@@ -123,11 +123,11 @@ def truncation_inputs():
     yield "escaped-quote-disabled", 0, r"SELECT E'it\'s'", 40, 16, None
 
 
-def snapshot(probe):
+def snapshot(probe, upstream):
     rows = []
     for name, mode, sql, limit, flags, wanted_text in [
-        *((name, mode, sql, -1, 0, None) for name, mode, sql in inputs()),
-        *truncation_inputs()
+        *((name, mode, sql, -1, 0, None) for name, mode, sql in inputs(upstream)),
+        *truncation_inputs(upstream)
     ]:
         args = [probe, str(mode), str(limit), str(flags)]
         result = subprocess.run(args, input=sql.encode(), capture_output=True)
@@ -153,8 +153,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("probe", type=Path)
     parser.add_argument("--write", action="store_true", help="replace the pinned snapshots")
+    parser.add_argument("--import", dest="run", type=Path, help="reference import if the probe is outside RUN/summary")
     args = parser.parse_args()
-    rows = snapshot(args.probe.resolve())
+    probe = args.probe.resolve()
+    rows = snapshot(probe, (args.run or probe.parent.parent) / "libpg_query")
     if args.write:
         SNAPSHOT.write_text("".join(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n" for row in rows))
     else:

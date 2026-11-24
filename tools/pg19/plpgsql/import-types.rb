@@ -1,13 +1,13 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative '../libpg_query/scripts/extract_pg_types'
 require 'optparse'
 require 'open3'
 
 write = false
 OptionParser.new { |opts| opts.on('--write') { write = true } }.parse!
 abort 'expected a completed PG19 reference import' unless ARGV.length == 1
+require File.expand_path('libpg_query/scripts/extract_pg_types', ARGV[0])
 include_dir = File.join(ARGV[0], 'patched/src/include')
 abort 'expected PG19.0' unless File.readlines(File.join(include_dir, 'pg_config.h')).any? { |line| line.strip == '#define PG_VERSION_NUM 190000' }
 rows = extract_pg_types(File.join(include_dir, 'catalog/postgres.bki')).sort_by { |r| r[:typname] }

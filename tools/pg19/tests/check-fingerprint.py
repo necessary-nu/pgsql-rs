@@ -9,13 +9,13 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def check(run, work):
     work = work.resolve()
-    subprocess.run(["ruby", ROOT / "tools/pg19/libpg_query/scripts/generate_fingerprint_outfuncs.rb"], cwd=work, check=True)
+    subprocess.run(["ruby", run.resolve() / "libpg_query/scripts/generate_fingerprint_outfuncs.rb"], cwd=work, check=True)
     subprocess.run(["python3", ROOT / "crates/pgsql-operations/generate-fingerprint.py",
-                    work, "--check"], check=True)
+                    work, "--libpg-query", run.resolve() / "libpg_query", "--check"], check=True)
     probe = work / "fingerprint-probe"
     subprocess.run(["make", "-s", "-C", run.resolve() / "patched/src/backend",
                     "-f", "Makefile", "-f", ROOT / "tools/pg19/tests/fingerprint-probe.mk",
-                    f"work={work}", f"repo={ROOT}", probe, work / "normalize-probe"], check=True)
+                    f"work={work}", f"repo={ROOT}", f"libpg_query={run.resolve() / 'libpg_query'}", probe, work / "normalize-probe"], check=True)
     subprocess.run(["python3", ROOT / "tools/pg19/tests/check-normalize.py",
                     work / "normalize-probe"], check=True)
     rows = (ROOT / "crates/pgsql-operations/tests/fingerprint-v3.jsonl").read_text().splitlines()

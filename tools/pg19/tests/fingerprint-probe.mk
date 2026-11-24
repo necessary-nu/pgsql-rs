@@ -1,4 +1,3 @@
-libpg_query = $(repo)/tools/pg19/libpg_query
 pgq_fingerprint_includes = -I$(work)/src/include -I$(libpg_query)/src/include -I$(libpg_query)/src -I$(libpg_query)/vendor -I$(libpg_query)
 $(work)/fingerprint-probe.o: $(repo)/tools/pg19/tests/fingerprint-probe.c $(libpg_query)/src/pg_query_fingerprint.c $(repo)/tools/pg19/tests/fingerprint-probe.mk $(work)/src/include/pg_query_fingerprint_defs.c $(work)/src/include/pg_query_fingerprint_conds.c $(work)/src/include/pg_query_enum_defs.c
 	$(COMPILE.c) -fvisibility=hidden -ffunction-sections -Wno-unused-function $(pgq_fingerprint_includes) $< -o $@

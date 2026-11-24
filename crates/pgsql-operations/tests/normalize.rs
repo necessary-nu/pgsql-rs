@@ -7,7 +7,10 @@ use serde_json::Value;
 // [spec:pgq:req:normalize.utility/test]
 #[test]
 fn pg19_normalization_matches_in_both_modes() {
-    for row in include_str!("normalize.jsonl").lines() {
+    for row in include_str!("normalize.jsonl")
+        .lines()
+        .chain(include_str!("normalize-legacy.jsonl").lines())
+    {
         let case: Value = serde_json::from_str(row).unwrap();
         let sql = case["sql"].as_str().unwrap();
         assert_eq!(normalize(sql).unwrap(), case["full"], "{sql}");
@@ -16,41 +19,33 @@ fn pg19_normalization_matches_in_both_modes() {
 }
 
 #[test]
-fn original_c_normalization_vectors() {
-    let mut failures = Vec::new();
-    for (cases, utility) in [
-        (
-            include_str!("../../../tools/pg19/libpg_query/test/normalize_tests.c"),
-            false,
-        ),
-        (
-            include_str!("../../../tools/pg19/libpg_query/test/normalize_utility_tests.c"),
-            true,
-        ),
+#[ignore = "compares the offline vectors with a pinned libpg_query checkout"]
+fn offline_normalization_vectors_match_upstream() {
+    let run = std::env::var_os("PG19_REFERENCE_DIR").expect("PG19_REFERENCE_DIR");
+    let upstream = std::path::PathBuf::from(run).join("libpg_query/test");
+    let cases: Vec<Value> = include_str!("normalize-legacy.jsonl")
+        .lines()
+        .map(|row| serde_json::from_str(row).unwrap())
+        .collect();
+    for (file, mode) in [
+        ("normalize_tests.c", "full"),
+        ("normalize_utility_tests.c", "utility"),
     ] {
-        let strings: Vec<String> = cases
+        let source = std::fs::read_to_string(upstream.join(file)).unwrap();
+        let strings: Vec<String> = source
             .lines()
             .map(str::trim)
-            .filter(|s| s.starts_with('"'))
-            .map(|s| serde_json::from_str(s.trim_end_matches(',')).unwrap())
+            .filter(|line| line.starts_with('"'))
+            .map(|line| serde_json::from_str(line.trim_end_matches(',')).unwrap())
             .collect();
         let (pairs, trailing) = strings.as_chunks::<2>();
-        assert!(
-            trailing.is_empty(),
-            "normalization fixture needs an expected result"
-        );
-        for [input, expected] in pairs {
-            let got = if utility {
-                normalize_utility(input)
-            } else {
-                normalize(input)
-            };
-            if got.as_ref().ok() != Some(expected) {
-                failures.push(format!("{input}: {got:?} vs {expected:?}"));
-            }
+        assert!(trailing.is_empty(), "{file}");
+        assert_eq!(pairs.len(), cases.len(), "{file}");
+        for ([sql, expected], case) in pairs.iter().zip(&cases) {
+            assert_eq!(sql, &case["sql"], "{file}");
+            assert_eq!(expected, &case[mode], "{file}");
         }
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 #[test]

@@ -25,7 +25,7 @@ and compiler with the repository's `pg_query_parse_plpgsql` entry point
 and `plpgsqlToJSON` writer. The builder invokes the PG19 PL/pgSQL makefile
 to generate the procedural-language headers and objects. It compiles
 temporary copies of the catalog-dependent functions using the inline
-replacements in [build.py](build.py) and the [libpg_query mocks](../libpg_query/scripts/mocks).
+replacements in [build.py](build.py) and the catalog mocks in `$run/libpg_query/scripts/mocks`.
 It exposes the compiler callback to the same synthetic `pg_proc`
 tuple used by libpg_query. The built-in type table comes from the PG19
 build's `postgres.bki`, type OID and collation headers. Compiled bodies are
@@ -33,7 +33,7 @@ inspected without executing SQL, starting a server or connecting to a
 catalog. SQL-language functions and non-PL/pgSQL DO bodies have the
 empty-datum function placeholder produced by the libpg_query entry point.
 
-The checker compares all 30 routines in [the sample SQL](../libpg_query/test/plpgsql_samples.sql) with
+The checker compares all 30 routines in [the sample SQL](fixtures/plpgsql_samples.sql) with
 the original expected JSON. The 12 additional cases cover procedures, DO,
 SQL-only input, declaration order, trigger NEW/OLD record fields, error
 context and cursors, and PG19 `WAIT` and `REPACK` inside a body. Four cases
@@ -117,7 +117,7 @@ test also exercises the same native PL compiler with external SQL inputs. The PG
 the outer routine inputs, parsed type names and validation of embedded
 SQL. Rust builds each routine's datums, statements, expressions and
 JSON. The test checks all 30 resulting trees against the corresponding
-elements of [the expected sample tree](../libpg_query/test/plpgsql_samples.expected.json).
+elements of [the expected sample tree](fixtures/plpgsql_samples.expected.json).
 
 ```sh
 PG19_REFERENCE_DIR="$run" cargo test -p pgsql-plpgsql --test routines compare_project_sample_routines -- --ignored --nocapture

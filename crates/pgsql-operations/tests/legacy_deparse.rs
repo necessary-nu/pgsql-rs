@@ -24,21 +24,18 @@ fn rendered(sql: &str, pretty: bool) -> Result<String, Box<dyn std::error::Error
 
 #[test]
 fn compact_c_goldens() {
-    let corpus = include_str!("../../../tools/pg19/libpg_query/test/deparse_tests.c");
+    let corpus = include_str!("compact-deparse.jsonl");
     let mut failures = Vec::new();
     let mut count = 0;
     for (i, row) in corpus.lines().enumerate() {
-        let row = row.trim();
-        if row.starts_with('"') {
-            let expected: String = serde_json::from_str(row.trim_end_matches(',')).unwrap();
-            let actual = rendered(&expected, false).unwrap_or_else(|error| error.to_string());
-            if actual != expected {
-                failures.push((i + 1, expected, actual));
-            }
-            count += 1;
+        let expected: String = serde_json::from_str(row).unwrap();
+        let actual = rendered(&expected, false).unwrap_or_else(|error| error.to_string());
+        if actual != expected {
+            failures.push((i + 1, expected, actual));
         }
+        count += 1;
     }
-    assert!(count >= 448);
+    assert_eq!(count, 448);
     assert!(
         failures.is_empty(),
         "{} differences: {failures:#?}",
@@ -66,7 +63,7 @@ fn pretty_fixtures(dir: &Path) -> std::io::Result<Vec<PathBuf>> {
 
 #[test]
 fn pretty_c_goldens() {
-    let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tools/pg19/libpg_query/test/sql");
+    let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/sql");
     let mut failures = Vec::new();
     for (suite, count) in [("deparse", 15), ("deparse-depesz", 141)] {
         let files = pretty_fixtures(&base.join(suite)).unwrap();
@@ -87,4 +84,34 @@ fn pretty_c_goldens() {
         "{} differences: {failures:#?}",
         failures.len()
     );
+}
+
+#[test]
+#[ignore = "compares the offline SQL with a pinned libpg_query checkout"]
+fn offline_deparse_inputs_match_upstream() {
+    let run = std::env::var_os("PG19_REFERENCE_DIR").expect("PG19_REFERENCE_DIR");
+    let upstream = PathBuf::from(run).join("libpg_query/test");
+    let source = std::fs::read_to_string(upstream.join("deparse_tests.c")).unwrap();
+    let expected: Vec<String> = source
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.starts_with('"'))
+        .map(|line| serde_json::from_str(line.trim_end_matches(',')).unwrap())
+        .collect();
+    let offline: Vec<String> = include_str!("compact-deparse.jsonl")
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(offline, expected);
+
+    let local = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/sql");
+    for file in pretty_fixtures(&local).unwrap() {
+        let name = file.strip_prefix(&local).unwrap();
+        assert_eq!(
+            std::fs::read(&file).unwrap(),
+            std::fs::read(upstream.join("sql").join(name)).unwrap(),
+            "{}",
+            name.display()
+        );
+    }
 }

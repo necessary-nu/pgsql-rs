@@ -12,18 +12,18 @@ AlterRoleStmt DeclareCursorStmt CreateFunctionStmt DoStmt CreateSubscriptionStmt
 AlterSubscriptionStmt CreateUserMappingStmt AlterUserMappingStmt NotifyStmt""".split()
 
 
-def summary_tags():
-    source = (ROOT / "tools/pg19/libpg_query/src/pg_query_summary_statement_type.c").read_text()
+def summary_tags(libpg_query):
+    source = (libpg_query / "src/pg_query_summary_statement_type.c").read_text()
     statements = set(re.findall(r'add_stmt_type_if_needed\(summary, "(\w+)"\)', source))
     statements.remove("ClusterStmt")
     statements.update(("RepackStmt", "WaitStmt"))
-    entities = (ROOT / "tools/pg19/libpg_query/src/pg_query_summary.c").read_text()
+    entities = (libpg_query / "src/pg_query_summary.c").read_text()
     visited = set(re.findall(r"case T_(\w+):", entities))
-    supported = set(re.findall(r"case T_(\w+):", (ROOT / "tools/pg19/libpg_query/src/pg_query_raw_tree_walker_supports.c").read_text()))
+    supported = set(re.findall(r"case T_(\w+):", (libpg_query / "src/pg_query_raw_tree_walker_supports.c").read_text()))
     return statements, visited, supported
 
 
-def generate(source):
+def generate(source, libpg_query):
     model = (ROOT / "crates/pgsql-nodes/src/nodes.in").read_text()
     records = {}
     for native, pg, fields in re.findall(r'        (\w+) \(\d+, "(\w+)"\) \{(.*?)\n        \}', model, re.S):
@@ -32,7 +32,7 @@ def generate(source):
     source = source.split("raw_expression_tree_walker_impl(Node *node,")[1].split("\n\t\tdefault:")[0]
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
     parts = re.split(r"case T_(\w+):", source)
-    statements, visited, supported = summary_tags()
+    statements, visited, supported = summary_tags(libpg_query)
     nodes = {pg: [] for pg in set(UTILITY + ["CaseWhen"]) | ((statements | visited) & records.keys())}
     for pg, body in zip(parts[1::2], parts[2::2]):
         if pg == "List":
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     parser.add_argument("run", type=Path, help="PG19 import directory")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    code = generate((args.run / "patched-source/src/backend/nodes/nodeFuncs.c").read_text())
+    code = generate((args.run / "patched-source/src/backend/nodes/nodeFuncs.c").read_text(), args.run / "libpg_query")
     if args.check:
         if OUTPUT.read_text() != code:
             parser.exit(1, f"{OUTPUT} differs from the PG19 raw walker\n")

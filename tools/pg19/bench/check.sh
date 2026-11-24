@@ -43,7 +43,7 @@ if [ -z "$schema" ]; then
     exit 1
 fi
 make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk" \
-    "repo=$repo" "schema=$schema" "work=$work" "$work/bench-c"
+    "repo=$repo" "libpg_query=$pgimport/libpg_query" "schema=$schema" "work=$work" "$work/bench-c"
 {
     "${RUSTC:-rustc}" -vV
     cargo -V

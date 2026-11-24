@@ -1,4 +1,3 @@
-libpg_query = $(repo)/tools/pg19/libpg_query
 $(work)/bench.o: $(repo)/tools/pg19/bench/bench.c force-bench-relink
 	$(COMPILE.c) $< -o $@
 $(work)/writer.o: $(libpg_query)/src/pg_query_outfuncs_json.c force-bench-relink

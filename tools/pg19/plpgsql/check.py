@@ -6,7 +6,6 @@ import subprocess
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LIBPG_QUERY = HERE.parent / "libpg_query"
 FIXTURES = HERE / "fixtures"
 
 
@@ -28,8 +27,8 @@ def evaluate(probe, queries):
 
 
 def compare(run, probe):
-    sample = (LIBPG_QUERY / "test/plpgsql_samples.sql").read_text()
-    sample_tree = json.loads((LIBPG_QUERY / "test/plpgsql_samples.expected.json").read_bytes())
+    sample = (run / "libpg_query/test/plpgsql_samples.sql").read_text()
+    sample_tree = json.loads((run / "libpg_query/test/plpgsql_samples.expected.json").read_bytes())
     cases = list(inputs(run))
     # A valid routine follows all deliberate failures in the same process.
     values = evaluate(probe, [sql for name, sql in cases] + [sample])

@@ -4,7 +4,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from extract import HERE, LIBPG_QUERY, fixture_rows, line, source_spans
+from extract import HERE, fixture_rows, line, source_spans
 from probes import capture, compare
 
 
@@ -49,14 +49,14 @@ SELECT 'open"""
     assert list(source_spans(helper, b"x\x00y")) == [("nul-file", 0, 3)]
 
 
-def check_fixture_decoder():
+def check_fixture_decoder(run):
     src = br'''const char* tests[] = {
       "SELECT " /* concatenate */ "'a\\n'", "expected", NULL
     };'''
     row, = fixture_rows(Path("test/parse_tests.c"), src)
     assert row["sql"] == r"SELECT 'a\n'"
     assert src[row["start"]:row["end"]].endswith(br'''"'a\\n'"''')
-    cases = list(fixture_rows(Path("parse_opts_tests.c"), (LIBPG_QUERY / "test/parse_opts_tests.c").read_bytes()))
+    cases = list(fixture_rows(Path("parse_opts_tests.c"), (run / "libpg_query/test/parse_opts_tests.c").read_bytes()))
     assert {r["mode"] for r in cases} == {
         "default", "type-name", "plpgsql-expr", "plpgsql-assign1", "plpgsql-assign2", "plpgsql-assign3",
     }
@@ -84,5 +84,5 @@ if __name__ == "__main__":
         helper = out / "boundaries"
         subprocess.run(["sh", HERE / "build-boundaries.sh", args.run, helper], check=True)
         check_boundaries(helper)
-        check_fixture_decoder()
+        check_fixture_decoder(args.run)
         check_comparator(args.run, out)

@@ -1,6 +1,5 @@
 """Check original normalization vectors and PG19-specific cases against the C operation."""
 import argparse
-import ast
 import json
 import subprocess
 from pathlib import Path
@@ -8,21 +7,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def legacy(mode):
-    filename = "normalize_tests.c" if mode == "full" else "normalize_utility_tests.c"
-    strings = [ast.literal_eval(line.strip().removesuffix(",")) for line in
-               (ROOT / "tools/pg19/libpg_query/test" / filename).read_text().splitlines() if line.lstrip().startswith('"')]
-    if len(strings) % 2:
-        raise ValueError(f"incomplete fixture in {filename}")
-    return dict(zip(strings[::2], strings[1::2]))
-
-
 def check(probe):
+    fixtures = ROOT / "crates/pgsql-operations/tests"
     for mode in ["full", "utility"]:
-        vectors = legacy(mode)
-        for line in (ROOT / "crates/pgsql-operations/tests/normalize.jsonl").read_text().splitlines():
-            row = json.loads(line)
-            vectors[row["sql"]] = row[mode]
+        vectors = {}
+        for file in ["normalize-legacy.jsonl", "normalize.jsonl"]:
+            for line in (fixtures / file).read_text().splitlines():
+                row = json.loads(line)
+                vectors[row["sql"]] = row[mode]
         for sql, expected in vectors.items():
             result = subprocess.run([probe, mode], input=sql.encode(), capture_output=True, check=True)
             if result.stdout != expected.encode():

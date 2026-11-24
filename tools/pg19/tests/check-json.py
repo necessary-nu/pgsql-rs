@@ -13,7 +13,7 @@ def check(run, work):
     subprocess.run([
         "make", "-s", "-C", run.resolve() / "patched/src/backend",
         "-f", "Makefile", "-f", repo / "tools/pg19/tests/json-probe.mk",
-        f"repo={repo}", f"work={work}", probe,
+        f"repo={repo}", f"libpg_query={run.resolve() / 'libpg_query'}", f"work={work}", probe,
     ], check=True)
     cases = sorted((repo / "crates/pgsql-codec/tests").glob("*.sql"))
     if not cases:

@@ -1,4 +1,3 @@
-libpg_query = $(repo)/tools/pg19/libpg_query
 summary_includes = -I$(work) -I$(libpg_query) -I$(libpg_query)/src -I$(libpg_query)/src/include -I$(libpg_query)/vendor/upb -I$(libpg_query)/vendor/upb/third_party/utf8_range
 summary_flags = -fvisibility=hidden -Wno-declaration-after-statement -Wno-unused-function -ffunction-sections -fdata-sections $(summary_includes)
 

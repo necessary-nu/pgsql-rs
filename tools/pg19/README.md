@@ -12,7 +12,7 @@ The importer takes a work directory and an optional path to a local
 and local archives. Each invocation creates a fresh run directory and prints
 its path. Allow space for two source and build trees. The build uses Linux,
 a C toolchain with GNU-compatible linker wrapping, GNU make, Flex, Bison,
-Perl, tar with bzip2, GNU patch, sha256sum, and curl for downloads.
+Git, Perl, tar with bzip2, GNU patch, sha256sum, and curl for downloads.
 `PG19_JOBS` controls the number of build jobs per backend. The initial
 snapshots were verified with GCC 14.2, Bison 3.8.2 and Flex 2.6.4.
 
@@ -20,13 +20,18 @@ The run directory holds the original archive, `stock-source`, `patched-source`,
 and the `stock/probe` and `patched/probe` executables. Both source trees
 retain `gram.y`, `scan.l`, the parser lookahead code, and node and keyword
 headers. The patched tree uses the [PG19 compatibility series](patches/README.md).
-The libpg_query compatibility sources, generators and fixtures used by these checks live in [libpg_query/](libpg_query/).
+The importer also checks out libpg_query commit `27112f8af5de70368319a12c346c2fb37cd74476` into
+`$run/libpg_query` and applies the [generator changes](libpg_query.patch). It uses the
+workspace’s Git history when the commit is available and fetches from the public
+pganalyze repository otherwise. To run offline from a shallow checkout or source archive,
+set `LIBPG_QUERY_REPOSITORY` to a local Git repository containing the pinned commit and supply
+the PostgreSQL tarball. For an existing import that lacks `$run/libpg_query`, run
+`sh tools/pg19/prepare-libpg-query.sh "$run"` once.
 
 ### How upstream changes reach this repository
 
 The importer pins the official PostgreSQL release archive and overlays the reviewed
-patch series. The reference inputs under `libpg_query/` come from the project's
-18.6 baseline and subsequent compatibility changes. Git retains the original
+patch series. The imported libpg_query sources supply the 18.6 baseline for operation comparisons. Git retains the original
 extraction recipe at `27112f8:Makefile`.
 
 The scanner imports Flex's transitions and the keyword
@@ -101,7 +106,7 @@ runs the Rust tests. `python3 tools/pg19/tests/check-fixtures.py` checks
 stored outcomes and token boundaries without building the probes. CI also
 rebuilds both references when their inputs change. To run the full build through Cargo's test
 runner, use `cargo test -p pgsql-reference --test reference -- --ignored`. Set `PG19_ARCHIVE` to an
-already downloaded archive for an offline run. CI passes the release
+already downloaded PostgreSQL archive. The same local libpg_query source selection applies. CI passes the release
 `pgsql-native` executable as `PG19_NATIVE_PROBE` to this test. The test then
 captures both references across the full regression corpus, verifies the
 pinned digests and compares every patched outcome with Rust. CI also passes
@@ -148,7 +153,7 @@ The arguments are the fingerprint option bits and PostgreSQL raw parse mode.
 
 Normalization uses the patched raw expression walker's field order. After an
 upstream update, run `python3 tools/pg19/generate-raw-walk.py "$run"` and
-review the ordered child fields alongside [the C normalizer](libpg_query/src/pg_query_normalize.c).
+review the ordered child fields alongside [the C normalizer](https://github.com/pganalyze/libpg_query/blob/27112f8af5de70368319a12c346c2fb37cd74476/src/pg_query_normalize.c).
 The clean reference test runs the full and utility normalization fixtures
 against the C operation linked to PG19. The Rust tests exercise the same
 inputs through the native SQL parser.

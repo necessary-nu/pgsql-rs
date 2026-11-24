@@ -31,11 +31,13 @@ fn manifest(root: &Path, import: &Path, work: &Path, output: &Path) -> Result<()
         ));
     }
     for file in [
-        "tools/pg19/libpg_query/scripts/extract_headers.rb",
-        "tools/pg19/libpg_query/scripts/generate_protobuf_and_funcs.rb",
-        "tools/pg19/schema-diff.py",
-        "tools/pg19/libpg_query/protobuf/pg_query.proto",
+        "libpg_query/scripts/extract_headers.rb",
+        "libpg_query/scripts/generate_protobuf_and_funcs.rb",
+        "libpg_query/protobuf/pg_query.proto",
     ] {
+        inputs.push((file.to_owned(), import.join(file)));
+    }
+    for file in ["tools/pg19/schema-diff.py", "tools/pg19/libpg_query.patch"] {
         inputs.push((file.to_owned(), root.join(file)));
     }
     // These are the generator's parsed inputs, including the actual token enum
@@ -76,12 +78,12 @@ pub(super) fn generate(import: &Path) -> Result<PathBuf> {
     }
     run(Command::new("ruby")
         .current_dir(&work)
-        .arg(root.join("tools/pg19/libpg_query/scripts/extract_headers.rb"))
+        .arg(import.join("libpg_query/scripts/extract_headers.rb"))
         .arg(source)
         .arg(build))?;
     let generation = Command::new("ruby")
         .current_dir(&work)
-        .arg(root.join("tools/pg19/libpg_query/scripts/generate_protobuf_and_funcs.rb"))
+        .arg(import.join("libpg_query/scripts/generate_protobuf_and_funcs.rb"))
         .stderr(Stdio::inherit())
         .output()?;
     let diagnostics = String::from_utf8(generation.stdout)?;
@@ -94,7 +96,7 @@ pub(super) fn generate(import: &Path) -> Result<PathBuf> {
     }
     descriptor(&output, &output.join("pg_query.pb"))?;
     let baseline = work.join("pg18.pb");
-    descriptor(&tools.join("libpg_query/protobuf"), &baseline)?;
+    descriptor(&import.join("libpg_query/protobuf"), &baseline)?;
     run(Command::new("python3")
         .arg(tools.join("schema-diff.py"))
         .arg(baseline)

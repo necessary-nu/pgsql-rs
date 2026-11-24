@@ -40,7 +40,7 @@ baseline and generated outputs. The fifth file is this review.
 Decode payloads with the descriptor for the producer’s version. Both majors
 use the same package name and envelope, and reusing field numbers can silently
 decode a valid payload as a different node. The PG18.6 schema is in
-[the libpg_query reference inputs](../../tools/pg19/libpg_query/protobuf/pg_query.proto).
+[the libpg_query reference inputs](https://github.com/pganalyze/libpg_query/blob/27112f8af5de70368319a12c346c2fb37cd74476/protobuf/pg_query.proto).
 
 * The `Node` oneof grows from 271 to 273 arms. Field 235 changes from
   `ClusterStmt` to `VacuumStmt`. `RepackStmt` takes field 237,

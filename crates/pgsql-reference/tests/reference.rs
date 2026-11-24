@@ -117,6 +117,8 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
     assert!(Command::new("python3")
         .arg(tools.join("tests/check-summary.py"))
         .arg(summary.join("summary-probe"))
+        .arg("--import")
+        .arg(&run)
         .status()?
         .success());
     for generator in [
@@ -141,6 +143,8 @@ fn compare_both_references_from_a_clean_import() -> Result<()> {
         ("pgsql-grammar", "expressions"),
         ("pgsql-grammar", "utility"),
         ("pgsql-reference", "native_tree"),
+        ("pgsql-operations", "normalize"),
+        ("pgsql-operations", "legacy_deparse"),
     ] {
         assert!(
             Command::new(env!("CARGO"))

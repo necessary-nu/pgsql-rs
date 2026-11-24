@@ -6,8 +6,6 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LIBPG_QUERY = HERE.parent / "libpg_query"
-MOCKS = LIBPG_QUERY / "scripts/mocks"
 PL = Path("src/pl/plpgsql/src")
 BACKEND = Path("src/backend")
 
@@ -50,12 +48,12 @@ def function(text, name):
     return match
 
 
-def adapt(source, relative, work):
+def adapt(source, relative, work, mocks):
     original = (source / relative).read_text()
     for name, body in ADAPTERS[relative].items():
         target = function(original, name)
         if body is None:
-            template = (MOCKS / (name + ".c")).read_text()
+            template = (mocks / (name + ".c")).read_text()
             replacement = function(template, name).group().split("\n{", 1)[1]
         else:
             replacement = "\n" + body + "\n}"
@@ -73,21 +71,22 @@ def adapt(source, relative, work):
 
 
 def build(run, work):
+    libpg_query = run / "libpg_query"
     source, build = run / "patched-source", run / "patched"
     if '#define PG_VERSION_NUM 190000' not in (build / "src/include/pg_config.h").read_text().splitlines():
         raise ValueError("expected the patched PG19.0 import")
     subprocess.run(["make", "-s", "-j4", "-C", build / PL, "all"], check=True)
     cat = build / "src/include/catalog"
-    subprocess.run(["ruby", LIBPG_QUERY / "scripts/extract_pg_types.rb",
+    subprocess.run(["ruby", libpg_query / "scripts/extract_pg_types.rb",
                     cat, work / "pg_query_pg_type.c"], check=True)
     # The public 18.6 API header also carries release constants. The probe
     # uses its declarations with the configured 19.0 backend constants.
-    api = (LIBPG_QUERY / "pg_query.h").read_text()
+    api = (libpg_query / "pg_query.h").read_text()
     api = re.sub(r"^#define (?:PG_MAJORVERSION|PG_VERSION|PG_VERSION_NUM) .+$", "", api, flags=re.M)
     (work / "pg_query.h").write_text(api)
-    units = [adapt(source, relative, work) for relative in ADAPTERS]
-    units += [HERE / "probe.c", HERE / "routine-inputs.c", LIBPG_QUERY / "src/pg_query_parse_plpgsql.c", LIBPG_QUERY / "src/pg_query_json_plpgsql.c"]
-    flags = [work, LIBPG_QUERY, LIBPG_QUERY / "src", LIBPG_QUERY / "src/include", source / PL, build / PL]
+    units = [adapt(source, relative, work, libpg_query / "scripts/mocks") for relative in ADAPTERS]
+    units += [HERE / "probe.c", HERE / "routine-inputs.c", libpg_query / "src/pg_query_parse_plpgsql.c", libpg_query / "src/pg_query_json_plpgsql.c"]
+    flags = [work, libpg_query, libpg_query / "src", libpg_query / "src/include", source / PL, build / PL]
     # Preserve quoted includes of sibling/generator headers in copied source files.
     flags += sorted({root / f.parent for root in [source, build] for f in ADAPTERS})
     makefile = ["include Makefile", ".PHONY: plpgsql-reference",
