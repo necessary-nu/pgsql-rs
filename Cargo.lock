@@ -206,101 +206,97 @@ dependencies = [
 ]
 
 [[package]]
-name = "pg19-codec"
+name = "pgsql-codec"
 version = "0.1.0"
 dependencies = [
  "itoa",
- "pg19-engine",
- "pg19-lexer",
- "pg19-nodes",
- "pg19-tables",
+ "pgsql-engine",
+ "pgsql-lexer",
+ "pgsql-nodes",
+ "pgsql-tables",
  "prost-reflect",
  "serde_json",
 ]
 
 [[package]]
-name = "pg19-engine"
+name = "pgsql-engine"
 version = "0.1.0"
 dependencies = [
- "pg19-lexer",
- "pg19-nodes",
- "pg19-tables",
+ "pgsql-lexer",
+ "pgsql-nodes",
+ "pgsql-tables",
  "serde_json",
 ]
 
 [[package]]
-name = "pg19-lexer"
+name = "pgsql-grammar"
+version = "0.1.0"
+dependencies = [
+ "allocator-api2",
+ "bumpalo",
+ "itoa",
+ "pgsql-engine",
+ "pgsql-lexer",
+ "pgsql-nodes",
+ "pgsql-reference",
+ "pgsql-tables",
+ "serde_json",
+]
+
+[[package]]
+name = "pgsql-lexer"
 version = "0.1.0"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
-name = "pg19-nodes"
+name = "pgsql-nodes"
 version = "0.1.0"
 
 [[package]]
-name = "pg19-operations"
+name = "pgsql-operations"
 version = "0.1.0"
 dependencies = [
- "pg19-codec",
- "pg19-lexer",
- "pg19-nodes",
- "pg19-parser",
+ "pgsql-codec",
+ "pgsql-grammar",
+ "pgsql-lexer",
+ "pgsql-nodes",
  "prost 0.14.6",
  "serde_json",
  "xxhash-rust",
 ]
 
 [[package]]
-name = "pg19-parser"
-version = "0.1.0"
-dependencies = [
- "allocator-api2",
- "bumpalo",
- "itoa",
- "pg19-engine",
- "pg19-lexer",
- "pg19-nodes",
- "pg19-reference",
- "pg19-tables",
- "serde_json",
-]
-
-[[package]]
-name = "pg19-plpgsql"
-version = "0.1.0"
-dependencies = [
- "pg19-engine",
- "pg19-lexer",
- "pg19-nodes",
- "pg19-parser",
- "pg19-tables",
- "serde_json",
-]
-
-[[package]]
-name = "pg19-reference"
-version = "0.1.0"
-dependencies = [
- "pg19-nodes",
- "serde_json",
-]
-
-[[package]]
-name = "pg19-tables"
-version = "0.1.0"
-
-[[package]]
 name = "pgsql-parser"
 version = "0.1.0"
 dependencies = [
- "pg19-codec",
- "pg19-lexer",
- "pg19-nodes",
- "pg19-operations",
- "pg19-parser",
- "pg19-plpgsql",
+ "pgsql-codec",
+ "pgsql-grammar",
+ "pgsql-lexer",
+ "pgsql-nodes",
+ "pgsql-operations",
+ "pgsql-plpgsql",
+]
+
+[[package]]
+name = "pgsql-plpgsql"
+version = "0.1.0"
+dependencies = [
+ "pgsql-engine",
+ "pgsql-grammar",
+ "pgsql-lexer",
+ "pgsql-nodes",
+ "pgsql-tables",
+ "serde_json",
+]
+
+[[package]]
+name = "pgsql-reference"
+version = "0.1.0"
+dependencies = [
+ "pgsql-nodes",
+ "serde_json",
 ]
 
 [[package]]
@@ -320,6 +316,10 @@ dependencies = [
  "serde_json",
  "thiserror",
 ]
+
+[[package]]
+name = "pgsql-tables"
+version = "0.1.0"
 
 [[package]]
 name = "pretty_assertions"

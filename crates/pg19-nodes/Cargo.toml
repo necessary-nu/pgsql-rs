@@ -1,6 +1,0 @@
-[package]
-name = "pg19-nodes"
-version = "0.1.0"
-edition.workspace = true
-publish.workspace = true
-license = "BSD-3-Clause AND PostgreSQL"

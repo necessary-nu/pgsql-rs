@@ -7,7 +7,7 @@ fn edit_and_deparse_pg19_wire_tree() {
     let mut parsed = parse("REPACK t USING INDEX i", 0).unwrap();
     assert_eq!(
         parsed.protobuf.encode_to_vec(),
-        include_bytes!("../../pg19-codec/tests/repack.pb")
+        include_bytes!("../../pgsql-codec/tests/repack.pb")
     );
     assert_eq!(parsed.ddl_tables(), ["t"]);
     assert_eq!(parsed.statement_types(), ["RepackStmt"]);

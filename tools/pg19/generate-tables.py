@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
 
-DEFAULT_DEST = Path(__file__).resolve().parents[2] / "crates/pg19-tables"
+DEFAULT_DEST = Path(__file__).resolve().parents[2] / "crates/pgsql-tables"
 BISON_VERSION = "3.8.2"
 ARRAYS = {
     "yytranslate": "H", "yypact": "i", "yydefact": "H",
@@ -185,7 +185,7 @@ def action_changes(old, new):
 
 def main():
     cli = argparse.ArgumentParser(description=__doc__)
-    cli.add_argument("source", type=Path, help="patched-source from pg19-reference import")
+    cli.add_argument("source", type=Path, help="patched-source from pgsql-reference import")
     cli.add_argument("--write", action="store_true", help="write regenerated artifacts after reporting drift")
     cli.add_argument("--dest", type=Path, default=DEFAULT_DEST, help="output crate directory")
     cli.add_argument("--plpgsql", action="store_true", help="regenerate PL/pgSQL grammar and keywords")

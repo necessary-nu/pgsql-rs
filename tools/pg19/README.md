@@ -4,7 +4,7 @@ Run this command from the repository root to build both C references and
 check the raw-parser corpus.
 
 ```sh
-cargo run -p pg19-reference -- import /tmp/pg19-runs
+cargo run -p pgsql-reference -- import /tmp/pg19-runs
 ```
 
 The importer takes a work directory and an optional path to a local
@@ -37,7 +37,7 @@ grammar actions and uses Bison's default reductions for the remaining rules.
 A release update therefore has reviewable diffs for
 syntax, actions and data layout. The stock and patched probes establish
 whether a behavioral change came from PostgreSQL or from the overlay.
-[Parser table regeneration](../../crates/pg19-tables/README.md)
+[Parser table regeneration](../../crates/pgsql-tables/README.md)
 
 ### Regenerating native record and utility actions
 
@@ -48,13 +48,13 @@ and `rustfmt`.
 ```sh
 python3 tools/pg19/generate-record-actions.py "$run/patched"
 python3 tools/pg19/generate-record-actions.py "$run/patched" --check
-PG19_REFERENCE_DIR="$run" cargo test -p pg19-parser --test utility -- --include-ignored
+PG19_REFERENCE_DIR="$run" cargo test -p pgsql-grammar --test utility -- --include-ignored
 ```
 
 The translator matches a complete C reduction against recognized allocation,
 field assignment, location, list and helper-call forms. It uses the generated
 Rust node definitions for the field types. It emits `records.tsv` and
-`src/records.in` in `crates/pg19-parser`. Handwritten family actions override
+`src/records.in` in `crates/pgsql-grammar`. Handwritten family actions override
 generated fallbacks. A new or changed action requires a reviewed mapping
 before the complete-inventory test passes. The corpus comparison identifies
 SQL inputs that reach an unmapped reduction.
@@ -69,7 +69,7 @@ input or recheck an existing build.
 "$run/patched/probe" 'SET ROLE $1;'
 "$run/patched/probe" 'character varying(32)' --mode type-name
 "$run/stock/probe" 'v.x := 1' --mode plpgsql-assign2 --backslash-quote off
-cargo run -p pg19-reference -- compare "$run"
+cargo run -p pgsql-reference -- compare "$run"
 ```
 
 Pass the SQL as the first argument, including when it starts with a dash.
@@ -100,9 +100,9 @@ when a production or its upstream C action changes.
 runs the Rust tests. `python3 tools/pg19/tests/check-fixtures.py` checks
 stored outcomes and token boundaries without building the probes. CI also
 rebuilds both references when their inputs change. To run the full build through Cargo's test
-runner, use `cargo test -p pg19-reference --test reference -- --ignored`. Set `PG19_ARCHIVE` to an
+runner, use `cargo test -p pgsql-reference --test reference -- --ignored`. Set `PG19_ARCHIVE` to an
 already downloaded archive for an offline run. CI passes the release
-`pg19-native` executable as `PG19_NATIVE_PROBE` to this test. The test then
+`pgsql-native` executable as `PG19_NATIVE_PROBE` to this test. The test then
 captures both references across the full regression corpus, verifies the
 pinned digests and compares every patched outcome with Rust. CI also passes
 the path to the release `deparse-corpus` example as `PG19_DEPARSE_PROBE`.
@@ -116,7 +116,7 @@ files, reuse a completed import.
 
 ```sh
 python3 tools/pg19/import-lexer.py --check "$run"
-PG19_REFERENCE_DIR="$run" cargo test -p pg19-lexer --test scan -- --ignored
+PG19_REFERENCE_DIR="$run" cargo test -p pgsql-lexer --test scan -- --ignored
 ```
 
 Omit `--check` to regenerate the scanner data. The importer pins the hashes of
@@ -131,18 +131,18 @@ from an existing import, see the [PG19 schema and wire compatibility review](../
 The same build emits the C field writers used by the JSON serializer.
 `check-schema` checks the Rust field mapping against those writers. To update
 the mapping after reviewing an upstream change, run
-`python3 crates/pg19-codec/generate-json.py "$schema_dir/.."`, where
+`python3 crates/pgsql-codec/generate-json.py "$schema_dir/.."`, where
 `schema_dir` is the protobuf output directory printed by the schema command.
 The checker links the C serializer to the patched PG19 backend and compares
 its output byte for byte with the native codec fixtures in
-`crates/pg19-codec/tests`. To inspect a difference, run the built
+`crates/pgsql-codec/tests`. To inspect a difference, run the built
 `"$schema_dir/../json-probe" 'SELECT 0'` with the SQL under review.
 
 The fingerprint generator reads the same PG19 headers and applies the
 repository's version 3 field-selection rules. The Rust visitor and the C
 walker share the generator's field order and overrides. The checker rebuilds
 the C walker and compares its seeded XXH3-64 digests with the versioned
-fixtures in `crates/pg19-operations/tests/fingerprint-v3.jsonl`. To inspect a
+fixtures in `crates/pgsql-operations/tests/fingerprint-v3.jsonl`. To inspect a
 digest, pipe SQL into `"$schema_dir/../fingerprint-probe" 0 0`.
 The arguments are the fingerprint option bits and PostgreSQL raw parse mode.
 
@@ -155,7 +155,7 @@ inputs through the native SQL parser.
 
 ## Comparing native Rust trees
 
-The reference tool's Rust library exposes `pg19_reference::node_text(&Node)`,
+The reference tool's Rust library exposes `pgsql_reference::node_text(&Node)`,
 `nodes_text(&[Node])`, and `statements_text(&[RawStmt])`. Each returns
 `Result<String, TreeError>`. Use `nodes_text` for a raw parse result in any
 mode, including a list of type names. Compare its UTF-8 bytes directly with
@@ -167,13 +167,13 @@ After importing PostgreSQL, verify the field writers and live snapshots with
 
 ```sh
 python3 tools/pg19/generate-tree-output.py "$run" --check
-PG19_REFERENCE_DIR="$run" cargo test -p pg19-reference --test native_tree -- --include-ignored
+PG19_REFERENCE_DIR="$run" cargo test -p pgsql-reference --test native_tree -- --include-ignored
 ```
 
 Omit `--check` to regenerate. The generator reads the patched backend's
 `outfuncs.funcs.c`, `outfuncs.switch.c` and `outfuncs.c`. When the recorded
 `outfuncs.c` digest changes, review its token, scalar and custom node writers
-against the Rust code in `crates/pg19-reference/src/tree`.
+against the Rust code in `crates/pgsql-reference/src/tree`.
 
 For full upstream SQL statement coverage, the [PG19 regression corpus](regress/README.md)
 extracts source spans with the pinned psql lexer, captures trees and errors
@@ -183,12 +183,12 @@ The first-party SQL action generator reads Bison's expansion of the patched
 `gram.y`. It recognizes complete single assignments such as copying a
 semantic value, creating a scalar node or appending to an ordered list.
 Each generated mapping carries the production and upstream action digest.
-Reviewed actions in `crates/pg19-parser/actions/` take precedence. The
+Reviewed actions in `crates/pgsql-grammar/actions/` take precedence. The
 native probe reports the first missing production reached by each case.
 
 ```sh
 python3 tools/pg19/generate-simple-actions.py "$run/patched-source" --write
-cargo test --locked -p pg19-parser
+cargo test --locked -p pgsql-grammar
 ```
 
 Omit `--write` to check the generated file. On a version update, review
@@ -205,7 +205,7 @@ The summary oracle links the library’s summary walkers, truncation algorithm, 
 python3 tools/pg19/tests/build-summary-probe.py "$run" "$run/summary"
 python3 tools/pg19/tests/check-summary.py "$run/summary/summary-probe"
 printf '%s' 'SELECT a, b, c, d, e, f FROM xyz WHERE a = b' | "$run/summary/summary-probe" 0 40 0 text
-cargo test --locked -p pg19-operations --test summary
+cargo test --locked -p pgsql-operations --test summary
 ```
 
 The build adapts the reference in the import directory for PG19’s REPACK and WAIT statements, publication targets and subscription commands. It also preserves quoted utility identifiers, numeric database options and database collation refreshes. The fixture check reads the original C summary and truncation tests, verifies their expected truncated SQL, and compares the resulting wire messages and diagnostics with the checked-in snapshots. Use `check-summary.py --write` with the rebuilt probe when reviewing a version change.
@@ -214,7 +214,7 @@ To repeat the full entity and diagnostic comparison, point the ignored integrati
 
 ```sh
 PG19_CORPUS="$corpus/cases.jsonl" PG19_SUMMARY_PROBE="$run/summary/summary-probe" \
-  cargo test --locked -p pg19-operations --test summary compare_extracted_corpus -- --ignored --nocapture
+  cargo test --locked -p pgsql-operations --test summary compare_extracted_corpus -- --ignored --nocapture
 ```
 
 ## Compare native parser performance with C

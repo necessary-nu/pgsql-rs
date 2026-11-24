@@ -7,7 +7,7 @@ import struct
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "crates/pg19-lexer/data"
+OUTPUT = ROOT / "crates/pgsql-lexer/data"
 
 def initializer(text, name):
     return re.search(r"\b" + name + r"\[\d+\] =\s*\{(.*?)\};", text, re.S)[1]

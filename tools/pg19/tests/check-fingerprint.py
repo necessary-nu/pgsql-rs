@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[3]
 def check(run, work):
     work = work.resolve()
     subprocess.run(["ruby", ROOT / "tools/pg19/libpg_query/scripts/generate_fingerprint_outfuncs.rb"], cwd=work, check=True)
-    subprocess.run(["python3", ROOT / "crates/pg19-operations/generate-fingerprint.py",
+    subprocess.run(["python3", ROOT / "crates/pgsql-operations/generate-fingerprint.py",
                     work, "--check"], check=True)
     probe = work / "fingerprint-probe"
     subprocess.run(["make", "-s", "-C", run.resolve() / "patched/src/backend",
@@ -18,7 +18,7 @@ def check(run, work):
                     f"work={work}", f"repo={ROOT}", probe, work / "normalize-probe"], check=True)
     subprocess.run(["python3", ROOT / "tools/pg19/tests/check-normalize.py",
                     work / "normalize-probe"], check=True)
-    rows = (ROOT / "crates/pg19-operations/tests/fingerprint-v3.jsonl").read_text().splitlines()
+    rows = (ROOT / "crates/pgsql-operations/tests/fingerprint-v3.jsonl").read_text().splitlines()
     if not rows:
         raise ValueError("missing fingerprint vectors")
     for row in map(json.loads, rows):

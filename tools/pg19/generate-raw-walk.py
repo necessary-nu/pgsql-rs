@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "crates/pg19-operations/src/raw_walk.in"
+OUTPUT = ROOT / "crates/pgsql-operations/src/raw_walk.in"
 # These utility records have custom visitors in libpg_query.
 UTILITY = """DefElem RawStmt VariableSetStmt CopyStmt CallStmt ExplainStmt CreateRoleStmt
 AlterRoleStmt DeclareCursorStmt CreateFunctionStmt DoStmt CreateSubscriptionStmt
@@ -24,7 +24,7 @@ def summary_tags():
 
 
 def generate(source):
-    model = (ROOT / "crates/pg19-nodes/src/nodes.in").read_text()
+    model = (ROOT / "crates/pgsql-nodes/src/nodes.in").read_text()
     records = {}
     for native, pg, fields in re.findall(r'        (\w+) \(\d+, "(\w+)"\) \{(.*?)\n        \}', model, re.S):
         records[pg] = native, {c: (key, ty) for key, c, ty in

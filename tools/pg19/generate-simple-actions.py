@@ -130,12 +130,12 @@ def generate(source, work):
     arrays = {key: TABLES["c_array"](c, key) for key in ("yyr1", "yyr2")}
     rows, _ = TABLES["inventory"](grammar, c, arrays)
     bodies = TABLES["action_bodies"](c)
-    nodes = (CRATES / "pg19-nodes/src/nodes.in").read_text()
+    nodes = (CRATES / "pgsql-nodes/src/nodes.in").read_text()
     records = {cname: rust for rust, cname in re.findall(r'^\s+(\w+) \(\d+, "([^"]+)"\) \{', nodes, re.M)}
     union = raw.decode().split("%union", 1)[1].split("}", 1)[0]
     pointers = {"node", "list"} | {field for typ, field in re.findall(r"(\w+)\s+\*(\w+);", union) if typ in records}
     constants = {"true": 1, "false": 0}
-    enums = (CRATES / "pg19-nodes/src/enums.in").read_text()
+    enums = (CRATES / "pgsql-nodes/src/enums.in").read_text()
     constants.update((key, int(value)) for key, value in re.findall(r"^\s+(\w+) = (-?\d+),", enums, re.M))
     for header in ("catalog/pg_class.h", "catalog/pg_attribute.h", "nodes/parsenodes.h"):
         text = (source / "src/include" / header).read_text()
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     args = cli.parse_args()
     with tempfile.TemporaryDirectory() as temp:
         content = generate(args.source, Path(temp))
-    path = CRATES / "pg19-parser/simple.tsv"
+    path = CRATES / "pgsql-grammar/simple.tsv"
     if args.write:
         path.write_text(content)
     elif path.read_text() != content:

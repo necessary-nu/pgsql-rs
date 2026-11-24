@@ -22,7 +22,7 @@ fn main() -> Result<(), ParseError> {
 
 ## Development
 
-All workspace packages live in `crates/`. The `pg19-*` crates implement the version-specific scanner, grammar, nodes, codecs and operations. The `pg19-reference` development tool builds the stock and patched PostgreSQL references.
+All workspace packages live in `crates/`. The internal crates share the `pgsql-` prefix. The `pgsql-grammar` crate implements the SQL grammar used by `pgsql-parser`. The `pgsql-reference` development tool builds the stock and patched PostgreSQL references.
 
 ```sh
 cargo build --locked

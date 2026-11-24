@@ -20,7 +20,7 @@ def legacy(mode):
 def check(probe):
     for mode in ["full", "utility"]:
         vectors = legacy(mode)
-        for line in (ROOT / "crates/pg19-operations/tests/normalize.jsonl").read_text().splitlines():
+        for line in (ROOT / "crates/pgsql-operations/tests/normalize.jsonl").read_text().splitlines():
             row = json.loads(line)
             vectors[row["sql"]] = row[mode]
         for sql, expected in vectors.items():

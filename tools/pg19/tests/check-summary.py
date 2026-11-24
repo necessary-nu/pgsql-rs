@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-SNAPSHOT = ROOT / "crates/pg19-operations/tests/summary.jsonl"
+SNAPSHOT = ROOT / "crates/pgsql-operations/tests/summary.jsonl"
 STRING = r'"(?:\\.|[^"\\])*"'
 LITERALS = rf'{STRING}(?:\s*{STRING})*'
 

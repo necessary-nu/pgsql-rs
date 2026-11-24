@@ -35,8 +35,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     views.push_str("}\n");
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     fs::write(out.join("node_views.rs"), views)?;
-    println!("cargo:rerun-if-changed=../pg19-nodes/src/nodes.in");
-    println!("cargo:rerun-if-changed=../pg19-nodes/src/enums.in");
+    println!("cargo:rerun-if-changed=../pgsql-nodes/src/nodes.in");
+    println!("cargo:rerun-if-changed=../pgsql-nodes/src/enums.in");
     println!("cargo:rerun-if-changed=build/bridge.rs");
     let file = &schema.file[0];
     println!("cargo:rerun-if-changed=build/visit.rs");

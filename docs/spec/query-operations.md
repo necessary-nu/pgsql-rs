@@ -38,7 +38,7 @@ These contracts carry the public libpg_query operations into Rust. Examples use 
 
 ## Fingerprint
 
-The PostgreSQL 18.6 examples come from `27112f8:test/fingerprint_tests.c`. The PG19 C and Rust checks read the [version 3 vectors](../../crates/pg19-operations/tests/fingerprint-v3.jsonl).
+The PostgreSQL 18.6 examples come from `27112f8:test/fingerprint_tests.c`. The PG19 C and Rust checks read the [version 3 vectors](../../crates/pgsql-operations/tests/fingerprint-v3.jsonl).
 
 > [spec:pgq:req:fingerprint.digest]
 > The operation MUST hash the versioned compatibility token stream with XXH3-64 and its fingerprint-version seed. It MUST return both the unsigned 64-bit value and its zero-padded, lowercase, 16-digit hexadecimal rendering. Golden vectors MUST identify the fingerprint version.

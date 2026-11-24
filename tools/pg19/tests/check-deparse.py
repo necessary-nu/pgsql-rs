@@ -8,7 +8,7 @@ from google.protobuf import descriptor_pb2, descriptor_pool, json_format, messag
 
 
 ROOT = Path(__file__).resolve().parents[3]
-FIXTURES = ROOT / "crates/pg19-operations/tests"
+FIXTURES = ROOT / "crates/pgsql-operations/tests"
 
 
 def without_locations(obj):

@@ -27,7 +27,7 @@ conditions = plerrcodes.scan(/"([a-z_0-9]+)", ERRCODE_/).flatten.sort
 abort 'missing condition names' unless conditions.size == plerrcodes.scan(/ERRCODE_/).size && !conditions.empty?
 files = { 'types.in' => content, 'conditions.in' => "&[\n#{conditions.map { |name| %(    "#{name}",) }.join("\n")}\n]\n" }
 files.each do |name, generated|
-  dest = File.expand_path("../../../crates/pg19-plpgsql/data/#{name}", __dir__)
+  dest = File.expand_path("../../../crates/pgsql-plpgsql/data/#{name}", __dir__)
   if write
     File.write(dest, generated)
   elsif File.read(dest) != generated

@@ -824,6 +824,44 @@ children (
                     }
                 )
             }
+
+            {
+                id delivery.crate-names
+                title "Use release-independent package names throughout the Cargo workspace"
+                kind @refactor
+                deps (delivery.workspace)
+                sealed true
+                log (
+                    {
+                        at 2026-11-24T11:05:08.782003138Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+
+                    {
+                        at 2026-11-24T11:07:09.321938416Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Doing → Done (nplan complete)"
+                    }
+                )
+            }
+
+            {
+                id delivery.external-reference
+                title "Build the C reference from pinned upstream source outside the Rust checkout"
+                kind @refactor
+                deps (delivery.workspace-audit delivery.crate-names)
+                log (
+                    {
+                        at 2026-11-24T11:09:01.55772949Z
+                        author "brendan@necessary.nu"
+                        kind @status
+                        text "Todo → Doing (nplan start)"
+                    }
+                )
+            }
         )
     }
 )

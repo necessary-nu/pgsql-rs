@@ -7,9 +7,9 @@ license = "BSD-3-Clause AND PostgreSQL"
 description = "Native PostgreSQL 19 parsing and libpg_query operations"
 
 [dependencies]
-pg19-codec.workspace = true
-pg19-lexer.workspace = true
-pg19-nodes.workspace = true
-pg19-operations.workspace = true
-pg19-parser.workspace = true
-pg19-plpgsql.workspace = true
+pgsql-codec.workspace = true
+pgsql-lexer.workspace = true
+pgsql-nodes.workspace = true
+pgsql-operations.workspace = true
+pgsql-grammar.workspace = true
+pgsql-plpgsql.workspace = true

@@ -61,7 +61,7 @@ fn public_query_operations() -> Result<(), Box<dyn Error>> {
 // [spec:pgq:req:api.native/test]
 #[test]
 fn public_api_runs_without_external_programs() -> Result<(), Box<dyn Error>> {
-    let directory = std::env::temp_dir().join(format!("pg19-native-query-{}", std::process::id()));
+    let directory = std::env::temp_dir().join(format!("pgsql-native-query-{}", std::process::id()));
     std::fs::create_dir(&directory)?;
     let result = std::process::Command::new(std::env::current_exe()?)
         .args(["--exact", "public_query_operations"])

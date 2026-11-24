@@ -134,8 +134,8 @@ Linux perf sampled user-mode cycles with call stacks on logical CPU 5. Each perc
 ### Reduction and allocation sites
 
 * On `SELECT 1`, Rust enters 13 reduction handlers. The `simple_select` handler uses 965 instructions, building the target element uses 398, and reducing `simple_select` to `select_no_parens` uses 334. These counts include folded actions called by the handler. Seven empty optional clauses together use 306 instructions. DHAT attributes the six heap blocks to boxing the target value, its `ResTarget` record, its one-element target list, its `SelectStmt` record, the statement payload and the result vector.
-* On the join, Rust enters 103 handlers. Seven qualified column references spend 5,350 instructions in `columnref: ColId indirection` and 2,184 in `indirection_el: '.' attr_name`. Together these two handlers account for 30% of the 25,460 instructions spent under reduction handlers. DHAT attributes 21 heap blocks per query to scanning tokens, 16 to operator construction and 14 to forming the first indirection element's list. [Column and operator construction](../../../crates/pg19-parser/src/expr.rs)
-* On the corpus, Rust enters 28.7 handlers per input on average. The biggest individual handler is `simple_select` at 473 instructions per input. Other recurring costs include attaching a statement to its list (236), forming a qualified name from a column identifier (233), and building qualified and unqualified column references (209 and 208). The parser driver itself uses 3,647 instructions per input. [Parser driver](../../../crates/pg19-engine/src/lib.rs) · [Statement construction](../../../crates/pg19-parser/src/query.rs)
+* On the join, Rust enters 103 handlers. Seven qualified column references spend 5,350 instructions in `columnref: ColId indirection` and 2,184 in `indirection_el: '.' attr_name`. Together these two handlers account for 30% of the 25,460 instructions spent under reduction handlers. DHAT attributes 21 heap blocks per query to scanning tokens, 16 to operator construction and 14 to forming the first indirection element's list. [Column and operator construction](../../../crates/pgsql-grammar/src/expr.rs)
+* On the corpus, Rust enters 28.7 handlers per input on average. The biggest individual handler is `simple_select` at 473 instructions per input. Other recurring costs include attaching a statement to its list (236), forming a qualified name from a column identifier (233), and building qualified and unqualified column references (209 and 208). The parser driver itself uses 3,647 instructions per input. [Parser driver](../../../crates/pgsql-engine/src/lib.rs) · [Statement construction](../../../crates/pgsql-grammar/src/query.rs)
 
 The following counts come from interposing glibc `malloc`, `calloc`, `realloc` and `free` on the unmodified executables. Subtracting two run lengths removes fixed startup costs. For the corpus the difference covers 11 complete passes including warmup. PostgreSQL serves node allocations from its memory context and reuses blocks across calls.
 
@@ -329,7 +329,7 @@ the write saved 3.9% of instructions and raised elapsed time 2.2%.
 A separate application used the public Rust parser crate and the same
 parser source as the benchmark. With the repository's profile,
 `llvm-profdata show --function` found no entry for the application's
-mangled `pg19_parser::parse_statements` symbol. Training on the same 263
+mangled `pgsql_grammar::parse_statements` symbol. Training on the same 263
 fixtures using the application's Cargo manifest produced a profile with
 counts for that exact symbol. The training helper accepts the manifest as
 its optional third argument.

@@ -9,10 +9,10 @@ platforms (
         }
     }
     {
-        platform "pg19-reference"
-        files ("tools/pg19/**/*" "crates/pg19-reference/**/*" "protobuf/pg19/**/*")
+        platform "pgsql-reference"
+        files ("tools/pg19/**/*" "crates/pgsql-reference/**/*" "protobuf/pg19/**/*")
         checks {
-            test {cmd "python3 tools/pg19/tests/check-fixtures.py && cargo test -p pg19-reference"}
+            test {cmd "python3 tools/pg19/tests/check-fixtures.py && cargo test -p pgsql-reference"}
         }
     }
 )
@@ -21,5 +21,5 @@ adoption {scope "porting"}
 quality {
     // Cargo integration tests in tests/ cover the library in src/.
     test-footprint {scope "crate"}
-    exempt-paths ("crates/pg19-lexer/data/catalog.rs")
+    exempt-paths ("crates/pgsql-lexer/data/catalog.rs")
 }

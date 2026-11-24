@@ -9,7 +9,7 @@ CALL = re.compile(r'WRITE_(\w+)_FIELD\(([\w.]+)(?:, \w+)?\);')
 
 
 def declarations():
-    source = (CRATES / "pg19-nodes/src/nodes.in").read_text()
+    source = (CRATES / "pgsql-nodes/src/nodes.in").read_text()
     records = re.findall(r'^        (\w+) \(\d+, "(\w+)"\) \{(.*?)^        \}', source, re.M | re.S)
     return {pg: (rust, {name: (attr, t) for attr, name, t in
             re.findall(r'([\w#]+) \["(\w+)"\]: (.+),', body)}) for rust, pg, body in records}
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     p.add_argument("run", type=Path)
     p.add_argument("--check", action="store_true")
     args = p.parse_args()
-    target = CRATES / "pg19-reference/src/tree/records.in"
+    target = CRATES / "pgsql-reference/src/tree/records.in"
     generated = generate(args.run)
     if args.check:
         if target.read_text() != generated:

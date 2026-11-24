@@ -107,8 +107,8 @@ The parser example runs the checked-in Rust actions, lexer and native tree
 writer. Build the example and run it against the saved patched outcomes.
 
 ```sh
-cargo build --release --locked -p pg19-parser --example pg19-native
-python3 tools/pg19/regress/probes.py coverage target/release/examples/pg19-native "$out"
+cargo build --release --locked -p pgsql-grammar --example pgsql-native
+python3 tools/pg19/regress/probes.py coverage target/release/examples/pgsql-native "$out"
 ```
 
 Each unmapped action is listed with its PG19 production, source line, action
@@ -124,8 +124,8 @@ in one test, run this from the repository root after building the release
 example. Both environment variables accept absolute paths.
 
 ```sh
-PG19_REGRESSION_DIR="$out" PG19_NATIVE_PROBE="$PWD/target/release/examples/pg19-native" \
-  cargo test --offline --locked -p pg19-parser --test corpus -- --ignored
+PG19_REGRESSION_DIR="$out" PG19_NATIVE_PROBE="$PWD/target/release/examples/pgsql-native" \
+  cargo test --offline --locked -p pgsql-grammar --test corpus -- --ignored
 ```
 
 Run the compact deparser over default-mode corpus cases and compare reparses with
@@ -137,7 +137,7 @@ are found. During `check-schema`, set `PG19_DEPARSE_PROBE` to the absolute
 path of the native example to compare with the freshly generated PG19 JSON writer.
 
 ```sh
-cargo build -p pg19-operations --example deparse-corpus
+cargo build -p pgsql-operations --example deparse-corpus
 python3 tools/pg19/regress/deparse.py "$out/cases.jsonl" \
   target/debug/examples/deparse-corpus "$json_probe" "$out/deparse-mismatches.jsonl" --require-complete
 ```

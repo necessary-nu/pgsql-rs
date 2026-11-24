@@ -15,7 +15,7 @@ def check(run, work):
         "-f", "Makefile", "-f", repo / "tools/pg19/tests/json-probe.mk",
         f"repo={repo}", f"work={work}", probe,
     ], check=True)
-    cases = sorted((repo / "crates/pg19-codec/tests").glob("*.sql"))
+    cases = sorted((repo / "crates/pgsql-codec/tests").glob("*.sql"))
     if not cases:
         raise SystemExit("no JSON probe fixtures")
     for sql in cases:

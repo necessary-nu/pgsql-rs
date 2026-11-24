@@ -48,7 +48,7 @@ a function signature whose return type depends on a table column's
 Local variable `%TYPE` and `%ROWTYPE` declarations use the library's
 offline datatypes. [Fixtures and upstream source spans](fixtures/cases.json)
 
-The native body scanner and LALR driver are in `crates/pg19-plpgsql`.
+The native body scanner and LALR driver are in `crates/pgsql-plpgsql`.
 Regenerate or verify their 336 states, 255 production signatures/action
 digests and keyword catalogs with Bison 3.8.2. Cargo builds read the
 checked-in artifacts. The scanner test compares external token IDs and
@@ -57,7 +57,7 @@ byte spans with the PL/pgSQL scanner in the reference build.
 ```sh
 python3 tools/pg19/generate-tables.py "$run/patched-source" --plpgsql
 "$run/plpgsql-probe" --scan 'BEGIN PERFORM $1; END;'
-PG19_REFERENCE_DIR="$run" cargo test --locked -p pg19-plpgsql -- --include-ignored
+PG19_REFERENCE_DIR="$run" cargo test --locked -p pgsql-plpgsql -- --include-ignored
 ```
 
 A compiler implements `Actions` and `Namespace` and calls `parse_body`
@@ -86,7 +86,7 @@ uses the PG19 Rust parser for type-name and embedded SQL start modes
 and propagates the identity of an unimplemented SQL action.
 
 `parse_routines(source, options)` parses the outer SQL with
-`pg19-parser`. `compile_routines(statements, options, sql)` also
+`pgsql-grammar`. `compile_routines(statements, options, sql)` also
 accepts an existing list of native `RawStmt` nodes. Both select routine
 and DO definitions in source order. Routine setup builds positional
 and named parameter bindings, OUT rows, PL/pgSQL trigger promises and
@@ -96,7 +96,7 @@ check in `tests/routines.rs` compares the PG19 oracle to checked typed
 inputs while upstream SQL action coverage advances.
 
 ```sh
-cargo build --locked -p pg19-plpgsql --example routines
+cargo build --locked -p pgsql-plpgsql --example routines
 target/debug/examples/routines 'SELECT 1' 'DO $$ BEGIN NULL; END $$'
 python3 tools/pg19/plpgsql/check.py "$run" --candidate "$PWD/target/debug/examples/routines"
 ```
@@ -120,7 +120,7 @@ JSON. The test checks all 30 resulting trees against the corresponding
 elements of [the expected sample tree](../libpg_query/test/plpgsql_samples.expected.json).
 
 ```sh
-PG19_REFERENCE_DIR="$run" cargo test -p pg19-plpgsql --test routines compare_project_sample_routines -- --ignored --nocapture
+PG19_REFERENCE_DIR="$run" cargo test -p pgsql-plpgsql --test routines compare_project_sample_routines -- --ignored --nocapture
 ```
 
 The upstream PL regression comparison runs each SQL region from all 13
@@ -131,7 +131,7 @@ The output directory contains classified counts, a digest of the C results,
 and source byte ranges with both outputs for every difference.
 
 ```sh
-cargo build --locked -p pg19-plpgsql --example routines
+cargo build --locked -p pgsql-plpgsql --example routines
 python3 -B tools/pg19/plpgsql/regress.py "$run" target/debug/examples/routines /tmp/pg19-pl-regress
 ```
 

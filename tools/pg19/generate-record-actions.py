@@ -11,8 +11,8 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PARSER = ROOT / "crates/pg19-parser"
-NODES = ROOT / "crates/pg19-nodes/src"
+PARSER = ROOT / "crates/pgsql-grammar"
+NODES = ROOT / "crates/pgsql-nodes/src"
 POINTER = re.compile(r"Option<Box<(\w+)>>")
 
 
@@ -476,7 +476,7 @@ def compile_action(raw, symbols):
 
 
 def generate(build):
-    inventory = (ROOT / "crates/pg19-tables/data/productions.tsv").read_text().splitlines()
+    inventory = (ROOT / "crates/pgsql-tables/data/productions.tsv").read_text().splitlines()
     source = (build / "src/backend/parser/gram.c").read_text()
     makefile = (build / "src/Makefile.global").read_text()
     source_tree = re.search(r"^abs_top_srcdir\s*=\s*(.+)$", makefile, re.M)

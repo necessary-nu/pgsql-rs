@@ -11,15 +11,15 @@
 #![forbid(unsafe_code)]
 
 // [spec:pgq:req:api.native]
-pub use pg19_codec as codec;
-pub use pg19_lexer as lexer;
-pub use pg19_nodes as nodes;
-pub use pg19_operations::{
-    deparse, fingerprint, is_utility_statement, normalize, normalize_utility, split_with_parser,
-    split_with_scanner, summary, utility_statements,
-};
-pub use pg19_parser::{
+pub use pgsql_codec as codec;
+pub use pgsql_grammar::{
     parse, parse_raw, parse_statements, EncodeError as RawJsonError, Error as ParseError, Options,
     ParseMode, RawStatement, RawTree,
 };
-pub use pg19_plpgsql::{parse_routines, Routine, RoutineError};
+pub use pgsql_lexer as lexer;
+pub use pgsql_nodes as nodes;
+pub use pgsql_operations::{
+    deparse, fingerprint, is_utility_statement, normalize, normalize_utility, split_with_parser,
+    split_with_scanner, summary, utility_statements,
+};
+pub use pgsql_plpgsql::{parse_routines, Routine, RoutineError};

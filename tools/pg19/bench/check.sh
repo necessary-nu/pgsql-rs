@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run after pg19-reference import, check-schema and corpus capture.
+# Run after pgsql-reference import, check-schema and corpus capture.
 set -eu
 if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
     echo "usage: sh check.sh PG19_IMPORT CORPUS OUTPUT [RUST_BENCH]" >&2
@@ -39,7 +39,7 @@ for candidate in "$pgimport"/pg19-*; do
     fi
 done
 if [ -z "$schema" ]; then
-    echo "Run 'cargo run -p pg19-reference -- check-schema $pgimport' to generate the pinned C field writers." >&2
+    echo "Run 'cargo run -p pgsql-reference -- check-schema $pgimport' to generate the pinned C field writers." >&2
     exit 1
 fi
 make -s -C "$build/src/backend" -f Makefile -f "$repo/tools/pg19/bench/bench.mk" \

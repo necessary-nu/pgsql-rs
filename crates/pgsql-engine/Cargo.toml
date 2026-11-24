@@ -1,0 +1,13 @@
+[package]
+name = "pgsql-engine"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+pgsql-lexer.workspace = true
+pgsql-nodes.workspace = true
+pgsql-tables.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

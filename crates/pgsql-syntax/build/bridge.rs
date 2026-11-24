@@ -14,7 +14,7 @@ macro_rules! node_types {
         }),*];
     };
 }
-include!("../../pg19-nodes/src/nodes.in");
+include!("../../pgsql-nodes/src/nodes.in");
 
 struct Record {
     native: &'static str,
@@ -110,4 +110,4 @@ macro_rules! pg_enums {
         }
     };
 }
-include!("../../pg19-nodes/src/enums.in");
+include!("../../pgsql-nodes/src/enums.in");

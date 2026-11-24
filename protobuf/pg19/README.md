@@ -15,8 +15,8 @@ and JSON, protoc, and Python 3 with google.protobuf. The original capture
 used Bison 3.8.2, Ruby 3.3.8, protoc 3.21.12 and Python protobuf 4.21.12.
 
 ```sh
-cargo run -p pg19-reference -- import /tmp/pg19-runs
-cargo run -p pg19-reference -- check-schema "$run"
+cargo run -p pgsql-reference -- import /tmp/pg19-runs
+cargo run -p pgsql-reference -- check-schema "$run"
 ```
 
 The checker runs the libpg_query header extractor on the patched source

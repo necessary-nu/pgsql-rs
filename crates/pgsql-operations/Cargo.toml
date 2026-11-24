@@ -1,0 +1,16 @@
+[package]
+name = "pgsql-operations"
+version = "0.1.0"
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+prost = "0.14"
+pgsql-codec.workspace = true
+pgsql-grammar.workspace = true
+pgsql-nodes.workspace = true
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+pgsql-lexer.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
