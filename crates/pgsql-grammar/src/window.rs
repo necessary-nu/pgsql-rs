@@ -29,14 +29,15 @@ fn window(value: Value) -> Result<NodeBox<WindowDef>, Failure> {
 
 fn extent(between: bool, rhs: &mut Reduction<'_, Value>) -> Result<NodeBox<WindowDef>, Failure> {
     let start = if between { 2 } else { 1 };
-    let mut bounds = window(rhs.take(start))?;
+    let bounds = window(rhs.take(start))?;
+    let mut record = bounds.load();
     let (end, offset) = if between {
-        let mut bound = window(rhs.take(4))?;
-        (bound.frame_options, bound.start_offset.take())
+        let bound = window(rhs.take(4))?.load();
+        (bound.frame_options, bound.start_offset)
     } else {
         (CURRENT, None)
     };
-    let invalid = match (bounds.frame_options, end, between) {
+    let invalid = match (record.frame_options, end, between) {
         (UNBOUNDED_FOLLOWING, _, _) => Some(("frame start cannot be UNBOUNDED FOLLOWING", start)),
         (_, UNBOUNDED_PRECEDING, true) => Some(("frame end cannot be UNBOUNDED PRECEDING", 4)),
         (FOLLOWING, _, false) => Some((
@@ -56,11 +57,12 @@ fn extent(between: bool, rhs: &mut Reduction<'_, Value>) -> Result<NodeBox<Windo
     if let Some((msg, i)) = invalid {
         return Err(Failure::At(msg.into(), "42P20", rhs.location(i)));
     }
-    bounds.frame_options |= end << 1;
+    record.frame_options |= end << 1;
     if between {
-        bounds.frame_options |= BETWEEN;
+        record.frame_options |= BETWEEN;
     }
-    bounds.end_offset = offset;
+    record.end_offset = offset;
+    bounds.set(record);
     Ok(bounds)
 }
 
@@ -84,16 +86,22 @@ pub(super) fn reduce(op: Window, rhs: &mut Reduction<'_, Value>) -> Result<Value
         .into(),
         Window::Extent(between) => extent(between, rhs)?,
         Window::Mode(bits) => {
-            let mut frame = window(rhs.take(2))?;
-            frame.frame_options |= 1 | bits | rhs.take(3).integer()?;
+            let frame = window(rhs.take(2))?;
+            frame.set_field(
+                |w| &mut w.frame_options,
+                frame.load().frame_options | 1 | bits | rhs.take(3).integer()?,
+            );
             frame
         }
         Window::Specification => {
-            let mut frame = window(rhs.take(5))?;
-            frame.refname = crate::records::optional_text(rhs.take(2))?;
-            frame.partition_clause = rhs.take(3).list()?;
-            frame.order_clause = rhs.take(4).list()?;
-            frame.location = rhs.location(1);
+            let frame = window(rhs.take(5))?;
+            frame.set_field(
+                |node| &mut node.refname,
+                crate::records::optional_text(rhs.take(2))?,
+            );
+            frame.set_field(|node| &mut node.partition_clause, rhs.take(3).list()?);
+            frame.set_field(|node| &mut node.order_clause, rhs.take(4).list()?);
+            frame.set_field(|node| &mut node.location, rhs.location(1));
             frame
         }
     };

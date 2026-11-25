@@ -15,7 +15,7 @@ macro_rules! node_types {
                     Self::Nodes(left, right) => match (left, right) {
                         (Node::Null, Node::Null) => Ok(true),
                         $((Node::$value(a), Node::$value(b)) => Ok(a.check(b, work)),)*
-                        $((Node::$record(a), Node::$record(b)) => a.fields(b, work),)*
+                        $((Node::$record(a), Node::$record(b)) => a.resolve(work.context).fields(b.resolve(work.context), work),)*
                         _ => Ok(false),
                     },
                     $(Self::$record(a, b) => a.fields(b, work),)*
@@ -29,10 +29,10 @@ macro_rules! node_types {
 }
 include!("nodes.in");
 
-#[derive(Default)]
 struct Work<'a> {
+    context: &'a Context,
     pending: std::vec::Vec<Pair<'a>>,
-    shared: HashSet<(*const Node, *const Node)>,
+    shared: HashSet<(usize, usize)>,
 }
 
 trait Tagged {
@@ -84,22 +84,6 @@ fn nullable<'a, T: Tagged>(a: Option<&'a T>, b: Option<&'a T>, work: &mut Work<'
     }
 }
 
-impl<T: Tagged> Field for Option<Box<T>> {
-    fn check<'a>(&'a self, other: &'a Self, work: &mut Work<'a>) -> bool {
-        nullable(self.as_deref(), other.as_deref(), work)
-    }
-}
-impl Field for Option<Arc<Node>> {
-    fn check<'a>(&'a self, other: &'a Self, work: &mut Work<'a>) -> bool {
-        if let (Some(a), Some(b)) = (self, other) {
-            // UPDATE tuple targets share the same source at each nesting level.
-            if Arc::ptr_eq(a, b) || !work.shared.insert((Arc::as_ptr(a), Arc::as_ptr(b))) {
-                return true;
-            }
-        }
-        nullable(self.as_deref(), other.as_deref(), work)
-    }
-}
 macro_rules! compare_records {
     ($( $record:ident { plain { $($($plain:ident).+),* } edges { $($($edge:ident).+),* } } )*
       @unsupported { $($missing:ident),* }) => {
@@ -115,17 +99,21 @@ macro_rules! compare_records {
 }
 include!("equal.in");
 
-impl TypeName {
-    /// Compare according to PostgreSQL's equalfuncs, including nested typmods.
-    /// The error identifies a backend-only tag without an equality implementation.
-    pub fn pg_equal(&self, other: &Self) -> Result<bool, NodeTag> {
-        let mut work = Work::default();
-        work.pending.push(self.pair(other));
-        while let Some(pair) = work.pending.pop() {
-            if !pair.compare(&mut work)? {
-                return Ok(false);
-            }
+fn compare<'a>(
+    left: &'a TypeName,
+    right: &'a TypeName,
+    context: &'a Context,
+) -> Result<bool, NodeTag> {
+    let mut work = Work {
+        context,
+        pending: std::vec::Vec::new(),
+        shared: HashSet::new(),
+    };
+    work.pending.push(left.pair(right));
+    while let Some(pair) = work.pending.pop() {
+        if !pair.compare(&mut work)? {
+            return Ok(false);
         }
-        Ok(true)
     }
+    Ok(true)
 }

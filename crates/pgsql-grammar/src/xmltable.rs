@@ -35,12 +35,12 @@ pub(super) fn column(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
         let Node::DefElem(option) = option else {
             return Err("expected XMLTABLE column option".into());
         };
-        let option = option.into_inner();
+        let option = option.load();
         let key = option
             .defname
-            .as_deref()
+            .map(String::owned)
             .ok_or("expected XMLTABLE option name")?;
-        let error = match key {
+        let error = match key.as_str() {
             "default" if column.coldefexpr.is_some() => {
                 Some("only one DEFAULT value is allowed".into())
             }
@@ -59,10 +59,10 @@ pub(super) fn column(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
                 None
             }
             "__pg__is_not_null" => {
-                let Some(Node::Boolean(v)) = option.arg.as_deref() else {
+                let Some(Node::Boolean(v)) = option.arg.map(Box::load) else {
                     return Err("expected XMLTABLE nullability".into());
                 };
-                column.is_not_null = *v;
+                column.is_not_null = v;
                 nullability_seen = true;
                 None
             }

@@ -227,7 +227,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
         }
         Utility::ExplainAnalyze => {
             let mut options = vec![flag("analyze", rhs.location(2))];
-            options.extend(flag_options(rhs, &[(3, "verbose")])?);
+            options.append(flag_options(rhs, &[(3, "verbose")])?);
             Ok(Value::from_node(
                 ExplainStmt {
                     options,
@@ -239,7 +239,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
         Utility::NamedRole => {
             let name = rhs.take(1).text()?;
             let location = rhs.location(1);
-            let (roletype, rolename) = match name.as_str() {
+            let (roletype, rolename) = match name.owned().as_str() {
                 "none" => {
                     return Err(Failure::At(
                         "role name \"none\" is reserved".to_owned(),
@@ -260,15 +260,15 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             ))
         }
         Utility::RoleId => {
-            let Node::RoleSpec(mut role) = rhs.take(1).node()? else {
+            let Node::RoleSpec(role) = rhs.take(1).node()? else {
                 return Err("expected RoleSpec".into());
             };
-            if role.roletype == RoleSpecType::ROLESPEC_CSTRING {
+            if role.load().roletype == RoleSpecType::ROLESPEC_CSTRING {
                 return Ok(Value::from_text(
-                    role.rolename.take().ok_or("expected role name")?,
+                    role.load().rolename.ok_or("expected role name")?,
                 ));
             }
-            let message = match role.roletype {
+            let message = match role.load().roletype {
                 RoleSpecType::ROLESPEC_PUBLIC => "role name \"public\" is reserved".to_owned(),
                 role => {
                     let name = match role {
@@ -303,7 +303,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                 (None, optional_text(rhs.take(5))?)
             };
             let mut params = rhs.take(2).list()?;
-            params.extend(flag_options(rhs, &[(4, "concurrently")])?);
+            params.append(flag_options(rhs, &[(4, "concurrently")])?);
             Ok(Value::from_node(
                 ReindexStmt {
                     kind,
@@ -335,6 +335,7 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
         Utility::Copy(query) => copy::copy(rhs, query),
         Utility::NegativeFloat => {
             let text = rhs.take(2).text()?;
+            let text = text.owned();
             let digits = text.strip_prefix('+').unwrap_or(&text);
             let number = match digits.strip_prefix('-') {
                 Some(positive) => positive.into(),
@@ -344,11 +345,11 @@ pub(super) fn reduce(op: Utility, rhs: &mut Reduction<'_, Value>) -> Result<Valu
         }
         Utility::Qualified(dotted) => qualified(rhs, dotted),
         Utility::Relation(index, inherit) => {
-            let Node::RangeVar(mut range) = rhs.take(index).node()? else {
+            let Node::RangeVar(range) = rhs.take(index).node()? else {
                 return Err("expected relation name".into());
             };
-            range.inh = inherit;
-            range.alias = None;
+            range.set_field(|node| &mut node.inh, inherit);
+            range.set_field(|node| &mut node.alias, None);
             Ok(Value::from_node(Node::RangeVar(range)))
         }
     }

@@ -1,6 +1,6 @@
 use crate::{
     literal::{digits, surrogate_pair},
-    truncate_identifier, Error, Kind, Scanner, Token, TokenText, Value,
+    truncate_identifier, Error, Kind, Scanner, ScannerText, Token, Value,
 };
 
 pub struct GrammarScanner<'a, T = String> {
@@ -9,7 +9,7 @@ pub struct GrammarScanner<'a, T = String> {
     failed: bool,
 }
 
-impl<'a, T: TokenText> GrammarScanner<'a, T> {
+impl<'a, T: ScannerText> GrammarScanner<'a, T> {
     pub(crate) fn new(core: Scanner<'a>) -> Self {
         Self {
             core,
@@ -110,28 +110,35 @@ impl<'a, T: TokenText> GrammarScanner<'a, T> {
                     let Value::Text(value) = third.value else {
                         unreachable!()
                     };
-                    let bytes = value.as_ref().as_bytes();
-                    if bytes.len() != 1
-                        || bytes[0].is_ascii_hexdigit()
-                        || b"+'\" \t\r\n\x0c\x0b".contains(&bytes[0])
-                    {
-                        return Err(Error::near(
-                            sql,
-                            third.start,
-                            third.end,
-                            "invalid Unicode escape character",
-                        ));
-                    }
+                    let escape = value
+                        .with_str(|text| match text.as_bytes() {
+                            [byte]
+                                if !byte.is_ascii_hexdigit()
+                                    && !b"+'\" \t\r\n\x0c\x0b".contains(byte) =>
+                            {
+                                Some(*byte)
+                            }
+                            _ => None,
+                        })
+                        .ok_or_else(|| {
+                            Error::near(
+                                sql,
+                                third.start,
+                                third.end,
+                                "invalid Unicode escape character",
+                            )
+                        })?;
                     // The grammar consumes the entire UESCAPE phrase as one lexeme for yyerror.
                     token.end = third.end;
-                    bytes[0]
+                    escape
                 } else {
                     b'\\'
                 };
                 let Value::Text(s) = &token.value else {
                     unreachable!()
                 };
-                let value = unescape(s.as_ref(), escape, self.core.sql, token.start)?;
+                let value =
+                    s.with_str(|text| unescape(text, escape, self.core.sql, token.start))?;
                 if token.kind == Kind::UIDENT {
                     token.value = Value::Text(truncate_identifier(value).into());
                     Kind::IDENT
@@ -146,7 +153,7 @@ impl<'a, T: TokenText> GrammarScanner<'a, T> {
     }
 }
 
-impl<T: TokenText> Iterator for GrammarScanner<'_, T> {
+impl<T: ScannerText> Iterator for GrammarScanner<'_, T> {
     type Item = Result<Token<T>, Error>;
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token().transpose()

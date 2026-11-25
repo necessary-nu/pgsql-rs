@@ -36,10 +36,10 @@ pub(super) fn copy(rhs: &mut Reduction<'_, Value>, query: bool) -> Result<Value,
         }
         for index in [2, 8] {
             if let Some(flag) = rhs.take(index).optional()? {
-                statement.options.push(flag.into_inner());
+                statement.options.push(flag.load());
             }
         }
-        statement.options.extend(rhs.take(10).list()?);
+        statement.options.append(rhs.take(10).list()?);
     }
     Ok(Value::from_node(statement.into()))
 }

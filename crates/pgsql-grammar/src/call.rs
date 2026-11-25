@@ -45,22 +45,24 @@ pub(super) fn function_name(
 pub(super) fn aggregate<const DECORATED: bool>(
     rhs: &mut Reduction<'_, Value>,
 ) -> Result<Value, Failure> {
-    let Node::FuncCall(mut call) = rhs.take(1).node()? else {
+    let Node::FuncCall(call) = rhs.take(1).node()? else {
         return Err("expected FuncCall".into());
     };
+    let mut record = call.load();
     if !DECORATED {
-        call.agg_filter = None;
-        call.ignore_nulls = 0;
-        call.over = None;
+        record.agg_filter = None;
+        record.ignore_nulls = 0;
+        record.over = None;
+        call.set(record);
         return Ok(Value::from_node(call.into()));
     }
     let within = rhs.take(2).list()?;
     if !within.is_empty() {
-        let error = if !call.agg_order.is_empty() {
+        let error = if !record.agg_order.is_empty() {
             Some("cannot use multiple ORDER BY clauses with WITHIN GROUP")
-        } else if call.agg_distinct {
+        } else if record.agg_distinct {
             Some("cannot use DISTINCT with WITHIN GROUP")
-        } else if call.func_variadic {
+        } else if record.func_variadic {
             Some("cannot use VARIADIC with WITHIN GROUP")
         } else {
             None
@@ -68,16 +70,17 @@ pub(super) fn aggregate<const DECORATED: bool>(
         if let Some(message) = error {
             return Err(Failure::At(message.into(), "42601", rhs.location(2)));
         }
-        call.agg_order = within;
-        call.agg_within_group = true;
+        record.agg_order = within;
+        record.agg_within_group = true;
     }
-    call.agg_filter = rhs.take(3).optional()?;
-    call.ignore_nulls = rhs.take(4).integer()?;
-    call.over = match rhs.take(5) {
+    record.agg_filter = rhs.take(3).optional()?;
+    record.ignore_nulls = rhs.take(4).integer()?;
+    record.over = match rhs.take(5) {
         Value::Empty => None,
-        Value::Node(Node::WindowDef(w)) => Some(w.into_box()),
+        Value::Node(Node::WindowDef(w)) => Some(w),
         _ => return Err("expected window definition".into()),
     };
+    call.set(record);
     Ok(Value::from_node(call.into()))
 }
 

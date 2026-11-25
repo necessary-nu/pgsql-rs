@@ -4,7 +4,7 @@ use pgsql_engine::Reduction;
 
 pub(super) fn spec(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let name = rhs.take(3).text()?;
-    let strategy = match name.to_ascii_lowercase().as_str() {
+    let strategy = match name.owned().to_ascii_lowercase().as_str() {
         "list" => PartitionStrategy::PARTITION_STRATEGY_LIST,
         "range" => PartitionStrategy::PARTITION_STRATEGY_RANGE,
         "hash" => PartitionStrategy::PARTITION_STRATEGY_HASH,
@@ -34,17 +34,18 @@ pub(super) fn hash_bound(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failur
             return Err("expected hash bound option".into());
         };
         let name = option
+            .load()
             .defname
-            .as_deref()
+            .map(String::owned)
             .ok_or("expected bound option name")?;
-        let dest = match name {
+        let dest = match name.as_str() {
             "modulus" => &mut modulus,
             "remainder" => &mut remainder,
             _ => {
                 return Err(Failure::At(
                     format!(r#"unrecognized hash partition bound specification "{name}""#),
                     "42601",
-                    option.location,
+                    option.load().location,
                 ))
             }
         };
@@ -52,13 +53,13 @@ pub(super) fn hash_bound(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failur
             return Err(Failure::At(
                 format!("{name} for hash partition provided more than once"),
                 "42710",
-                option.location,
+                option.load().location,
             ));
         }
-        let Some(Node::Integer(n)) = option.arg.as_deref() else {
+        let Some(Node::Integer(n)) = option.load().arg.map(Box::load) else {
             return Err("expected integer hash bound".into());
         };
-        *dest = Some(*n);
+        *dest = Some(n);
     }
     let location = rhs.location(3);
     let required = |v: Option<i32>, label: &str| {

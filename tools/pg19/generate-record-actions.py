@@ -119,7 +119,7 @@ def lower(s, ty="Value"):
             return "Value::from_list(Vec::new())" if s == "NIL" else "Value::Empty"
         raise Unsupported(s)
     if re.fullmatch(r'"[\w .:-]*"', s):
-        result = f"crate::raw::String::from_static({s})"
+        result = f"crate::raw::String::Static({s})"
         if ty == "Option<String>":
             return f"Some({result})"
         if ty == "String":
@@ -418,11 +418,12 @@ def compile_action(raw, symbols):
             changes = None
     if changes:
         native = RECORDS[record][0]
-        code = [f"let Node::{native}(mut node) = {lower(slot)}.node()? else {{ return Err(\"expected {native}\".into()); }};"]
+        code = [f"let Node::{native}(id) = {lower(slot)}.node()? else {{ return Err(\"expected {native}\".into()); }};"]
+        code.append("let mut node = id.load();")
         for stmt in changes:
             name, val = apply_member(record, stmt, re.escape(local))
             code.append(f"node.{name} = {val};")
-        return "{ " + " ".join(code) + f" Value::from_node(Node::{native}(node)) }}"
+        return "{ " + " ".join(code) + f" id.set(node); Value::from_node(Node::{native}(id)) }}"
     if m := re.fullmatch(r"(\w+)\s*\*\s*(\w+) = makeNode\((\w+)\)", statements[0]):
         c_name, local, allocation = m.groups()
         if c_name != allocation or c_name not in RECORDS:

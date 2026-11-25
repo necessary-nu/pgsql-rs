@@ -7,6 +7,8 @@ This Cargo workspace parses PostgreSQL 19 SQL in process. Add either public crat
 | [pgsql-parser](crates/pgsql-parser) | Parse SQL into an arena-backed raw tree, inspect statement spans, or serialize directly to JSON. |
 | [pgsql-syntax](crates/pgsql-syntax/README.md) | Inspect and edit an owned syntax tree, analyze table references, deparse SQL, or compute a fingerprint. |
 
+`parse_raw` returns a `RawTree` that owns its storage and can outlive the SQL string. Use `statements()` to borrow a statement, `json()` to serialize the tree directly, or `into_owned()` to create independently mutable nodes.
+
 ```rust
 use pgsql_parser::{nodes::Node, parse_raw, Options, ParseError};
 

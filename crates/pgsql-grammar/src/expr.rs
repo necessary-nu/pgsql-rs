@@ -32,14 +32,14 @@ pub(super) enum Expr {
 // [spec:pgq:req:grammar.expression-binding]
 fn operator(
     kind: AExprKind,
-    name: &str,
+    name: &'static str,
     left: Option<Node>,
     right: Node,
     location: Location,
 ) -> Node {
     AExpr {
         kind,
-        name: vec![Node::String(name.into())],
+        name: vec![Node::String(String::Static(name))],
         lexpr: left.map(Box::new),
         rexpr: Some(Box::new(right)),
         location,
@@ -57,7 +57,8 @@ fn negate(mut value: Node, location: Location) -> Node {
                 return value;
             }
             Literal::Float(v) => {
-                let digits = v.strip_prefix('+').unwrap_or(v);
+                let original = v.owned();
+                let digits = original.strip_prefix('+').unwrap_or(&original);
                 *v = match digits.strip_prefix('-') {
                     Some(unsigned) => unsigned.into(),
                     None => format!("-{digits}").into(),
@@ -82,8 +83,10 @@ fn logic(which: BoolExprType, rhs: &mut Reduction<'_, Value>) -> Result<Node, Fa
     let mut left = rhs.take(1).node()?;
     let right = rhs.take(3).node()?;
     if let Node::BoolExpr(existing) = &mut left {
-        if existing.boolop == which {
-            existing.args.push(right);
+        if existing.load().boolop == which {
+            let mut args = existing.load().args;
+            args.push(right);
+            existing.set_field(|expr| &mut expr.args, args);
             return Ok(left);
         }
     }
@@ -95,12 +98,13 @@ fn logic(which: BoolExprType, rhs: &mut Reduction<'_, Value>) -> Result<Node, Fa
     .into())
 }
 
-pub(super) fn checked_fields(fields: &[Node]) -> Result<(), Failure> {
-    if fields
-        .iter()
-        .rev()
-        .skip(1)
-        .any(|n| matches!(n, Node::AStar(_)))
+pub(super) fn checked_fields(fields: &Vec<Node>) -> Result<(), Failure> {
+    if fields.len() > 1
+        && read(|arena| {
+            fields.slice(arena)[..fields.len() - 1]
+                .iter()
+                .any(|node| matches!(node, Node::AStar(_)))
+        })
     {
         Err(Failure::Syntax("improper use of \"*\""))
     } else {
@@ -121,11 +125,21 @@ fn indirect(base: Node, fields: Vec<Node>) -> Node {
 }
 
 fn column(name: String, mut fields: Vec<Node>, location: Location) -> Result<Node, Failure> {
+    if fields.is_empty() {
+        return Ok(ColumnRef {
+            fields: vec![Node::String(name)],
+            location,
+        }
+        .into());
+    }
     checked_fields(&fields)?;
-    let tail = fields
-        .iter()
-        .position(|n| matches!(n, Node::AIndices(_)))
-        .map_or_else(Vec::new, |i| fields.split_off(i));
+    let first_index = read(|arena| {
+        fields
+            .slice(arena)
+            .iter()
+            .position(|n| matches!(n, Node::AIndices(_)))
+    });
+    let tail = first_index.map_or_else(Vec::new, |i| fields.split_off(i));
     if fields.is_empty() {
         fields = vec![Node::String(name)];
     } else {

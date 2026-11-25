@@ -65,7 +65,7 @@ pub(super) fn select<const PRESENT: usize>(
     if PRESENT >= 4 {
         stmt.into_clause = match rhs.take(4) {
             Value::Empty => None,
-            Value::Node(Node::IntoClause(n)) => Some(n.into_box()),
+            Value::Node(Node::IntoClause(n)) => Some(n),
             _ => return Err("expected INTO clause".into()),
         };
     }
@@ -96,7 +96,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                 let Node::PLAssignStmt(n) = &mut node else {
                     return Err("expected PLAssignStmt".into());
                 };
-                n.nnames = nnames;
+                n.set_field(|node| &mut node.nnames, nnames);
             }
             Value::from_list(vec![RawStmt::new(node, rhs.location(2)).into()])
         }
@@ -108,7 +108,7 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
                     name: Some(rhs.take(1).text()?),
                     indirection: fields,
                     nnames: 0,
-                    val: Some(rhs.take(4).select()?.into_box()),
+                    val: Some(rhs.take(4).select()?),
                     location: rhs.location(1),
                 }
                 .into(),
@@ -139,39 +139,43 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             locks,
             limit,
         } => {
-            let mut stmt = rhs.take(if with { 2 } else { 1 }).select()?;
+            let stmt = rhs.take(if with { 2 } else { 1 }).select()?;
+            let mut record = stmt.load();
             if let Some(i) = sort {
                 let order = rhs.take(i).list()?;
                 if !order.is_empty() {
-                    if !stmt.sort_clause.is_empty() {
+                    if !record.sort_clause.is_empty() {
                         return Err(Failure::At(
                             "multiple ORDER BY clauses not allowed".into(),
                             "42601",
-                            super::location::expression_location(&order),
+                            read(|arena| {
+                                super::location::expression_location(order.slice(arena), arena)
+                            }),
                         ));
                     }
-                    stmt.sort_clause = order;
+                    record.sort_clause = order;
                 }
             }
             if let Some(i) = locks {
-                stmt.locking_clause.extend(rhs.take(i).list()?);
+                record.locking_clause.append(rhs.take(i).list()?);
             }
             if let Some(i) = limit {
-                super::limits::apply(&mut stmt, rhs.take(i), true)?;
+                super::limits::apply(&mut record, rhs.take(i), true)?;
             }
             if with {
                 let Node::WithClause(with) = rhs.take(1).node()? else {
                     return Err("expected WITH clause".into());
                 };
-                if stmt.with_clause.is_some() {
+                if record.with_clause.is_some() {
                     return Err(Failure::At(
                         "multiple WITH clauses not allowed".into(),
                         "42601",
-                        with.location,
+                        with.load().location,
                     ));
                 }
-                stmt.with_clause = Some(with.into_box());
+                record.with_clause = Some(with);
             }
+            stmt.set(record);
             Value::from_node(stmt.into())
         }
         Query::Table => {
@@ -208,13 +212,15 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             )
         }
         Query::Values(more) => {
-            let mut stmt = if more {
+            let stmt = if more {
                 rhs.take(1).select()?
             } else {
                 SelectStmt::default().into()
             };
             let row = rhs.take(if more { 4 } else { 3 }).list()?;
-            stmt.values_lists.push(Node::from(row));
+            let mut rows = stmt.load().values_lists;
+            rows.push(Node::from(row));
+            stmt.set_field(|select| &mut select.values_lists, rows);
             Value::from_node(stmt.into())
         }
         Query::CursorOption(mask) => Value::Integer(rhs.take(1).integer()? | mask),
@@ -247,10 +253,10 @@ pub(super) fn reduce(action: Query, rhs: &mut Reduction<'_, Value>) -> Result<Va
             )
         }
         Query::GlobalTemp => {
-            let Node::RangeVar(mut relation) = rhs.take(4).node()? else {
+            let Node::RangeVar(relation) = rhs.take(4).node()? else {
                 return Err("expected temporary relation".into());
             };
-            relation.relpersistence = b't';
+            relation.set_field(|node| &mut node.relpersistence, b't');
             Value::from_node(relation.into())
         }
         Query::TypeStart => Value::from_list(vec![rhs.take(2).node()?]),

@@ -41,7 +41,7 @@ fn behaviors(value: Value) -> Result<Behaviors, Failure> {
     fn unpack(n: Node) -> Result<Option<Box<JsonBehavior>>, Failure> {
         match n {
             Node::Null => Ok(None),
-            Node::JsonBehavior(b) => Ok(Some(b.into_box())),
+            Node::JsonBehavior(b) => Ok(Some(b)),
             _ => Err("expected JSON behavior".into()),
         }
     }
@@ -128,7 +128,7 @@ pub(super) fn reduce(op: Json, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             }
             if encoding {
                 let name = rhs.take(4).text()?;
-                f.encoding = match name.to_ascii_lowercase().as_str() {
+                f.encoding = match name.owned().to_ascii_lowercase().as_str() {
                     "utf8" => JsonEncoding::JS_ENC_UTF8,
                     "utf16" => JsonEncoding::JS_ENC_UTF16,
                     "utf32" => JsonEncoding::JS_ENC_UTF32,
@@ -232,13 +232,13 @@ pub(super) fn reduce(op: Json, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
         Json::AggregateOptions => {
             let mut agg = rhs.take(1).node()?;
             let constructor = match &mut agg {
-                Node::JsonObjectAgg(a) => a.constructor.as_deref_mut(),
-                Node::JsonArrayAgg(a) => a.constructor.as_deref_mut(),
+                Node::JsonObjectAgg(a) => a.load().constructor,
+                Node::JsonArrayAgg(a) => a.load().constructor,
                 _ => None,
             }
             .ok_or("expected JSON aggregate constructor")?;
-            constructor.agg_filter = rhs.take(2).optional()?;
-            constructor.over = record!(rhs.take(3), WindowDef);
+            constructor.set_field(|node| &mut node.agg_filter, rhs.take(2).optional()?);
+            constructor.set_field(|node| &mut node.over, record!(rhs.take(3), WindowDef));
             agg
         }
         Json::Path => path(

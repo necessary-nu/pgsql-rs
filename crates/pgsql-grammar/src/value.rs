@@ -63,7 +63,7 @@ impl Value {
     pub(crate) fn text(self) -> Checked<String> {
         match self {
             Self::Text(value) => Ok(value),
-            Self::Keyword(word) => Ok(String::from_static(word)),
+            Self::Keyword(word) => Ok(String::Static(word)),
             _ => Err("expected text"),
         }
     }

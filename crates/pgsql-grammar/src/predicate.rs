@@ -47,7 +47,7 @@ pub(super) fn reduce(op: Predicate, rhs: &mut Reduction<'_, Value>) -> Result<Va
         }
         Predicate::Qualify => {
             let mut names = vec![Node::String(rhs.take(1).text()?)];
-            names.extend(rhs.take(3).list()?);
+            names.append(rhs.take(3).list()?);
             return Ok(Value::from_list(names));
         }
         Predicate::OperatorName(op) => return Ok(Value::from_list(vec![Node::String(op.into())])),
@@ -138,10 +138,10 @@ pub(super) fn reduce(op: Predicate, rhs: &mut Reduction<'_, Value>) -> Result<Va
             .into()
         }
         Predicate::ArrayKeyword => {
-            let Node::AArrayExpr(mut array) = rhs.take(2).node()? else {
+            let Node::AArrayExpr(array) = rhs.take(2).node()? else {
                 return Err("expected array".into());
             };
-            array.location = rhs.location(1);
+            array.set_field(|node| &mut node.location, rhs.location(1));
             array.into()
         }
         Predicate::Pattern {

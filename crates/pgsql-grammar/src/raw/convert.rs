@@ -6,37 +6,41 @@ use std::{boxed::Box as OwnedBox, collections::HashMap, sync::Arc as Shared, vec
 pub(crate) enum Visit<'a> {
     Read(&'a dyn Shape),
     Finish(&'a dyn Shape),
-    Shared(&'a Node),
-    Store(&'a Node),
+    Shared(Arc<Node>),
+    Store(usize),
 }
 pub(crate) trait Shape {
-    fn children<'a>(&'a self, work: &mut Stack<Visit<'a>>);
+    fn children<'a>(&'a self, arena: &'a Arena, work: &mut Stack<Visit<'a>>);
     fn assemble(&self, ready: &mut Ready) -> owned::Node;
 }
-#[derive(Default)]
-pub(crate) struct Ready {
+pub(crate) struct Ready<'a> {
+    pub(super) arena: &'a Arena,
     nodes: Stack<owned::Node>,
-    shared: HashMap<*const Node, Shared<owned::Node>>,
+    shared: HashMap<usize, Shared<owned::Node>>,
 }
 
-pub(crate) fn materialize(root: &impl Shape) -> owned::Node {
+pub(crate) fn materialize(root: &impl Shape, arena: &Arena) -> owned::Node {
     let mut work = Stack::new();
-    let mut ready = Ready::default();
-    root.children(&mut work);
+    let mut ready = Ready {
+        arena,
+        nodes: Stack::new(),
+        shared: HashMap::new(),
+    };
+    root.children(arena, &mut work);
     while let Some(task) = work.pop() {
         match task {
             Visit::Read(n) => {
                 work.push(Visit::Finish(n));
-                n.children(&mut work);
+                n.children(arena, &mut work);
             }
             Visit::Finish(n) => {
                 let node = n.assemble(&mut ready);
                 ready.nodes.push(node);
             }
             Visit::Shared(n) => {
-                if !ready.shared.contains_key(&(n as *const Node)) {
-                    work.push(Visit::Store(n));
-                    work.push(Visit::Read(n));
+                if !ready.shared.contains_key(&n.index()) {
+                    work.push(Visit::Store(n.index()));
+                    work.push(Visit::Read(n.get(arena)));
                 }
             }
             Visit::Store(n) => {
@@ -49,15 +53,15 @@ pub(crate) fn materialize(root: &impl Shape) -> owned::Node {
     root.assemble(&mut ready)
 }
 
-pub(crate) fn statement(statement: &RawStmt) -> owned::RawStmt {
-    let owned::Node::RawStmt(record) = materialize(statement) else {
+pub(crate) fn statement(statement: &RawStmt, arena: &Arena) -> owned::RawStmt {
+    let owned::Node::RawStmt(record) = materialize(statement, arena) else {
         unreachable!()
     };
     record.into_inner()
 }
 
 pub(super) trait Field {
-    fn queue<'a>(&'a self, _: &mut Stack<Visit<'a>>) {}
+    fn queue<'a>(&'a self, _: &'a Arena, _: &mut Stack<Visit<'a>>) {}
 }
 pub(super) trait Build<T> {
     fn build(&self, ready: &mut Ready) -> T;
@@ -68,23 +72,23 @@ impl<T: Copy> Build<T> for T {
     }
 }
 impl Build<std::string::String> for String {
-    fn build(&self, _: &mut Ready) -> std::string::String {
-        self.as_str().to_owned()
+    fn build(&self, r: &mut Ready) -> std::string::String {
+        self.get(r.arena).to_owned()
     }
 }
 impl Build<Option<std::string::String>> for Option<String> {
-    fn build(&self, _: &mut Ready) -> Option<std::string::String> {
-        self.as_ref().map(|s| s.as_str().to_owned())
+    fn build(&self, r: &mut Ready) -> Option<std::string::String> {
+        self.as_ref().map(|s| s.get(r.arena).to_owned())
     }
 }
-impl<T: Copy> Build<Stack<T>> for Vec<T> {
-    fn build(&self, _: &mut Ready) -> Stack<T> {
-        self.as_slice().to_vec()
+impl<T: Stored + Copy + Default> Build<Stack<T>> for Vec<T> {
+    fn build(&self, r: &mut Ready) -> Stack<T> {
+        self.slice(r.arena).to_vec()
     }
 }
 impl Build<owned::Bitmapset> for Bitmapset {
-    fn build(&self, _: &mut Ready) -> owned::Bitmapset {
-        self.iter().copied().collect()
+    fn build(&self, r: &mut Ready) -> owned::Bitmapset {
+        self.slice(r.arena).iter().copied().collect()
     }
 }
 impl Build<owned::AConst> for AConst {
@@ -110,8 +114,8 @@ impl Field for String {}
 impl Field for Vec<i32> {}
 impl Field for Vec<u32> {}
 impl Field for Vec<Node> {
-    fn queue<'a>(&'a self, w: &mut Stack<Visit<'a>>) {
-        w.extend(self.iter().map(|n| Visit::Read(n)));
+    fn queue<'a>(&'a self, arena: &'a Arena, w: &mut Stack<Visit<'a>>) {
+        w.extend(self.slice(arena).iter().map(|n| Visit::Read(n)));
     }
 }
 impl Build<Stack<owned::Node>> for Vec<Node> {
@@ -125,7 +129,7 @@ impl Build<owned::NodeList> for Vec<Node> {
         <Self as Build<Stack<owned::Node>>>::build(self, r).into()
     }
 }
-pub(super) trait Unbox: Shape {
+pub(super) trait Unbox: Shape + Stored + Copy {
     type Owned;
     fn unbox(node: owned::Node) -> OwnedBox<Self::Owned>;
 }
@@ -136,8 +140,8 @@ impl Unbox for Node {
     }
 }
 impl<T: Unbox> Field for Option<Box<T>> {
-    fn queue<'a>(&'a self, w: &mut Stack<Visit<'a>>) {
-        if let Some(n) = self.as_deref() {
+    fn queue<'a>(&'a self, arena: &'a Arena, w: &mut Stack<Visit<'a>>) {
+        if let Some(n) = self.map(|id| id.get(arena)) {
             w.push(Visit::Read(n));
         }
     }
@@ -154,24 +158,23 @@ impl Build<Option<owned::NodeBox<owned::SelectStmt>>> for Option<Box<SelectStmt>
     }
 }
 impl Field for Option<Arc<Node>> {
-    fn queue<'a>(&'a self, w: &mut Stack<Visit<'a>>) {
-        if let Some(n) = self.as_deref() {
+    fn queue<'a>(&'a self, _: &'a Arena, w: &mut Stack<Visit<'a>>) {
+        if let Some(n) = *self {
             w.push(Visit::Shared(n));
         }
     }
 }
 impl Build<Option<Shared<owned::Node>>> for Option<Arc<Node>> {
     fn build(&self, r: &mut Ready) -> Option<Shared<owned::Node>> {
-        self.as_deref()
-            .map(|n| r.shared[&(n as *const Node)].clone())
+        self.map(|id| r.shared[&id.index()].clone())
     }
 }
 
 macro_rules! record_edges {
     ($($record:ident { $($child:ident),* } { $($plain:ident),* })*) => {$(
         impl Shape for $record {
-            fn children<'a>(&'a self, #[allow(unused_variables)] work: &mut Stack<Visit<'a>>) {
-                $(self.$child.queue(work);)*
+            fn children<'a>(&'a self, #[allow(unused_variables)] arena: &'a Arena, #[allow(unused_variables)] work: &mut Stack<Visit<'a>>) {
+                $(self.$child.queue(arena, work);)*
             }
             fn assemble(&self, #[allow(unused_variables)] ready: &mut Ready) -> owned::Node {
                 owned::$record {
@@ -190,7 +193,7 @@ macro_rules! record_edges {
             }
         }
         impl Field for $record {
-            fn queue<'a>(&'a self, work: &mut Stack<Visit<'a>>) { work.push(Visit::Read(self)); }
+            fn queue<'a>(&'a self, _: &'a Arena, work: &mut Stack<Visit<'a>>) { work.push(Visit::Read(self)); }
         }
         impl Build<owned::$record> for $record {
             fn build(&self, ready: &mut Ready) -> owned::$record {

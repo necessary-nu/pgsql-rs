@@ -1,203 +1,206 @@
-//! Storage for the private reduction model. The public tree owns the region.
-//! Its read methods borrow the tree. Only ordinary owned nodes can escape it.
-use allocator_api2::alloc::{AllocError, Allocator};
-use bumpalo::Bump;
+//! A parsed tree owns the pools addressed by its private, typed indices.
+use super::*;
 use std::{
-    alloc::Layout,
-    cell::Cell,
-    fmt,
-    mem::needs_drop,
-    ops::{Deref, DerefMut},
-    ptr::NonNull,
+    cell::{Cell, RefCell},
+    marker::PhantomData,
+    num::NonZeroUsize,
+    vec::Vec as Buffer,
 };
 
-thread_local! {
-    static CURRENT: Cell<Option<NonNull<Bump>>> = const { Cell::new(None) };
-    static SPARE: Cell<Option<Bump>> = const { Cell::new(None) };
+pub(crate) trait Stored: Sized {
+    fn pool(arena: &Arena) -> &Buffer<Self>;
+    fn pool_mut(arena: &mut Arena) -> &mut Buffer<Self>;
 }
 
-pub(crate) struct Region(Option<Bump>);
+macro_rules! pools {
+    ($($name:ident),*) => {
+        #[derive(Default)]
+        #[allow(non_snake_case)]
+        pub(crate) struct Arena {
+            $($name: Buffer<$name>,)*
+            text: std::string::String,
+            active: Buffer<fn(&mut Arena)>,
+            reserved: usize,
+        }
+        $(impl Stored for $name {
+            #[inline] fn pool(arena: &Arena) -> &Buffer<Self> { &arena.$name }
+            #[inline] fn pool_mut(arena: &mut Arena) -> &mut Buffer<Self> { &mut arena.$name }
+        })*
+    };
+}
+macro_rules! node_types {
+    (values { $($values:tt)* } records { $($record:ident ($($tag:tt)*) { $($fields:tt)* })* }) => {
+        pools!(String, Node, SelectLimit, u8, i32, u32, $($record),*);
+    };
+}
+use crate::limits::SelectLimit;
+include!("../../../pgsql-nodes/src/nodes.in");
 
-impl Region {
-    pub(crate) fn new() -> Self {
-        Self(Some(
-            SPARE
-                .with(Cell::take)
-                .unwrap_or_else(|| Bump::with_capacity(8192)),
-        ))
+impl Arena {
+    #[inline]
+    pub(super) fn push<T: Stored>(&mut self, value: T) -> usize {
+        let start = T::pool(self).len();
+        if start == 0 {
+            self.active.push(|arena| T::pool_mut(arena).clear());
+        }
+        let pool = T::pool_mut(self);
+        let old_capacity = pool.capacity();
+        pool.push(value);
+        if old_capacity == start {
+            self.reserved += (pool.capacity() - old_capacity) * std::mem::size_of::<T>();
+        }
+        start
     }
 
-    pub(crate) fn build<R>(&self, build: impl FnOnce() -> R) -> R {
-        struct Scope<'a>(&'a Cell<Option<NonNull<Bump>>>, Option<NonNull<Bump>>);
-        impl Drop for Scope<'_> {
+    pub(super) fn append<T: Stored>(&mut self, values: impl IntoIterator<Item = T>) -> usize {
+        let start = T::pool(self).len();
+        if start == 0 {
+            self.active.push(|a| T::pool_mut(a).clear());
+        }
+        let pool = T::pool_mut(self);
+        let old = pool.capacity();
+        pool.extend(values);
+        self.reserved += (pool.capacity() - old) * std::mem::size_of::<T>();
+        start
+    }
+}
+
+thread_local! {
+    // Reductions allocate into CURRENT. A finished tree takes the arena with it.
+    static CURRENT: RefCell<Option<std::boxed::Box<Arena>>> = const { RefCell::new(None) };
+    static SPARE: Cell<Option<std::boxed::Box<Arena>>> = const { Cell::new(None) };
+}
+
+pub(crate) struct Region(Option<std::boxed::Box<Arena>>);
+impl Region {
+    pub(crate) fn build<R>(f: impl FnOnce() -> R) -> (Self, R) {
+        struct Scope(Option<std::boxed::Box<Arena>>);
+        impl Drop for Scope {
             fn drop(&mut self) {
-                self.0.set(self.1);
+                let active = CURRENT.replace(self.0.take());
+                drop(Region(active));
             }
         }
-        CURRENT.with(|slot| {
-            let previous = slot.replace(Some(NonNull::from(self.0.as_ref().unwrap())));
-            let _scope = Scope(slot, previous);
-            build()
-        })
+        let arena = SPARE.with(Cell::take).unwrap_or_default();
+        let scope = Scope(CURRENT.replace(Some(arena)));
+        let result = f();
+        let region = Self(CURRENT.take());
+        drop(scope);
+        (region, result)
+    }
+    pub(crate) fn arena(&self) -> &Arena {
+        self.0.as_deref().unwrap()
     }
 }
-
 impl Drop for Region {
     fn drop(&mut self) {
-        let mut bump = self.0.take().unwrap();
-        if bump.allocated_bytes() <= 128 * 1024 {
-            bump.reset();
-            let _ = SPARE.try_with(|slot| slot.set(Some(bump)));
+        if let Some(mut arena) = self.0.take() {
+            if arena.reserved <= 128 * 1024 {
+                while let Some(clear) = arena.active.pop() {
+                    clear(&mut arena);
+                }
+                arena.text.clear();
+                let _ = SPARE.try_with(|spare| spare.set(Some(arena)));
+            }
         }
     }
 }
-
 #[inline]
-fn in_region<R>(f: impl FnOnce(&Bump) -> R) -> R {
-    CURRENT.with(|slot| {
-        let ptr = slot.get().expect("arena allocation outside a reduction");
-        // SAFETY: build borrows the region and restores the previous pointer before returning.
-        f(unsafe { ptr.as_ref() })
-    })
+pub(crate) fn read<R>(f: impl FnOnce(&Arena) -> R) -> R {
+    CURRENT.with_borrow(|slot| f(slot.as_deref().expect("active grammar reduction")))
+}
+#[inline]
+pub(super) fn write<R>(f: impl FnOnce(&mut Arena) -> R) -> R {
+    CURRENT.with_borrow_mut(|slot| f(slot.as_deref_mut().expect("active grammar reduction")))
 }
 
-// The allocator is private. Buffers can grow only during their originating parse,
-// and are discarded together when the result (or a failed parse) releases its region.
-#[derive(Clone, Copy)]
-pub(super) struct Local;
-unsafe impl Allocator for Local {
-    fn allocate(&self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
-        Ok(NonNull::slice_from_raw_parts(
-            in_region(|bump| bump.alloc_layout(layout)),
-            layout.size(),
-        ))
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Id<T>(NonZeroUsize, PhantomData<fn() -> T>);
+impl<T> Id<T> {
+    #[inline]
+    fn index(&self) -> usize {
+        self.0.get() - 1
     }
-    unsafe fn deallocate(&self, _: NonNull<u8>, _: Layout) {}
 }
-
-#[derive(Debug)]
-pub(crate) struct Box<T>(NonNull<T>);
-impl<T> Box<T> {
+impl<T: Stored> Id<T> {
     #[inline]
     pub(crate) fn new(value: T) -> Self {
-        const {
-            assert!(!needs_drop::<T>());
-        }
-        Self(in_region(|bump| NonNull::from(bump.alloc(value))))
+        let i = write(|arena| arena.push(value));
+        Self(NonZeroUsize::new(i + 1).unwrap(), PhantomData)
     }
-    pub(crate) fn into_inner(self) -> T {
-        // SAFETY: this consumes the only owning handle. Bump has no element destructors.
-        unsafe { self.0.read() }
-    }
-    pub(crate) fn into_box(self) -> Self {
-        self
+    #[inline]
+    pub(crate) fn get(self, arena: &Arena) -> &T {
+        &T::pool(arena)[self.index()]
     }
 }
-impl<T> From<T> for Box<T> {
+impl<T: Stored + Copy> Id<T> {
+    #[inline]
+    pub(crate) fn load(self) -> T {
+        read(|a| *self.get(a))
+    }
+    pub(crate) fn set(self, value: T) {
+        write(|arena| T::pool_mut(arena)[self.index()] = value);
+    }
+    pub(crate) fn set_field<F>(self, field: impl FnOnce(&mut T) -> &mut F, value: F) {
+        write(|arena| *field(&mut T::pool_mut(arena)[self.index()]) = value);
+    }
+}
+impl<T: Stored> From<T> for Id<T> {
     fn from(value: T) -> Self {
         Self::new(value)
     }
 }
-impl<T> Deref for Box<T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        // SAFETY: handles are private to the parser and borrowed views keep the region alive.
-        unsafe { self.0.as_ref() }
-    }
-}
-impl<T> DerefMut for Box<T> {
-    fn deref_mut(&mut self) -> &mut T {
-        // SAFETY: this handle uniquely owns the pointee; cloning allocates a fresh value.
-        unsafe { self.0.as_mut() }
-    }
-}
-impl<T> AsRef<T> for Box<T> {
-    fn as_ref(&self) -> &T {
-        self
-    }
-}
-impl<T: Clone> Clone for Box<T> {
-    fn clone(&self) -> Self {
-        Self::new((**self).clone())
-    }
-}
-impl<T: PartialEq> PartialEq for Box<T> {
-    fn eq(&self, other: &Self) -> bool {
-        **self == **other
-    }
-}
 
-#[derive(Debug)]
-pub(crate) struct Arc<T>(NonNull<T>);
-impl<T> From<Box<T>> for Arc<T> {
-    fn from(owner: Box<T>) -> Self {
-        Self(owner.0)
-    }
-}
-impl<T> Arc<T> {
-    pub(crate) fn as_ptr(this: &Self) -> *const T {
-        this.0.as_ptr()
-    }
-    pub(crate) fn ptr_eq(a: &Self, b: &Self) -> bool {
-        a.0 == b.0
-    }
-}
-impl<T> Clone for Arc<T> {
-    fn clone(&self) -> Self {
-        Self(self.0)
-    }
-}
-impl<T> Deref for Arc<T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        // SAFETY: shared handles offer only immutable access within the region's lifetime.
-        unsafe { self.0.as_ref() }
-    }
-}
-impl<T: PartialEq> PartialEq for Arc<T> {
-    fn eq(&self, other: &Self) -> bool {
-        **self == **other
-    }
-}
-
-#[derive(Clone, Copy)]
-pub(crate) struct String {
-    text: NonNull<str>,
-}
-impl String {
-    pub(crate) fn as_str(&self) -> &str {
-        self
-    }
-    pub(crate) fn from_static(text: &'static str) -> Self {
-        Self {
-            text: NonNull::from(text),
-        }
-    }
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum String {
+    Static(&'static str),
+    Text { start: usize, len: usize },
 }
 impl Default for String {
     fn default() -> Self {
-        Self::from_static("")
+        Self::Static("")
+    }
+}
+impl String {
+    pub(crate) fn get(self, arena: &Arena) -> &str {
+        match self {
+            Self::Static(s) => s,
+            Self::Text { start, len } => &arena.text[start..start + len],
+        }
+    }
+    pub(crate) fn owned(self) -> std::string::String {
+        read(|a| self.get(a).to_owned())
+    }
+    fn store(s: &str, fold: bool) -> Self {
+        write(|arena| {
+            let start = arena.text.len();
+            let old = arena.text.capacity();
+            arena.text.push_str(s);
+            arena.reserved += arena.text.capacity() - old;
+            if fold {
+                arena.text[start..].make_ascii_lowercase();
+            }
+            Self::Text {
+                start,
+                len: s.len(),
+            }
+        })
+    }
+}
+impl pgsql_lexer::ScannerText for String {
+    fn with_str<R>(&self, f: impl FnOnce(&str) -> R) -> R {
+        read(|arena| f(self.get(arena)))
+    }
+    fn from_identifier(word: &str) -> Self {
+        Self::store(word, true)
     }
 }
 impl From<&str> for String {
-    fn from(text: &str) -> Self {
-        if text.is_empty() {
+    fn from(s: &str) -> Self {
+        if s.is_empty() {
             return Self::default();
         }
-        Self {
-            text: in_region(|bump| NonNull::from(bump.alloc_str(text))),
-        }
-    }
-}
-impl pgsql_lexer::TokenText for String {
-    fn lowercase_identifier(word: &str) -> Self {
-        in_region(|bump| {
-            let text = bump.alloc_str(word);
-            text.make_ascii_lowercase();
-            Self {
-                text: NonNull::from(text),
-            }
-        })
+        Self::store(s, false)
     }
 }
 impl From<std::string::String> for String {
@@ -205,76 +208,64 @@ impl From<std::string::String> for String {
         s.as_str().into()
     }
 }
-impl Deref for String {
-    type Target = str;
-    fn deref(&self) -> &str {
-        // SAFETY: construction preserves UTF-8 and the public borrow keeps the region alive.
-        unsafe { self.text.as_ref() }
-    }
-}
-impl fmt::Debug for String {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(&**self, f)
-    }
-}
-impl fmt::Display for String {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&**self, f)
-    }
-}
 impl PartialEq for String {
     fn eq(&self, other: &Self) -> bool {
-        **self == **other
+        read(|a| self.get(a) == other.get(a))
     }
 }
 impl PartialEq<str> for String {
-    fn eq(&self, other: &str) -> bool {
-        &**self == other
+    fn eq(&self, s: &str) -> bool {
+        read(|a| self.get(a) == s)
     }
 }
 impl PartialEq<&str> for String {
-    fn eq(&self, other: &&str) -> bool {
-        &**self == *other
+    fn eq(&self, s: &&str) -> bool {
+        self == *s
     }
 }
-impl AsRef<str> for String {
-    fn as_ref(&self) -> &str {
-        self
-    }
-}
-impl std::borrow::Borrow<str> for String {
-    fn borrow(&self) -> &str {
-        self
+impl std::fmt::Display for String {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        read(|a| f.write_str(self.get(a)))
     }
 }
 
-// SAFETY: a completed tree exclusively owns its arena's chunks. Only immutable
-// views escape. The bump cursor is touched again only by the tree's destructor.
-unsafe impl Send for crate::RawTree {}
-unsafe impl Sync for crate::RawTree {}
-// SAFETY: the view borrows that frozen tree for its full lifetime.
-unsafe impl Send for crate::RawStatement<'_> {}
-unsafe impl Sync for crate::RawStatement<'_> {}
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct Shared<T>(Id<T>);
+impl<T> From<Id<T>> for Shared<T> {
+    fn from(id: Id<T>) -> Self {
+        Self(id)
+    }
+}
+impl<T: Stored + Copy> Shared<T> {
+    pub(crate) fn get(self, arena: &Arena) -> &T {
+        self.0.get(arena)
+    }
+    pub(crate) fn index(self) -> usize {
+        self.0.index()
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
-    fn unwinding_a_nested_build_restores_the_outer_region() {
-        let outer = Region::new();
-        let text = outer.build(|| {
-            let failed = std::panic::catch_unwind(|| {
-                let inner = Region::new();
-                inner.build(|| {
-                    let _partial = Box::new(String::from("inner"));
-                    panic!("abort the inner build");
-                });
+    fn nested_parse_restores_outer_arena_after_unwinding() {
+        let (outer, id) = Region::build(|| {
+            let id = Id::new(17_i32);
+            let inner = std::panic::catch_unwind(|| {
+                Region::build(|| {
+                    let inner = Id::new(31_i32);
+                    assert_eq!(inner.load(), 31);
+                    panic!("abort inner parse");
+                })
             });
-            assert!(failed.is_err());
-            String::from("outer")
+            assert!(inner.is_err());
+            assert_eq!(id.load(), 17);
+            id
         });
-        let other = Region::new();
-        other.build(|| assert_eq!(String::from("other").as_str(), "other"));
-        assert_eq!(text.as_str(), "outer");
+        let (other, other_id) = Region::build(|| Id::new(42_i32));
+        assert_eq!(other_id.get(other.arena()), &42);
+        assert_eq!(id.get(outer.arena()), &17);
     }
 }

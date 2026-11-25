@@ -16,14 +16,17 @@ pub(super) fn create_as(
 ) -> Result<Value, Failure> {
     let materialized = matches!(source, Source::Materialized);
     let target = 4 + isize::from(materialized) + if if_not_exists { 3 } else { 0 };
-    let mut into = record!(rhs.take(target), IntoClause).ok_or("expected INTO clause")?;
-    into.rel
-        .as_deref_mut()
-        .ok_or("expected INTO relation")?
-        .relpersistence = rhs.take(2).integer()? as u8;
+    let into = record!(rhs.take(target), IntoClause).ok_or("expected INTO clause")?;
+    into.load().rel.ok_or("expected INTO relation")?.set_field(
+        |node| &mut node.relpersistence,
+        rhs.take(2).integer()? as u8,
+    );
     let query = match source {
         Source::Execute => {
-            into.skip_data = rhs.take(target + 5).integer()? == 0;
+            into.set_field(
+                |node| &mut node.skip_data,
+                rhs.take(target + 5).integer()? == 0,
+            );
             ExecuteStmt {
                 name: Some(rhs.take(target + 3).text()?),
                 params: rhs.take(target + 4).list()?,
@@ -31,7 +34,10 @@ pub(super) fn create_as(
             .into()
         }
         Source::Select | Source::Materialized => {
-            into.skip_data = rhs.take(target + 3).integer()? == 0;
+            into.set_field(
+                |node| &mut node.skip_data,
+                rhs.take(target + 3).integer()? == 0,
+            );
             rhs.take(target + 2).node()?
         }
     };
@@ -61,9 +67,12 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
             rhs.location(12 + shift),
         ));
     }
-    let mut view = record!(rhs.take(5 + shift), RangeVar).ok_or("expected view relation")?;
-    view.relpersistence = rhs.take(2 + shift).integer()? as u8;
-    let relname = view.relname.ok_or("expected view name")?;
+    let view = record!(rhs.take(5 + shift), RangeVar).ok_or("expected view relation")?;
+    view.set_field(
+        |node| &mut node.relpersistence,
+        rhs.take(2 + shift).integer()? as u8,
+    );
+    let relname = view.load().relname.ok_or("expected view name")?;
     let aliases = rhs.take(7 + shift).list()?;
     let location = Location::UNKNOWN;
     let mut targets = Vec::with_capacity(aliases.len());
@@ -72,7 +81,7 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
             return Err("expected view column name".into());
         };
         let column = ColumnRef {
-            fields: vec![Node::String(*name)],
+            fields: vec![Node::String(name)],
             location,
         };
         targets.push(
@@ -86,7 +95,7 @@ pub(super) fn recursive(rhs: &mut Reduction<'_, Value>, replace: bool) -> Result
     }
     let cte = CommonTableExpr {
         ctename: Some(relname),
-        aliascolnames: aliases.clone(),
+        aliascolnames: aliases,
         ctequery: rhs.take(11 + shift).optional()?,
         location,
         ..Default::default()

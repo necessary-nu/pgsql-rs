@@ -29,12 +29,13 @@ pub(super) fn continuation(rhs: &mut Reduction<'_, Value>, dotted: bool) -> Resu
     Ok(Value::from_node(spec.into()))
 }
 
-fn normalize(objects: &mut [Node]) -> Result<(), Failure> {
+fn normalize(objects: Vec<Node>) -> Result<(), Failure> {
     let mut previous = Kind::PUBLICATIONOBJ_CONTINUATION;
     for object in objects {
-        let Node::PublicationObjSpec(spec) = object else {
+        let Node::PublicationObjSpec(id) = object else {
             return Err("expected publication object".into());
         };
+        let mut spec = id.load();
         if spec.pubobjtype == Kind::PUBLICATIONOBJ_CONTINUATION {
             if previous == Kind::PUBLICATIONOBJ_CONTINUATION {
                 return Err(Failure::At(
@@ -56,7 +57,7 @@ fn normalize(objects: &mut [Node]) -> Result<(), Failure> {
                 spec.pubtable.is_none().then_some("invalid table name")
             }
             Kind::PUBLICATIONOBJ_TABLES_IN_SCHEMA | Kind::PUBLICATIONOBJ_TABLES_IN_CUR_SCHEMA => {
-                if let Some(table) = &spec.pubtable {
+                if let Some(table) = spec.pubtable.map(|table| table.load()) {
                     Some(if table.where_clause.is_some() {
                         "WHERE clause not allowed for schema"
                     } else if !table.columns.is_empty() {
@@ -79,6 +80,7 @@ fn normalize(objects: &mut [Node]) -> Result<(), Failure> {
             return Err(Failure::At(error.to_owned(), "42601", spec.location));
         }
         previous = spec.pubobjtype;
+        id.set(spec);
     }
     Ok(())
 }
@@ -86,11 +88,12 @@ fn normalize(objects: &mut [Node]) -> Result<(), Failure> {
 fn all_objects(items: Vec<Node>) -> Result<(Vec<Node>, bool, bool), Failure> {
     let (mut tables, mut sequences, mut objects) = (false, false, vec![]);
     for item in items {
-        let Node::PublicationAllObjSpec(mut spec) = item else {
+        let Node::PublicationAllObjSpec(spec) = item else {
             return Err("expected publication object type".into());
         };
+        let spec = spec.load();
         let flag = if spec.pubobjtype == PublicationAllObjType::PUBLICATION_ALL_TABLES {
-            objects.append(&mut spec.except_tables);
+            objects.append(spec.except_tables);
             &mut tables
         } else {
             &mut sequences
@@ -117,8 +120,7 @@ pub(super) fn publication(
     let (pubobjects, for_all_tables, for_all_sequences) = if all {
         all_objects(objects)?
     } else {
-        let mut objects = objects;
-        normalize(&mut objects)?;
+        normalize(objects)?;
         (objects, false, false)
     };
     if let Some(action) = action {

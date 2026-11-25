@@ -1,7 +1,7 @@
 //! Shift/reduce driver for the patched PostgreSQL 19 grammar.
 #![forbid(unsafe_code)]
 
-use pgsql_lexer::{Error, Kind, Options, Scanner, Token, TokenText, Value};
+use pgsql_lexer::{Error, Kind, Options, Scanner, ScannerText, Token, Value};
 use pgsql_nodes::Location;
 use pgsql_tables::{goto, Action, Lookahead, Production, State, INITIAL_STATE};
 
@@ -374,7 +374,7 @@ pub fn parse_with<A: StackActions>(
     parse_with_text(sql, mode, options, context, stack)
 }
 
-pub fn parse_with_text<T: TokenText, A: StackActions<T>>(
+pub fn parse_with_text<T: ScannerText, A: StackActions<T>>(
     sql: &str,
     mode: ParseMode,
     options: Options,
@@ -387,7 +387,7 @@ pub fn parse_with_text<T: TokenText, A: StackActions<T>>(
     result
 }
 
-fn run<T: TokenText, A: StackActions<T>>(
+fn run<T: ScannerText, A: StackActions<T>>(
     sql: &str,
     mode: ParseMode,
     options: Options,

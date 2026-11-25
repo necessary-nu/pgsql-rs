@@ -1,6 +1,20 @@
 # PostgreSQL 19 raw parser profile
 
-## Arena-backed raw parser
+## Safe indexed arena
+
+On 2026-11-25, seven rounds on logical CPU 1 of an AMD Threadripper 2950X compared the indexed parser, the pointer-based Rust parser at `1133a56`, and patched PostgreSQL 19.0. The run rotated the order of the three executables. Rust 1.100.0 used ordinary Cargo release settings, GCC 14.2 used `-O3`, and all three used the system allocator. Values are median microseconds per query, including result destruction.
+
+| Workload | Indexed Rust raw | Previous Rust raw | C raw | Indexed Rust with JSON | Previous Rust with JSON | C with JSON |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `SELECT 1` | 0.221 | 0.198 | 0.414 | 0.449 | 0.390 | 1.081 |
+| Parameterized aggregate join | 4.346 | 3.625 | 5.836 | 7.209 | 6.296 | 13.731 |
+| 54,266 successful regression queries | 1.597 | 1.324 | 1.781 | 2.571 | 2.243 | 4.073 |
+
+The indexed parser took 10.3% less raw parse time than C on the corpus and 20.6% more than the previous Rust parser. All three emitted identical JSON bytes for every benchmark input. The indexed parser also matched all 54,471 recorded PostgreSQL outcomes and 72 additional nesting-boundary cases across six parse modes.
+
+`RawTree` owns typed record pools and a text buffer. Nodes refer to records by index. Statement views and the JSON writer resolve those indices against the borrowed tree. A worker retains at most one arena with up to 128 KiB of pooled records and text for reuse. The grammar crate enforces `#![forbid(unsafe_code)]`.
+
+## Earlier pointer-based arena
 
 At `9bcf758`, seven alternating Rust/C pairs ran on logical CPU 3 of an AMD Threadripper 2950X. Rust 1.100.0 used ordinary `cargo build --release` settings and PostgreSQL 19.0 used GCC 14.2 with `-O3`. Both used the system allocator. Times are median microseconds per query, including result destruction. The Rust measurements cover the arena-backed `parse_raw` entry point and serialization of the same tree through `RawTree::json`. The current import is `pgsql_parser::parse_raw`.
 

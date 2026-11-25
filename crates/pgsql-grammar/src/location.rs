@@ -1,5 +1,5 @@
 //! Locations reported by the raw-node cases in PostgreSQL nodes/nodeFuncs.c.
-use crate::raw::{Location, Node};
+use crate::raw::{Arena, Location, Node};
 
 const UNKNOWN: Location = Location::UNKNOWN;
 
@@ -17,90 +17,123 @@ enum Source<'a> {
     List(Location, &'a [Node]),
 }
 
-fn leaf_location(node: &Node) -> Location {
+fn leaf_location(node: &Node, arena: &Arena) -> Location {
     match node {
-        Node::RangeVar(n) => n.location,
-        Node::TableFunc(n) => n.location,
-        Node::GroupingFunc(n) => n.location,
-        Node::MergeSupportFunc(n) => n.location,
-        Node::CaseExpr(n) => n.location,
-        Node::CaseWhen(n) => n.location,
-        Node::RowExpr(n) => n.location,
-        Node::CoalesceExpr(n) => n.location,
-        Node::MinMaxExpr(n) => n.location,
-        Node::SQLValueFunction(n) => n.location,
-        Node::JsonFormat(n) => n.location,
-        Node::JsonIsPredicate(n) => n.location,
-        Node::SetToDefault(n) => n.location,
-        Node::ColumnRef(n) => n.location,
-        Node::ParamRef(n) => n.location,
+        Node::RangeVar(n) => n.get(arena).location,
+        Node::TableFunc(n) => n.get(arena).location,
+        Node::GroupingFunc(n) => n.get(arena).location,
+        Node::MergeSupportFunc(n) => n.get(arena).location,
+        Node::CaseExpr(n) => n.get(arena).location,
+        Node::CaseWhen(n) => n.get(arena).location,
+        Node::RowExpr(n) => n.get(arena).location,
+        Node::CoalesceExpr(n) => n.get(arena).location,
+        Node::MinMaxExpr(n) => n.get(arena).location,
+        Node::SQLValueFunction(n) => n.get(arena).location,
+        Node::JsonFormat(n) => n.get(arena).location,
+        Node::JsonIsPredicate(n) => n.get(arena).location,
+        Node::SetToDefault(n) => n.get(arena).location,
+        Node::ColumnRef(n) => n.get(arena).location,
+        Node::ParamRef(n) => n.get(arena).location,
         Node::AConst(n) => n.location,
-        Node::AArrayExpr(n) => n.location,
-        Node::ResTarget(n) => n.location,
-        Node::WindowDef(n) => n.location,
-        Node::RangeTableSample(n) => n.location,
-        Node::TypeName(n) => n.location,
-        Node::ColumnDef(n) => n.location,
-        Node::IndexElem(n) => n.location,
-        Node::Constraint(n) => n.location,
-        Node::FunctionParameter(n) => n.location,
-        Node::XmlSerialize(n) => n.location,
-        Node::GroupingSet(n) => n.location,
-        Node::WithClause(n) => n.location,
-        Node::InferClause(n) => n.location,
-        Node::OnConflictClause(n) => n.location,
-        Node::CTESearchClause(n) => n.location,
-        Node::CTECycleClause(n) => n.location,
-        Node::CommonTableExpr(n) => n.location,
-        Node::JsonObjectConstructor(n) => n.location,
-        Node::JsonArrayConstructor(n) => n.location,
-        Node::JsonArrayQueryConstructor(n) => n.location,
-        Node::JsonAggConstructor(n) => n.location,
-        Node::PartitionElem(n) => n.location,
-        Node::PartitionSpec(n) => n.location,
-        Node::PartitionBoundSpec(n) => n.location,
-        Node::PartitionRangeDatum(n) => n.location,
+        Node::AArrayExpr(n) => n.get(arena).location,
+        Node::ResTarget(n) => n.get(arena).location,
+        Node::WindowDef(n) => n.get(arena).location,
+        Node::RangeTableSample(n) => n.get(arena).location,
+        Node::TypeName(n) => n.get(arena).location,
+        Node::ColumnDef(n) => n.get(arena).location,
+        Node::IndexElem(n) => n.get(arena).location,
+        Node::Constraint(n) => n.get(arena).location,
+        Node::FunctionParameter(n) => n.get(arena).location,
+        Node::XmlSerialize(n) => n.get(arena).location,
+        Node::GroupingSet(n) => n.get(arena).location,
+        Node::WithClause(n) => n.get(arena).location,
+        Node::InferClause(n) => n.get(arena).location,
+        Node::OnConflictClause(n) => n.get(arena).location,
+        Node::CTESearchClause(n) => n.get(arena).location,
+        Node::CTECycleClause(n) => n.get(arena).location,
+        Node::CommonTableExpr(n) => n.get(arena).location,
+        Node::JsonObjectConstructor(n) => n.get(arena).location,
+        Node::JsonArrayConstructor(n) => n.get(arena).location,
+        Node::JsonArrayQueryConstructor(n) => n.get(arena).location,
+        Node::JsonAggConstructor(n) => n.get(arena).location,
+        Node::PartitionElem(n) => n.get(arena).location,
+        Node::PartitionSpec(n) => n.get(arena).location,
+        Node::PartitionBoundSpec(n) => n.get(arena).location,
+        Node::PartitionRangeDatum(n) => n.get(arena).location,
         _ => UNKNOWN,
     }
 }
 
-fn source(node: &Node) -> Source<'_> {
+fn source<'a>(node: &'a Node, arena: &'a Arena) -> Source<'a> {
     use Source::*;
     match node {
-        Node::FuncExpr(n) => List(n.location, &n.args),
-        Node::NamedArgExpr(n) => Child(n.location, n.arg.as_deref()),
-        Node::BoolExpr(n) => List(n.location, &n.args),
-        Node::SubLink(n) => Child(n.location, n.testexpr.as_deref()),
-        Node::XmlExpr(n) => List(n.location, &n.args),
-        Node::JsonValueExpr(n) => Child(UNKNOWN, n.raw_expr.as_deref()),
-        Node::JsonBehavior(n) => Child(UNKNOWN, n.expr.as_deref()),
-        Node::NullTest(n) => Child(n.location, n.arg.as_deref()),
-        Node::BooleanTest(n) => Child(n.location, n.arg.as_deref()),
-        Node::IntoClause(n) => Leaf(n.rel.as_ref().map_or(UNKNOWN, |v| v.location)),
-        Node::AExpr(n) => Child(n.location, n.lexpr.as_deref()),
-        Node::FuncCall(n) => List(n.location, &n.args),
-        Node::MultiAssignRef(n) => Child(UNKNOWN, n.source.as_deref()),
+        Node::FuncExpr(n) => List(n.get(arena).location, n.get(arena).args.slice(arena)),
+        Node::NamedArgExpr(n) => Child(
+            n.get(arena).location,
+            n.get(arena).arg.map(|id| id.get(arena)),
+        ),
+        Node::BoolExpr(n) => List(n.get(arena).location, n.get(arena).args.slice(arena)),
+        Node::SubLink(n) => Child(
+            n.get(arena).location,
+            n.get(arena).testexpr.map(|id| id.get(arena)),
+        ),
+        Node::XmlExpr(n) => List(n.get(arena).location, n.get(arena).args.slice(arena)),
+        Node::JsonValueExpr(n) => Child(UNKNOWN, n.get(arena).raw_expr.map(|id| id.get(arena))),
+        Node::JsonBehavior(n) => Child(UNKNOWN, n.get(arena).expr.map(|id| id.get(arena))),
+        Node::NullTest(n) => Child(
+            n.get(arena).location,
+            n.get(arena).arg.map(|id| id.get(arena)),
+        ),
+        Node::BooleanTest(n) => Child(
+            n.get(arena).location,
+            n.get(arena).arg.map(|id| id.get(arena)),
+        ),
+        Node::IntoClause(n) => Leaf(
+            n.get(arena)
+                .rel
+                .as_ref()
+                .map_or(UNKNOWN, |v| v.get(arena).location),
+        ),
+        Node::AExpr(n) => Child(
+            n.get(arena).location,
+            n.get(arena).lexpr.map(|id| id.get(arena)),
+        ),
+        Node::FuncCall(n) => List(n.get(arena).location, n.get(arena).args.slice(arena)),
+        Node::MultiAssignRef(n) => Child(UNKNOWN, n.get(arena).source.map(|id| id.get(arena))),
         Node::TypeCast(n) => Child(
             leftmost(
-                n.location,
-                n.type_name.as_ref().map_or(UNKNOWN, |t| t.location),
+                n.get(arena).location,
+                n.get(arena)
+                    .type_name
+                    .as_ref()
+                    .map_or(UNKNOWN, |t| t.get(arena).location),
             ),
-            n.arg.as_deref(),
+            n.get(arena).arg.map(|id| id.get(arena)),
         ),
-        Node::CollateClause(n) => Child(UNKNOWN, n.arg.as_deref()),
-        Node::SortBy(n) => Child(UNKNOWN, n.node.as_deref()),
-        Node::JsonKeyValue(n) => Child(UNKNOWN, n.key.as_deref()),
-        Node::JsonObjectAgg(n) => Leaf(n.constructor.as_ref().map_or(UNKNOWN, |v| v.location)),
-        Node::JsonArrayAgg(n) => Leaf(n.constructor.as_ref().map_or(UNKNOWN, |v| v.location)),
-        Node::List(n) => List(UNKNOWN, n),
+        Node::CollateClause(n) => Child(UNKNOWN, n.get(arena).arg.map(|id| id.get(arena))),
+        Node::SortBy(n) => Child(UNKNOWN, n.get(arena).node.map(|id| id.get(arena))),
+        Node::JsonKeyValue(n) => Child(UNKNOWN, n.get(arena).key.map(|id| id.get(arena))),
+        Node::JsonObjectAgg(n) => Leaf(
+            n.get(arena)
+                .constructor
+                .as_ref()
+                .map_or(UNKNOWN, |v| v.get(arena).location),
+        ),
+        Node::JsonArrayAgg(n) => Leaf(
+            n.get(arena)
+                .constructor
+                .as_ref()
+                .map_or(UNKNOWN, |v| v.get(arena).location),
+        ),
+        Node::List(n) => List(UNKNOWN, n.slice(arena)),
 
-        _ => Leaf(leaf_location(node)),
+        _ => Leaf(leaf_location(node, arena)),
     }
 }
 
 /// exprLocation takes the first located member of a list, including nested lists.
 /// Save pending lists on the heap so a deeply nested expression stays stack safe.
-pub(super) fn expression_location(nodes: &[Node]) -> Location {
+pub(super) fn expression_location(nodes: &[Node], arena: &Arena) -> Location {
     let mut pending = Vec::new();
     let mut source = Source::List(UNKNOWN, nodes);
     let mut position = UNKNOWN;
@@ -110,7 +143,7 @@ pub(super) fn expression_location(nodes: &[Node]) -> Location {
             Source::Child(loc, child) => {
                 position = leftmost(position, loc);
                 if let Some(node) = child {
-                    source = self::source(node);
+                    source = self::source(node, arena);
                     continue;
                 }
             }
@@ -118,7 +151,7 @@ pub(super) fn expression_location(nodes: &[Node]) -> Location {
                 position = leftmost(position, loc);
                 if let Some((head, tail)) = list.split_first() {
                     pending.push((position, tail));
-                    source = self::source(head);
+                    source = self::source(head, arena);
                     position = UNKNOWN;
                     continue;
                 }
@@ -131,7 +164,7 @@ pub(super) fn expression_location(nodes: &[Node]) -> Location {
             if position == UNKNOWN {
                 if let Some((head, tail)) = remaining.split_first() {
                     pending.push((outer, tail));
-                    source = self::source(head);
+                    source = self::source(head, arena);
                     break;
                 }
             }

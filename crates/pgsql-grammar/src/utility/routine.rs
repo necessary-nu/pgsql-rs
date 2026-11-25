@@ -9,9 +9,9 @@ use crate::{
 };
 use pgsql_engine::Reduction;
 
-fn parameter(node: &Node) -> Result<&FunctionParameter, Failure> {
+fn parameter(node: Node) -> Result<FunctionParameter, Failure> {
     match node {
-        Node::FunctionParameter(param) => Ok(param),
+        Node::FunctionParameter(param) => Ok(param.load()),
         _ => Err("expected function parameter".into()),
     }
 }
@@ -41,13 +41,7 @@ fn object_signature(objname: Vec<Node>, objfuncargs: Vec<Node>) -> Result<Value,
             param.mode,
             FunctionParameterMode::FUNC_PARAM_OUT | FunctionParameterMode::FUNC_PARAM_TABLE
         ) {
-            objargs.push(
-                param
-                    .arg_type
-                    .clone()
-                    .ok_or("expected argument type")?
-                    .into(),
-            );
+            objargs.push(param.arg_type.ok_or("expected argument type")?.into());
         }
     }
     Ok(Value::from_node(
@@ -79,23 +73,23 @@ pub(super) fn table_function(rhs: &mut Reduction<'_, Value>) -> Result<Value, Fa
         }
     }
     let columns = rhs.take(9).list()?;
-    let mut result = if let [column] = &columns[..] {
-        parameter(column)?
+    let mut result = if columns.len() == 1 {
+        parameter(columns.get(0))?
             .arg_type
-            .clone()
             .ok_or("expected table result type")?
+            .load()
     } else {
-        Box::new(types::builtin("record", vec![], rhs.location(7)))
+        types::builtin("record", vec![], rhs.location(7))
     };
     result.setof = true;
     result.location = rhs.location(7);
-    parameters.extend(columns);
+    parameters.append(columns);
     Ok(Value::from_node(
         CreateFunctionStmt {
             replace: rhs.take(2).integer()? != 0,
             funcname: rhs.take(4).list()?,
             parameters,
-            return_type: Some(result),
+            return_type: Some(Box::new(result)),
             options: rhs.take(11).list()?,
             sql_body: optional_node(rhs.take(12))?,
             ..Default::default()
@@ -107,7 +101,7 @@ pub(super) fn table_function(rhs: &mut Reduction<'_, Value>) -> Result<Value, Fa
 pub(super) fn percent_type(rhs: &mut Reduction<'_, Value>, setof: bool) -> Result<Value, Failure> {
     let index = if setof { 2 } else { 1 };
     let mut names = vec![Node::String(rhs.take(index).text()?)];
-    names.extend(rhs.take(index + 1).list()?);
+    names.append(rhs.take(index + 1).list()?);
     let mut ty = types::named(names, vec![], rhs.location(index));
     ty.setof = setof;
     ty.pct_type = true;
@@ -117,7 +111,7 @@ pub(super) fn percent_type(rhs: &mut Reduction<'_, Value>, setof: bool) -> Resul
 pub(super) fn body(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let mut list = rhs.take(1).list()?;
     if let Some(statement) = optional_node(rhs.take(2))? {
-        list.push(statement.into_inner());
+        list.push(statement.load());
     }
     Ok(Value::from_list(list))
 }
@@ -130,7 +124,7 @@ pub(super) fn transform(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure
         .map_err(|_| Failure::Value("expected a pair of transform functions"))?;
     let function = |node| match node {
         Node::Null => Ok(None),
-        Node::ObjectWithArgs(f) => Ok(Some(f.into_box())),
+        Node::ObjectWithArgs(f) => Ok(Some(f)),
         _ => Err(Failure::Value("expected a transform function signature")),
     };
     Ok(Value::from_node(
@@ -153,7 +147,7 @@ pub(crate) fn aggregate_signature(rhs: &mut Reduction<'_, Value>) -> Result<Valu
         .ok_or("expected aggregate arguments")?;
     let params = match first {
         Node::Null => Vec::new(),
-        Node::List(items) => items.into_vec(),
+        Node::List(items) => items,
         _ => return Err("expected aggregate parameter list".into()),
     };
     object_signature(rhs.take(1).list()?, params)
@@ -162,7 +156,7 @@ pub(crate) fn aggregate_signature(rhs: &mut Reduction<'_, Value>) -> Result<Valu
 pub(crate) fn aggregate_arg(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let arg = rhs.take(1).node()?;
     if !matches!(
-        parameter(&arg)?.mode,
+        parameter(arg)?.mode,
         FunctionParameterMode::FUNC_PARAM_DEFAULT
             | FunctionParameterMode::FUNC_PARAM_IN
             | FunctionParameterMode::FUNC_PARAM_VARIADIC
@@ -187,18 +181,21 @@ pub(crate) fn ordered_args(rhs: &mut Reduction<'_, Value>) -> Result<Value, Fail
                 .first()
                 .ok_or("expected ordered aggregate parameter")?,
         )?;
-        let direct_type = last.arg_type.as_deref().ok_or("expected direct type")?;
-        let ordered_type = first.arg_type.as_deref().ok_or("expected ordered type")?;
+        let direct_type = last.arg_type.ok_or("expected direct type")?;
+        let ordered_type = first.arg_type.ok_or("expected ordered type")?;
         if ordered.len() != 1
             || first.mode != FunctionParameterMode::FUNC_PARAM_VARIADIC
-            || !direct_type
-                .pg_equal(ordered_type)
-                .map_err(|_| "unsupported PostgreSQL equality tag")?
+            || !read(|arena| {
+                direct_type
+                    .get(arena)
+                    .pg_equal(ordered_type.get(arena), arena)
+            })
+            .map_err(|_| "unsupported PostgreSQL equality tag")?
         {
             return Err(Failure::At("an ordered-set aggregate with a VARIADIC direct argument must have one VARIADIC aggregated argument of the same data type".to_owned(),"0A000",first.location));
         }
     } else {
-        direct.extend(ordered);
+        direct.append(ordered);
     }
     Ok(Value::from_list(vec![direct.into(), Node::Integer(count)]))
 }

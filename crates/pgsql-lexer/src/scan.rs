@@ -1,6 +1,6 @@
 use crate::{
     dfa::{longest, State},
-    Error, Kind, Options, Token, TokenText, Value, MAX_IDENTIFIER_BYTES,
+    Error, Kind, Options, ScannerText, Token, Value, MAX_IDENTIFIER_BYTES,
 };
 
 pub struct Scanner<'a> {
@@ -38,17 +38,20 @@ impl<'a> Scanner<'a> {
         crate::GrammarScanner::new(self)
     }
 
-    pub fn grammar_with_text<T: TokenText>(self) -> crate::GrammarScanner<'a, T> {
+    pub fn grammar_with_text<T: ScannerText>(self) -> crate::GrammarScanner<'a, T> {
         crate::GrammarScanner::new(self)
     }
 
-    pub(crate) fn one<T: TokenText>(&mut self) -> Result<Option<Token<T>>, Error> {
+    pub(crate) fn one<T: ScannerText>(&mut self) -> Result<Option<Token<T>>, Error> {
         let mut token = Token::default();
         Ok(self.read_into(&mut token)?.then_some(token))
     }
 
     #[inline]
-    pub(crate) fn read_into<T: TokenText>(&mut self, token: &mut Token<T>) -> Result<bool, Error> {
+    pub(crate) fn read_into<T: ScannerText>(
+        &mut self,
+        token: &mut Token<T>,
+    ) -> Result<bool, Error> {
         let bytes = self.sql.as_bytes();
         let mut start = self.cursor;
         while matches!(
@@ -105,7 +108,7 @@ impl<'a> Scanner<'a> {
         Ok(true)
     }
 
-    fn read_slow<T: TokenText>(&mut self, token: &mut Token<T>) -> Result<bool, Error> {
+    fn read_slow<T: ScannerText>(&mut self, token: &mut Token<T>) -> Result<bool, Error> {
         while self.cursor < self.sql.len() {
             let start = self.cursor;
             let (action, mut end) = longest(State::Initial, self.sql.as_bytes(), start);
@@ -250,7 +253,7 @@ fn block_comment(sql: &str, start: usize) -> Result<usize, Error> {
 }
 
 // [spec:pgq:req:lex.keywords]
-fn identifier<T: TokenText>(
+fn identifier<T: ScannerText>(
     token: &mut Token<T>,
     word: &str,
     input: &[u8],
@@ -265,14 +268,14 @@ fn identifier<T: TokenText>(
         token.kind = Kind::IDENT;
         token.keyword = None;
         let prefix = &word[..word.floor_char_boundary(MAX_IDENTIFIER_BYTES)];
-        token.value = Value::Text(T::lowercase_identifier(prefix));
+        token.value = Value::Text(T::from_identifier(prefix));
     }
     token.start = start;
     token.end = end;
 }
 
 // [spec:pgq:req:lex.numbers-and-parameters]
-fn integer<T: TokenText>(text: &str, action: u8) -> (Kind, Value<T>) {
+fn integer<T: ScannerText>(text: &str, action: u8) -> (Kind, Value<T>) {
     let (radix, digits) = match action {
         58 => (16, &text[2..]),
         59 => (8, &text[2..]),

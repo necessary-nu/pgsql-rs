@@ -66,13 +66,13 @@ pub(super) fn foreign_key(rhs: &mut Reduction<'_, Value>, table: bool) -> Result
     if table {
         node.fk_attrs = rhs.take(4).list()?;
         if let Some(period) = rhs.take(5).optional()? {
-            node.fk_attrs.push(period.into_inner());
+            node.fk_attrs.push(period.load());
             node.fk_with_period = true;
         }
         let mut columns = rhs.take(9).list()?.into_iter();
         node.pk_attrs = match columns.next() {
             Some(Node::Null) => Vec::new(),
-            Some(Node::List(list)) => list.into_vec(),
+            Some(Node::List(list)) => list,
             _ => return Err("expected referenced columns".into()),
         };
         if let Some(period) = columns.next().filter(|node| !matches!(node, Node::Null)) {

@@ -1,15 +1,15 @@
 //! The reduction model instantiates the same PostgreSQL schema as the owned API.
 pub(crate) use pgsql_nodes::*;
-#[allow(unsafe_code)]
 mod storage;
-pub(crate) use storage::{Arc, Box, Region, String};
+// These names let the shared node schema use indexed fields during parsing.
+pub(crate) use storage::{read, Arena, Id as Box, Region, Shared as Arc, Stored, String};
 mod list;
 pub(crate) use list::Vec;
 pub(crate) type NodeBox<T> = Box<T>;
 pub(crate) type NodeList = Vec<Node>;
 pub(crate) type Bitmapset = Vec<u32>;
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub(crate) enum Literal {
     #[default]
     Null,
@@ -19,7 +19,7 @@ pub(crate) enum Literal {
     String(String),
     BitString(String),
 }
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub(crate) struct AConst {
     pub val: Literal,
     pub location: Location,
@@ -40,8 +40,9 @@ macro_rules! node_types {
      records { $( $record:ident ($id:literal, $name:literal) { $( $field:ident [$cfield:literal]: $ty:ty, )* } )* }
     ) => {
         #[allow(dead_code)] // The schema includes backend-only variants.
-        #[derive(Debug, PartialEq)]
+        #[derive(Clone, Copy, Debug, PartialEq, Default)]
         pub(crate) enum Node {
+            #[default]
             Null,
             $( $value($payload), )*
             $( $record(Box<$record>), )*
@@ -56,23 +57,23 @@ macro_rules! node_types {
             }
         }
         impl convert::Shape for Node {
-            fn children<'a>(&'a self, work: &mut std::vec::Vec<convert::Visit<'a>>) {
+            fn children<'a>(&'a self, arena: &'a Arena, work: &mut std::vec::Vec<convert::Visit<'a>>) {
                 match self {
                     Self::Null => {},
-                    $(Self::$value(value) => convert::Field::queue(value, work),)*
-                    $(Self::$record(value) => value.children(work),)*
+                    $(Self::$value(value) => convert::Field::queue(value, arena, work),)*
+                    $(Self::$record(value) => value.get(arena).children(arena, work),)*
                 }
             }
             fn assemble(&self, ready: &mut convert::Ready) -> pgsql_nodes::Node {
                 match self {
                     Self::Null => pgsql_nodes::Node::Null,
                     $(Self::$value(value) => pgsql_nodes::Node::$value(convert::Build::build(value, ready)),)*
-                    $(Self::$record(value) => value.assemble(ready),)*
+                    $(Self::$record(value) => value.get(ready.arena).assemble(ready),)*
                 }
             }
         }
         $(
-            #[derive(Debug, PartialEq, Default)]
+            #[derive(Clone, Copy, Debug, PartialEq, Default)]
             pub(crate) struct $record { $(pub $field: $ty,)* }
             impl From<Box<$record>> for Node {
                 fn from(record: Box<$record>) -> Self { Self::$record(record) }
@@ -84,16 +85,14 @@ macro_rules! node_types {
     }
 }
 include!("../../../pgsql-nodes/src/nodes.in");
+mod statement_list;
 #[path = "../../../pgsql-nodes/src/statements.rs"]
 mod statements;
 pub(crate) use statements::StatementList;
 mod convert;
 pub(crate) use convert::{materialize, statement as owned_statement};
 
-#[path = "../../../pgsql-nodes/src/copy.rs"]
-mod copy;
-
-#[path = "../../../pgsql-nodes/src/equal.rs"]
 mod equal;
 #[path = "../../../pgsql-codec/src/json.rs"]
 pub(crate) mod json;
+mod json_view;

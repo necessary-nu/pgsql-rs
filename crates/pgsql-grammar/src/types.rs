@@ -61,9 +61,12 @@ pub(super) fn named(names: Vec<Node>, typmods: Vec<Node>, location: Location) ->
     }
 }
 
-pub(super) fn builtin(name: &str, typmods: Vec<Node>, location: Location) -> TypeName {
+pub(super) fn builtin(name: impl Into<String>, typmods: Vec<Node>, location: Location) -> TypeName {
     named(
-        vec![Node::String("pg_catalog".into()), Node::String(name.into())],
+        vec![
+            Node::String(String::Static("pg_catalog")),
+            Node::String(name.into()),
+        ],
         typmods,
         location,
     )
@@ -146,7 +149,7 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
         Types::Generic(qualified) => {
             let mut names = vec![Node::String(rhs.take(1).text()?)];
             if qualified {
-                names.extend(rhs.take(2).list()?);
+                names.append(rhs.take(2).list()?);
             }
             named(names, rhs.take(if qualified { 3 } else { 2 }).list()?, loc)
         }
@@ -176,7 +179,7 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
                 None if name == "bpchar" => Modifiers::DefaultOne,
                 None => Modifiers::None,
             };
-            builtin(&name, modifiers(mods, rhs)?, loc)
+            builtin(name, modifiers(mods, rhs)?, loc)
         }
         Types::Bit(length) => {
             let varying = rhs.take(2).integer()? != 0;
@@ -217,22 +220,25 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
             builtin(name, Vec::new(), Location::UNKNOWN)
         }
         Types::Relocate => {
-            let mut typ = typename(rhs.take(2))?;
-            typ.location = loc;
+            let typ = typename(rhs.take(2))?;
+            typ.set_field(|node| &mut node.location, loc);
             return Ok(Value::from_node(typ.into()));
         }
         Types::SetModifiers(mods) => {
-            let mut typ = typename(rhs.take(1))?;
-            typ.typmods = modifiers(mods, rhs)?;
+            let typ = typename(rhs.take(1))?;
+            typ.set_field(|node| &mut node.typmods, modifiers(mods, rhs)?);
             return Ok(Value::from_node(typ.into()));
         }
         Types::Array { set, bounds } => {
-            let mut typ = typename(rhs.take(if set { 2 } else { 1 }))?;
-            typ.array_bounds = match bounds {
-                Bounds::List(i) => rhs.take(i).list()?,
-                Bounds::Single(i) => vec![bound(rhs, i)?],
-            };
-            typ.setof = set;
+            let typ = typename(rhs.take(if set { 2 } else { 1 }))?;
+            typ.set_field(
+                |node| &mut node.array_bounds,
+                match bounds {
+                    Bounds::List(i) => rhs.take(i).list()?,
+                    Bounds::Single(i) => vec![bound(rhs, i)?],
+                },
+            );
+            typ.set_field(|node| &mut node.setof, set);
             return Ok(Value::from_node(typ.into()));
         }
         Types::Bound(i) => {
@@ -247,8 +253,8 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
         } => {
             let mask = int_constant(mask, loc);
             let mut values = if seconds {
-                let mut s = rhs.take(3).list()?;
-                s[0] = mask;
+                let s = rhs.take(3).list()?;
+                s.set(0, mask);
                 s
             } else {
                 vec![mask]
@@ -261,7 +267,7 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
         Types::Cast { arg, target, pos } => {
             return Ok(cast(
                 rhs.take(arg).node()?,
-                typename(rhs.take(target))?.into_box(),
+                typename(rhs.take(target))?,
                 rhs.location(pos),
             ))
         }
@@ -279,7 +285,7 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
                             return Err(Failure::At(
                                 "type modifier cannot have parameter name".into(),
                                 "42601",
-                                arg.location,
+                                arg.load().location,
                             ));
                         }
                     }
@@ -293,9 +299,9 @@ pub(super) fn reduce(op: Types, rhs: &mut Reduction<'_, Value>) -> Result<Value,
                 }
                 Box::new(named(rhs.take(1).list()?, mods, loc))
             } else {
-                let mut typ = typename(rhs.take(1))?.into_box();
+                let typ = typename(rhs.take(1))?;
                 if !matches!(mods, Modifiers::None) {
-                    typ.typmods = modifiers(mods, rhs)?;
+                    typ.set_field(|node| &mut node.typmods, modifiers(mods, rhs)?);
                 }
                 typ
             };

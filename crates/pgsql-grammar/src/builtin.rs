@@ -67,7 +67,7 @@ fn arguments(args: Args, rhs: &mut Reduction<'_, Value>) -> Result<Vec<Node>, Fa
 }
 
 fn function(
-    name: &str,
+    name: impl Into<String>,
     system: bool,
     args: Vec<Node>,
     form: CoercionForm,
@@ -75,7 +75,7 @@ fn function(
 ) -> Node {
     let mut funcname = Vec::new();
     if system {
-        funcname.push(Node::String("pg_catalog".into()));
+        funcname.push(Node::String(String::Static("pg_catalog")));
     }
     funcname.push(Node::String(name.into()));
     FuncCall {
@@ -197,7 +197,7 @@ pub(super) fn reduce(op: Builtin, rhs: &mut Reduction<'_, Value>) -> Result<Valu
                     rhs.location(3),
                 ));
             }
-            left.extend(right);
+            left.append(right);
             function(
                 "overlaps",
                 true,
@@ -210,7 +210,7 @@ pub(super) fn reduce(op: Builtin, rhs: &mut Reduction<'_, Value>) -> Result<Valu
             let Node::TypeName(typ) = rhs.take(5).node()? else {
                 return Err("expected TREAT type".into());
             };
-            let Some(Node::String(name)) = typ.names.last() else {
+            let Some(Node::String(name)) = typ.load().names.last() else {
                 return Err("expected final type name".into());
             };
             function(

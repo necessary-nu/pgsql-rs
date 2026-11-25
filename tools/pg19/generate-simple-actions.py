@@ -46,7 +46,7 @@ class Action:
         if found := re.fullmatch(r"\$(\d+):(?:str|keyword)", expr):
             return f"rhs.take({found[1]}).text()?"
         if re.fullmatch(r'"[A-Za-z0-9_ .:+*/<>=!-]*"', expr):
-            return f"crate::raw::String::from_static({expr})"
+            return f"crate::raw::String::Static({expr})"
         name, args = call(expr)
         if name == "pstrdup" and len(args) == 1:
             return self.string(args[0])

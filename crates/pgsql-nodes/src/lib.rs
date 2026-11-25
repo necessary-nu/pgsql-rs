@@ -19,6 +19,40 @@ pub type Bitmapset = std::collections::BTreeSet<u32>;
 mod copy;
 mod equal {
     include!("equal.rs");
+    type Context = ();
+    impl<T: NodeRecord> NodeBox<T> {
+        fn resolve(&self, _: &Context) -> &T {
+            self
+        }
+    }
+    impl TypeName {
+        /// Compare according to PostgreSQL's equalfuncs, including nested typmods.
+        /// The error identifies a backend-only tag without an equality implementation.
+        pub fn pg_equal(&self, other: &Self) -> Result<bool, NodeTag> {
+            compare(self, other, &())
+        }
+    }
+    impl<T: Tagged> Field for Option<Box<T>> {
+        fn check<'a>(&'a self, other: &'a Self, work: &mut Work<'a>) -> bool {
+            nullable(self.as_deref(), other.as_deref(), work)
+        }
+    }
+    impl Field for Option<Arc<Node>> {
+        fn check<'a>(&'a self, other: &'a Self, work: &mut Work<'a>) -> bool {
+            if let (Some(a), Some(b)) = (self, other) {
+                // UPDATE tuple targets share the same source at each nesting level.
+                if Arc::ptr_eq(a, b)
+                    || !work
+                        .shared
+                        .insert((Arc::as_ptr(a) as usize, Arc::as_ptr(b) as usize))
+                {
+                    return true;
+                }
+            }
+            nullable(self.as_deref(), other.as_deref(), work)
+        }
+    }
+
     impl<T: Tagged + NodeRecord> Field for Option<NodeBox<T>> {
         fn check<'a>(&'a self, other: &'a Self, work: &mut Work<'a>) -> bool {
             nullable(self.as_deref(), other.as_deref(), work)
@@ -154,5 +188,6 @@ macro_rules! node_types {
 
 include!("nodes.in");
 
+mod statement_list;
 mod statements;
 pub use statements::{StatementList, StatementSpanError};

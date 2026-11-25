@@ -46,7 +46,7 @@ pub(super) fn grant(
 }
 
 pub(super) fn role_option(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
-    let word = rhs.take(1).text()?;
+    let word = rhs.take(1).text()?.owned();
     let location = rhs.location(1);
     let (role, enabled) = match word.strip_prefix("no") {
         Some(role) => (role, false),

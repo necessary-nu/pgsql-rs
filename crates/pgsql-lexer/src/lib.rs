@@ -174,6 +174,20 @@ impl TokenText for String {
     }
 }
 
+/// Token text stored by a scanner or its parser. The borrow lasts for the read operation.
+pub trait ScannerText: From<String> + for<'a> From<&'a str> {
+    fn with_str<R>(&self, read: impl FnOnce(&str) -> R) -> R;
+    fn from_identifier(word: &str) -> Self;
+}
+impl<T: TokenText> ScannerText for T {
+    fn with_str<R>(&self, read: impl FnOnce(&str) -> R) -> R {
+        read(self.as_ref())
+    }
+    fn from_identifier(word: &str) -> Self {
+        T::lowercase_identifier(word)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value<T = String> {
     None,

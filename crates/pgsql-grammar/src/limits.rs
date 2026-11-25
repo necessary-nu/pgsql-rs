@@ -3,6 +3,7 @@ use super::{types::int_constant, value::Value, Failure};
 use crate::raw::*;
 use pgsql_engine::Reduction;
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct SelectLimit {
     offset: Option<Box<Node>>,
     count: Option<Box<Node>>,
@@ -57,7 +58,7 @@ pub(super) fn reduce(op: Limit, rhs: &mut Reduction<'_, Value>) -> Result<Value,
         Limit::Offset { offset, count } => {
             let mut limit = if let Some(i) = count {
                 match rhs.take(i) {
-                    Value::Limit(v) => v.into_inner(),
+                    Value::Limit(v) => v.load(),
                     _ => return Err("expected LIMIT".into()),
                 }
             } else {
@@ -81,7 +82,7 @@ pub(super) fn reduce(op: Limit, rhs: &mut Reduction<'_, Value>) -> Result<Value,
 pub(super) fn apply(stmt: &mut SelectStmt, limit: Value, check_lock: bool) -> Result<(), Failure> {
     let limit = match limit {
         Value::Empty => return Ok(()),
-        Value::Limit(v) => v.into_inner(),
+        Value::Limit(v) => v.load(),
         _ => return Err("expected LIMIT".into()),
     };
     if let Some(offset) = limit.offset {
@@ -112,7 +113,7 @@ pub(super) fn apply(stmt: &mut SelectStmt, limit: Value, check_lock: bool) -> Re
                 limit.option_location,
             ));
         }
-        if check_lock && stmt.locking_clause.iter().any(|n|matches!(n,Node::LockingClause(l) if l.wait_policy == LockWaitPolicy::LockWaitSkip)) {
+        if check_lock && stmt.locking_clause.iter().any(|n|matches!(n,Node::LockingClause(l) if l.load().wait_policy == LockWaitPolicy::LockWaitSkip)) {
             return Err(Failure::At("SKIP LOCKED and WITH TIES options cannot be used together".into(),"42601",limit.option_location));
         }
     }

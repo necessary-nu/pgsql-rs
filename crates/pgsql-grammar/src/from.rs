@@ -21,7 +21,7 @@ pub(super) enum From {
 fn alias(value: Value) -> Result<Option<Box<Alias>>, Failure> {
     match value {
         Value::Empty => Ok(None),
-        Value::Node(Node::Alias(a)) => Ok(Some(a.into_box())),
+        Value::Node(Node::Alias(a)) => Ok(Some(a)),
         _ => Err("expected Alias".into()),
     }
 }
@@ -29,7 +29,7 @@ fn alias(value: Value) -> Result<Option<Box<Alias>>, Failure> {
 fn optional_alias(node: Node) -> Result<Option<Box<Alias>>, Failure> {
     match node {
         Node::Null => Ok(None),
-        Node::Alias(a) => Ok(Some(a.into_box())),
+        Node::Alias(a) => Ok(Some(a)),
         _ => Err("expected alias".into()),
     }
 }
@@ -44,7 +44,7 @@ fn pair(value: Value) -> Result<[Node; 2], Failure> {
 fn columns(node: Node) -> Result<Vec<Node>, Failure> {
     match node {
         Node::Null => Ok(Vec::new()),
-        Node::List(v) => Ok(v.into_vec()),
+        Node::List(v) => Ok(v),
         _ => Err("expected column list".into()),
     }
 }
@@ -84,28 +84,25 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
         }
         From::JoinUsing => {
             let names = Node::from(rhs.take(3).list()?);
-            let alias = rhs
-                .take(5)
-                .optional()?
-                .map_or(Node::Null, |n| n.into_inner());
+            let alias = rhs.take(5).optional()?.map_or(Node::Null, |n| n.load());
             return Ok(Value::from_list(vec![names, alias]));
         }
         From::JoinAlias => {
-            let Node::JoinExpr(mut join) = rhs.take(2).node()? else {
+            let Node::JoinExpr(join) = rhs.take(2).node()? else {
                 return Err("expected JOIN".into());
             };
-            join.alias = alias(rhs.take(4))?;
+            join.set_field(|node| &mut node.alias, alias(rhs.take(4))?);
             join.into()
         }
         From::Function(lateral) => {
             let i = if lateral { 2 } else { 1 };
-            let Node::RangeFunction(mut function) = rhs.take(i).node()? else {
+            let Node::RangeFunction(function) = rhs.take(i).node()? else {
                 return Err("expected range function".into());
             };
             let [name, definition] = pair(rhs.take(i + 1))?;
-            function.alias = optional_alias(name)?;
-            function.coldeflist = columns(definition)?;
-            function.lateral = lateral;
+            function.set_field(|node| &mut node.alias, optional_alias(name)?);
+            function.set_field(|node| &mut node.coldeflist, columns(definition)?);
+            function.set_field(|node| &mut node.lateral, lateral);
             function.into()
         }
         From::FunctionColumn => {
@@ -114,12 +111,12 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             };
             let coll_clause = match rhs.take(3) {
                 Value::Empty => None,
-                Value::Node(Node::CollateClause(v)) => Some(v.into_box()),
+                Value::Node(Node::CollateClause(v)) => Some(v),
                 _ => return Err("expected COLLATE".into()),
             };
             ColumnDef {
                 colname: Some(rhs.take(1).text()?),
-                type_name: Some(typ.into_box()),
+                type_name: Some(typ),
                 is_local: true,
                 coll_clause,
                 location: rhs.location(1),
@@ -138,39 +135,39 @@ pub(super) fn reduce(op: From, rhs: &mut Reduction<'_, Value>) -> Result<Value, 
             ]));
         }
         From::Sample => {
-            let Node::RangeVar(mut relation) = rhs.take(1).node()? else {
+            let Node::RangeVar(relation) = rhs.take(1).node()? else {
                 return Err("expected RangeVar".into());
             };
-            let Node::RangeTableSample(mut sample) = rhs.take(3).node()? else {
+            let Node::RangeTableSample(sample) = rhs.take(3).node()? else {
                 return Err("expected TABLESAMPLE".into());
             };
-            relation.alias = alias(rhs.take(2))?;
-            sample.relation = Some(Box::new(relation.into()));
+            relation.set_field(|node| &mut node.alias, alias(rhs.take(2))?);
+            sample.set_field(|node| &mut node.relation, Some(Box::new(relation.into())));
             sample.into()
         }
         From::XmlTable(lateral) => {
             let i = if lateral { 2 } else { 1 };
-            let Node::RangeTableFunc(mut table) = rhs.take(i).node()? else {
+            let Node::RangeTableFunc(table) = rhs.take(i).node()? else {
                 return Err("expected XMLTABLE".into());
             };
-            table.lateral = lateral;
-            table.alias = alias(rhs.take(i + 1))?;
+            table.set_field(|node| &mut node.lateral, lateral);
+            table.set_field(|node| &mut node.alias, alias(rhs.take(i + 1))?);
             table.into()
         }
         From::JsonTable(lateral) => {
             let i = if lateral { 2 } else { 1 };
-            let Node::JsonTable(mut table) = rhs.take(i).node()? else {
+            let Node::JsonTable(table) = rhs.take(i).node()? else {
                 return Err("expected JSON_TABLE".into());
             };
-            table.lateral = lateral;
-            table.alias = alias(rhs.take(i + 1))?;
+            table.set_field(|node| &mut node.lateral, lateral);
+            table.set_field(|node| &mut node.alias, alias(rhs.take(i + 1))?);
             table.into()
         }
         From::Table => {
-            let Node::RangeVar(mut table) = rhs.take(1).node()? else {
+            let Node::RangeVar(table) = rhs.take(1).node()? else {
                 return Err("expected RangeVar".into());
             };
-            table.alias = alias(rhs.take(2))?;
+            table.set_field(|node| &mut node.alias, alias(rhs.take(2))?);
             table.into()
         }
         From::Subquery { lateral } => {

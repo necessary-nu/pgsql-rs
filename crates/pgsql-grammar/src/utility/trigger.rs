@@ -24,7 +24,7 @@ pub(super) fn merge(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     if left & right != 0 {
         return Err(Failure::Syntax("duplicate trigger events specified"));
     }
-    columns.extend(other);
+    columns.append(other);
     Ok(Value::TriggerEvents(left | right, columns))
 }
 

@@ -41,7 +41,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some(crate::raw::String::from_static("password")),
+                    defname: Some(crate::raw::String::Static("password")),
                     arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -57,7 +57,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("password")),
+                defname: Some(crate::raw::String::Static("password")),
                 arg: optional_node(Value::from_node(
                     ParamRef {
                         number: rhs.take(2).integer()?,
@@ -77,7 +77,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("password")),
+                defname: Some(crate::raw::String::Static("password")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -92,7 +92,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some(crate::raw::String::from_static("password")),
+                    defname: Some(crate::raw::String::Static("password")),
                     arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -108,7 +108,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("password")),
+                defname: Some(crate::raw::String::Static("password")),
                 arg: optional_node(Value::from_node(
                     ParamRef {
                         number: rhs.take(3).integer()?,
@@ -128,7 +128,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("inherit")),
+                defname: Some(crate::raw::String::Static("inherit")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -142,7 +142,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("connectionlimit")),
+                defname: Some(crate::raw::String::Static("connectionlimit")),
                 arg: Some(Box::new(Node::Integer(rhs.take(3).integer()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -157,7 +157,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some(crate::raw::String::from_static("validUntil")),
+                    defname: Some(crate::raw::String::Static("validUntil")),
                     arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -173,7 +173,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("rolemembers")),
+                defname: Some(crate::raw::String::Static("rolemembers")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -187,7 +187,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("sysid")),
+                defname: Some(crate::raw::String::Static("sysid")),
                 arg: Some(Box::new(Node::Integer(rhs.take(2).integer()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -201,7 +201,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("adminmembers")),
+                defname: Some(crate::raw::String::Static("adminmembers")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -215,7 +215,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("addroleto")),
+                defname: Some(crate::raw::String::Static("addroleto")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -318,7 +318,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("rolemembers")),
+                        defname: Some(crate::raw::String::Static("rolemembers")),
                         arg: optional_node(rhs.take(6))?,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(6),
@@ -360,31 +360,37 @@ pub(super) const ACTIONS: &[Action] = &[
     // VariableSetStmt: SET set_rest
     |rhs| {
         Ok({
-            let Node::VariableSetStmt(mut node) = rhs.take(2).node()? else {
+            let Node::VariableSetStmt(id) = rhs.take(2).node()? else {
                 return Err("expected VariableSetStmt".into());
             };
+            let mut node = id.load();
             node.is_local = false;
-            Value::from_node(Node::VariableSetStmt(node))
+            id.set(node);
+            Value::from_node(Node::VariableSetStmt(id))
         })
     },
     // VariableSetStmt: SET LOCAL set_rest
     |rhs| {
         Ok({
-            let Node::VariableSetStmt(mut node) = rhs.take(3).node()? else {
+            let Node::VariableSetStmt(id) = rhs.take(3).node()? else {
                 return Err("expected VariableSetStmt".into());
             };
+            let mut node = id.load();
             node.is_local = true;
-            Value::from_node(Node::VariableSetStmt(node))
+            id.set(node);
+            Value::from_node(Node::VariableSetStmt(id))
         })
     },
     // VariableSetStmt: SET SESSION set_rest
     |rhs| {
         Ok({
-            let Node::VariableSetStmt(mut node) = rhs.take(3).node()? else {
+            let Node::VariableSetStmt(id) = rhs.take(3).node()? else {
                 return Err("expected VariableSetStmt".into());
             };
+            let mut node = id.load();
             node.is_local = false;
-            Value::from_node(Node::VariableSetStmt(node))
+            id.set(node);
+            Value::from_node(Node::VariableSetStmt(id))
         })
     },
     // set_rest: TRANSACTION transaction_mode_list
@@ -392,7 +398,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_MULTI,
-                name: Some(crate::raw::String::from_static("TRANSACTION")),
+                name: Some(crate::raw::String::Static("TRANSACTION")),
                 args: rhs.take(2).list()?,
                 jumble_args: true,
                 location: Location::UNKNOWN,
@@ -406,7 +412,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_MULTI,
-                name: Some(crate::raw::String::from_static("SESSION CHARACTERISTICS")),
+                name: Some(crate::raw::String::Static("SESSION CHARACTERISTICS")),
                 args: rhs.take(5).list()?,
                 jumble_args: true,
                 location: Location::UNKNOWN,
@@ -474,7 +480,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some(crate::raw::String::from_static("search_path")),
+                name: Some(crate::raw::String::Static("search_path")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(2).text()?),
                     location: rhs.location(2),
@@ -491,7 +497,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some(crate::raw::String::from_static("search_path")),
+                name: Some(crate::raw::String::Static("search_path")),
                 args: vec![Value::from_node(
                     ParamRef {
                         number: rhs.take(2).integer()?,
@@ -511,7 +517,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some(crate::raw::String::from_static("role")),
+                name: Some(crate::raw::String::Static("role")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(2).text()?),
                     location: rhs.location(2),
@@ -528,7 +534,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some(crate::raw::String::from_static("role")),
+                name: Some(crate::raw::String::Static("role")),
                 args: vec![Value::from_node(
                     ParamRef {
                         number: rhs.take(2).integer()?,
@@ -548,7 +554,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some(crate::raw::String::from_static("session_authorization")),
+                name: Some(crate::raw::String::Static("session_authorization")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(3).text()?),
                     location: rhs.location(3),
@@ -565,7 +571,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_VALUE,
-                name: Some(crate::raw::String::from_static("session_authorization")),
+                name: Some(crate::raw::String::Static("session_authorization")),
                 args: vec![Value::from_node(
                     ParamRef {
                         number: rhs.take(3).integer()?,
@@ -585,7 +591,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_DEFAULT,
-                name: Some(crate::raw::String::from_static("session_authorization")),
+                name: Some(crate::raw::String::Static("session_authorization")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -597,7 +603,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_SET_MULTI,
-                name: Some(crate::raw::String::from_static("TRANSACTION SNAPSHOT")),
+                name: Some(crate::raw::String::Static("TRANSACTION SNAPSHOT")),
                 args: vec![Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(3).text()?),
                     location: rhs.location(3),
@@ -633,7 +639,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_RESET,
-                name: Some(crate::raw::String::from_static("timezone")),
+                name: Some(crate::raw::String::Static("timezone")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -645,7 +651,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_RESET,
-                name: Some(crate::raw::String::from_static("transaction_isolation")),
+                name: Some(crate::raw::String::Static("transaction_isolation")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -657,7 +663,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             VariableSetStmt {
                 kind: VariableSetKind::VAR_RESET,
-                name: Some(crate::raw::String::from_static("session_authorization")),
+                name: Some(crate::raw::String::Static("session_authorization")),
                 location: Location::UNKNOWN,
                 ..Default::default()
             }
@@ -700,7 +706,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some(crate::raw::String::from_static("timezone")),
+                name: Some(crate::raw::String::Static("timezone")),
             }
             .into(),
         ))
@@ -709,7 +715,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some(crate::raw::String::from_static("transaction_isolation")),
+                name: Some(crate::raw::String::Static("transaction_isolation")),
             }
             .into(),
         ))
@@ -718,7 +724,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some(crate::raw::String::from_static("session_authorization")),
+                name: Some(crate::raw::String::Static("session_authorization")),
             }
             .into(),
         ))
@@ -727,7 +733,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             VariableShowStmt {
-                name: Some(crate::raw::String::from_static("all")),
+                name: Some(crate::raw::String::Static("all")),
             }
             .into(),
         ))
@@ -1918,7 +1924,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("restart")),
+                defname: Some(crate::raw::String::Static("restart")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -1932,7 +1938,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("restart")),
+                defname: Some(crate::raw::String::Static("restart")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -1946,7 +1952,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("generated")),
+                defname: Some(crate::raw::String::Static("generated")),
                 arg: Some(Box::new(Node::Integer(rhs.take(3).integer()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2076,10 +2082,8 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("format")),
-                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
-                    "binary",
-                )))),
+                defname: Some(crate::raw::String::Static("format")),
+                arg: Some(Box::new(Node::String(crate::raw::String::Static("binary")))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -2092,7 +2096,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("freeze")),
+                defname: Some(crate::raw::String::Static("freeze")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2106,7 +2110,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("delimiter")),
+                defname: Some(crate::raw::String::Static("delimiter")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2120,7 +2124,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("null")),
+                defname: Some(crate::raw::String::Static("null")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2134,10 +2138,8 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("format")),
-                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
-                    "csv",
-                )))),
+                defname: Some(crate::raw::String::Static("format")),
+                arg: Some(Box::new(Node::String(crate::raw::String::Static("csv")))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -2150,10 +2152,8 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("format")),
-                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
-                    "json",
-                )))),
+                defname: Some(crate::raw::String::Static("format")),
+                arg: Some(Box::new(Node::String(crate::raw::String::Static("json")))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -2166,7 +2166,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("header")),
+                defname: Some(crate::raw::String::Static("header")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2180,7 +2180,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("quote")),
+                defname: Some(crate::raw::String::Static("quote")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2194,7 +2194,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("escape")),
+                defname: Some(crate::raw::String::Static("escape")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2208,7 +2208,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("force_quote")),
+                defname: Some(crate::raw::String::Static("force_quote")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2222,7 +2222,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("force_quote")),
+                defname: Some(crate::raw::String::Static("force_quote")),
                 arg: optional_node(Value::from_node(AStar::default().into()))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2236,7 +2236,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("force_not_null")),
+                defname: Some(crate::raw::String::Static("force_not_null")),
                 arg: optional_node(rhs.take(4))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2250,7 +2250,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("force_not_null")),
+                defname: Some(crate::raw::String::Static("force_not_null")),
                 arg: optional_node(Value::from_node(AStar::default().into()))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2264,7 +2264,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("force_null")),
+                defname: Some(crate::raw::String::Static("force_null")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2278,7 +2278,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("force_null")),
+                defname: Some(crate::raw::String::Static("force_null")),
                 arg: optional_node(Value::from_node(AStar::default().into()))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2292,7 +2292,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("encoding")),
+                defname: Some(crate::raw::String::Static("encoding")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2306,7 +2306,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("delimiter")),
+                defname: Some(crate::raw::String::Static("delimiter")),
                 arg: Some(Box::new(Node::String(rhs.take(3).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(2),
@@ -2320,7 +2320,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("format")),
+                defname: Some(crate::raw::String::Static("format")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -2540,12 +2540,14 @@ pub(super) const ACTIONS: &[Action] = &[
     // ColConstraint: CONSTRAINT name ColConstraintElem
     |rhs| {
         Ok({
-            let Node::Constraint(mut node) = rhs.take(3).node()? else {
+            let Node::Constraint(id) = rhs.take(3).node()? else {
                 return Err("expected Constraint".into());
             };
+            let mut node = id.load();
             node.conname = optional_text(rhs.take(2))?;
             node.location = rhs.location(1);
-            Value::from_node(Node::Constraint(node))
+            id.set(node);
+            Value::from_node(Node::Constraint(id))
         })
     },
     // ColConstraintElem: NOT NULL_P opt_no_inherit
@@ -2941,7 +2943,7 @@ pub(super) const ACTIONS: &[Action] = &[
             let mut node = Constraint {
                 contype: ConstrType::CONSTR_NOTNULL,
                 location: rhs.location(1),
-                keys: vec![Node::String(crate::raw::String::from_static("value"))],
+                keys: vec![Node::String(crate::raw::String::Static("value"))],
                 ..Default::default()
             };
             crate::utility::constraint::process(
@@ -3174,7 +3176,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("as")),
+                defname: Some(crate::raw::String::Static("as")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3188,7 +3190,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("cache")),
+                defname: Some(crate::raw::String::Static("cache")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3202,7 +3204,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("cycle")),
+                defname: Some(crate::raw::String::Static("cycle")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3216,7 +3218,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("cycle")),
+                defname: Some(crate::raw::String::Static("cycle")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3230,7 +3232,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("increment")),
+                defname: Some(crate::raw::String::Static("increment")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3244,7 +3246,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("logged")),
+                defname: Some(crate::raw::String::Static("logged")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3258,7 +3260,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("maxvalue")),
+                defname: Some(crate::raw::String::Static("maxvalue")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3272,7 +3274,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("minvalue")),
+                defname: Some(crate::raw::String::Static("minvalue")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3286,7 +3288,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("maxvalue")),
+                defname: Some(crate::raw::String::Static("maxvalue")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3300,7 +3302,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("minvalue")),
+                defname: Some(crate::raw::String::Static("minvalue")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3314,7 +3316,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("owned_by")),
+                defname: Some(crate::raw::String::Static("owned_by")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3328,7 +3330,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("sequence_name")),
+                defname: Some(crate::raw::String::Static("sequence_name")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3342,7 +3344,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("start")),
+                defname: Some(crate::raw::String::Static("start")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3356,7 +3358,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("unlogged")),
+                defname: Some(crate::raw::String::Static("unlogged")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3456,7 +3458,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("schema")),
+                defname: Some(crate::raw::String::Static("schema")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3470,7 +3472,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("new_version")),
+                defname: Some(crate::raw::String::Static("new_version")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3484,7 +3486,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("cascade")),
+                defname: Some(crate::raw::String::Static("cascade")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3687,7 +3689,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("handler")),
+                defname: Some(crate::raw::String::Static("handler")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3701,7 +3703,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("handler")),
+                defname: Some(crate::raw::String::Static("handler")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3715,7 +3717,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("validator")),
+                defname: Some(crate::raw::String::Static("validator")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3729,7 +3731,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("validator")),
+                defname: Some(crate::raw::String::Static("validator")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3743,7 +3745,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("connection")),
+                defname: Some(crate::raw::String::Static("connection")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3757,7 +3759,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("connection")),
+                defname: Some(crate::raw::String::Static("connection")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -3791,21 +3793,25 @@ pub(super) const ACTIONS: &[Action] = &[
     // alter_generic_option_elem: SET generic_option_elem
     |rhs| {
         Ok({
-            let Node::DefElem(mut node) = rhs.take(2).node()? else {
+            let Node::DefElem(id) = rhs.take(2).node()? else {
                 return Err("expected DefElem".into());
             };
+            let mut node = id.load();
             node.defaction = DefElemAction::DEFELEM_SET;
-            Value::from_node(Node::DefElem(node))
+            id.set(node);
+            Value::from_node(Node::DefElem(id))
         })
     },
     // alter_generic_option_elem: ADD_P generic_option_elem
     |rhs| {
         Ok({
-            let Node::DefElem(mut node) = rhs.take(2).node()? else {
+            let Node::DefElem(id) = rhs.take(2).node()? else {
                 return Err("expected DefElem".into());
             };
+            let mut node = id.load();
             node.defaction = DefElemAction::DEFELEM_ADD;
-            Value::from_node(Node::DefElem(node))
+            id.set(node);
+            Value::from_node(Node::DefElem(id))
         })
     },
     // alter_generic_option_elem: DROP generic_option_name
@@ -4286,7 +4292,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 definition: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("from")),
+                        defname: Some(crate::raw::String::Static("from")),
                         arg: optional_node(rhs.take(5))?,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(5),
@@ -4310,7 +4316,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 definition: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("from")),
+                        defname: Some(crate::raw::String::Static("from")),
                         arg: optional_node(rhs.take(8))?,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(8),
@@ -5102,21 +5108,25 @@ pub(super) const ACTIONS: &[Action] = &[
     // FetchStmt: FETCH fetch_args
     |rhs| {
         Ok({
-            let Node::FetchStmt(mut node) = rhs.take(2).node()? else {
+            let Node::FetchStmt(id) = rhs.take(2).node()? else {
                 return Err("expected FetchStmt".into());
             };
+            let mut node = id.load();
             node.ismove = false;
-            Value::from_node(Node::FetchStmt(node))
+            id.set(node);
+            Value::from_node(Node::FetchStmt(id))
         })
     },
     // FetchStmt: MOVE fetch_args
     |rhs| {
         Ok({
-            let Node::FetchStmt(mut node) = rhs.take(2).node()? else {
+            let Node::FetchStmt(id) = rhs.take(2).node()? else {
                 return Err("expected FetchStmt".into());
             };
+            let mut node = id.load();
             node.ismove = true;
-            Value::from_node(Node::FetchStmt(node))
+            id.set(node);
+            Value::from_node(Node::FetchStmt(id))
         })
     },
     // fetch_args: cursor_name
@@ -5357,7 +5367,7 @@ pub(super) const ACTIONS: &[Action] = &[
     |_| {
         Ok(Value::from_node(
             AccessPriv {
-                priv_name: Some(crate::raw::String::from_static("alter system")),
+                priv_name: Some(crate::raw::String::Static("alter system")),
                 cols: Vec::new(),
             }
             .into(),
@@ -5420,7 +5430,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("schemas")),
+                defname: Some(crate::raw::String::Static("schemas")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5434,7 +5444,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("roles")),
+                defname: Some(crate::raw::String::Static("roles")),
                 arg: optional_node(rhs.take(3))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5560,7 +5570,7 @@ pub(super) const ACTIONS: &[Action] = &[
         ))
     },
     // access_method_clause: %empty
-    |_| Ok(Value::from_text(crate::raw::String::from_static("btree"))),
+    |_| Ok(Value::from_text(crate::raw::String::Static("btree"))),
     // index_elem_options: opt_collate opt_qualified_name opt_asc_desc opt_nulls_order
     |rhs| {
         Ok(Value::from_node(
@@ -5598,34 +5608,40 @@ pub(super) const ACTIONS: &[Action] = &[
     // index_elem: ColId index_elem_options
     |rhs| {
         Ok({
-            let Node::IndexElem(mut node) = rhs.take(2).node()? else {
+            let Node::IndexElem(id) = rhs.take(2).node()? else {
                 return Err("expected IndexElem".into());
             };
+            let mut node = id.load();
             node.name = optional_text(rhs.take(1))?;
             node.location = rhs.location(1);
-            Value::from_node(Node::IndexElem(node))
+            id.set(node);
+            Value::from_node(Node::IndexElem(id))
         })
     },
     // index_elem: func_expr_windowless index_elem_options
     |rhs| {
         Ok({
-            let Node::IndexElem(mut node) = rhs.take(2).node()? else {
+            let Node::IndexElem(id) = rhs.take(2).node()? else {
                 return Err("expected IndexElem".into());
             };
+            let mut node = id.load();
             node.expr = optional_node(rhs.take(1))?;
             node.location = rhs.location(1);
-            Value::from_node(Node::IndexElem(node))
+            id.set(node);
+            Value::from_node(Node::IndexElem(id))
         })
     },
     // index_elem: '(' a_expr ')' index_elem_options
     |rhs| {
         Ok({
-            let Node::IndexElem(mut node) = rhs.take(4).node()? else {
+            let Node::IndexElem(id) = rhs.take(4).node()? else {
                 return Err("expected IndexElem".into());
             };
+            let mut node = id.load();
             node.expr = optional_node(rhs.take(2))?;
             node.location = rhs.location(1);
-            Value::from_node(Node::IndexElem(node))
+            id.set(node);
+            Value::from_node(Node::IndexElem(id))
         })
     },
     // CreateFunctionStmt: CREATE opt_or_replace FUNCTION func_name func_args_with_defaults RETURNS func_return opt_createfunc_opt_list opt_routine_body
@@ -5752,11 +5768,13 @@ pub(super) const ACTIONS: &[Action] = &[
     // func_arg_with_default: func_arg DEFAULT a_expr
     |rhs| {
         Ok({
-            let Node::FunctionParameter(mut node) = rhs.take(1).node()? else {
+            let Node::FunctionParameter(id) = rhs.take(1).node()? else {
                 return Err("expected FunctionParameter".into());
             };
+            let mut node = id.load();
             node.defexpr = optional_node(rhs.take(3))?;
-            Value::from_node(Node::FunctionParameter(node))
+            id.set(node);
+            Value::from_node(Node::FunctionParameter(id))
         })
     },
     // common_func_opt_item: CALLED ON NULL_P INPUT_P
@@ -5764,7 +5782,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("strict")),
+                defname: Some(crate::raw::String::Static("strict")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5778,7 +5796,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("strict")),
+                defname: Some(crate::raw::String::Static("strict")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5792,8 +5810,8 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("volatility")),
-                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                defname: Some(crate::raw::String::Static("volatility")),
+                arg: Some(Box::new(Node::String(crate::raw::String::Static(
                     "immutable",
                 )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
@@ -5808,10 +5826,8 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("volatility")),
-                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
-                    "stable",
-                )))),
+                defname: Some(crate::raw::String::Static("volatility")),
+                arg: Some(Box::new(Node::String(crate::raw::String::Static("stable")))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
                 arg_location: Location::UNKNOWN,
@@ -5824,8 +5840,8 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("volatility")),
-                arg: Some(Box::new(Node::String(crate::raw::String::from_static(
+                defname: Some(crate::raw::String::Static("volatility")),
+                arg: Some(Box::new(Node::String(crate::raw::String::Static(
                     "volatile",
                 )))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
@@ -5840,7 +5856,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("security")),
+                defname: Some(crate::raw::String::Static("security")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5854,7 +5870,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("security")),
+                defname: Some(crate::raw::String::Static("security")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5868,7 +5884,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("leakproof")),
+                defname: Some(crate::raw::String::Static("leakproof")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5882,7 +5898,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("leakproof")),
+                defname: Some(crate::raw::String::Static("leakproof")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5896,7 +5912,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("cost")),
+                defname: Some(crate::raw::String::Static("cost")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5910,7 +5926,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("rows")),
+                defname: Some(crate::raw::String::Static("rows")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5924,7 +5940,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("support")),
+                defname: Some(crate::raw::String::Static("support")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5938,7 +5954,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("set")),
+                defname: Some(crate::raw::String::Static("set")),
                 arg: optional_node(rhs.take(1))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5952,7 +5968,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("parallel")),
+                defname: Some(crate::raw::String::Static("parallel")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5967,7 +5983,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some(crate::raw::String::from_static("as")),
+                    defname: Some(crate::raw::String::Static("as")),
                     arg: optional_node(rhs.take(2))?,
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -5983,7 +5999,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("language")),
+                defname: Some(crate::raw::String::Static("language")),
                 arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -5998,7 +6014,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some(crate::raw::String::from_static("language")),
+                    defname: Some(crate::raw::String::Static("language")),
                     arg: Some(Box::new(Node::String(rhs.take(2).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -6014,7 +6030,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("transform")),
+                defname: Some(crate::raw::String::Static("transform")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -6028,7 +6044,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("window")),
+                defname: Some(crate::raw::String::Static("window")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -6257,7 +6273,7 @@ pub(super) const ACTIONS: &[Action] = &[
             Value::from_node(
                 DefElem {
                     defnamespace: None,
-                    defname: Some(crate::raw::String::from_static("as")),
+                    defname: Some(crate::raw::String::Static("as")),
                     arg: Some(Box::new(Node::String(rhs.take(1).text()?))),
                     defaction: DefElemAction::DEFELEM_UNSPEC,
                     location: rhs.location(1),
@@ -8106,7 +8122,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("enabled")),
+                        defname: Some(crate::raw::String::Static("enabled")),
                         arg: Some(Box::new(Node::Boolean(true))),
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(1),
@@ -8129,7 +8145,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("enabled")),
+                        defname: Some(crate::raw::String::Static("enabled")),
                         arg: Some(Box::new(Node::Boolean(false))),
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(1),
@@ -8392,7 +8408,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("transaction_isolation")),
+                defname: Some(crate::raw::String::Static("transaction_isolation")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::String(rhs.take(3).text()?),
                     location: rhs.location(3),
@@ -8409,7 +8425,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("transaction_read_only")),
+                defname: Some(crate::raw::String::Static("transaction_read_only")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(1),
                     location: rhs.location(1),
@@ -8426,7 +8442,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("transaction_read_only")),
+                defname: Some(crate::raw::String::Static("transaction_read_only")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(0),
                     location: rhs.location(1),
@@ -8443,7 +8459,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("transaction_deferrable")),
+                defname: Some(crate::raw::String::Static("transaction_deferrable")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(1),
                     location: rhs.location(1),
@@ -8460,7 +8476,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("transaction_deferrable")),
+                defname: Some(crate::raw::String::Static("transaction_deferrable")),
                 arg: optional_node(Value::from_node(Node::AConst(AConst {
                     val: Literal::Integer(0),
                     location: rhs.location(1),
@@ -8561,7 +8577,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("tablespace")),
+                        defname: Some(crate::raw::String::Static("tablespace")),
                         arg: Some(Box::new(Node::String(rhs.take(6).text()?))),
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(6),
@@ -8642,7 +8658,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("force")),
+                defname: Some(crate::raw::String::Static("force")),
                 arg: None,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -8966,7 +8982,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 params: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("verbose")),
+                        defname: Some(crate::raw::String::Static("verbose")),
                         arg: None,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(2),
@@ -9008,7 +9024,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("verbose")),
+                        defname: Some(crate::raw::String::Static("verbose")),
                         arg: None,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(2),
@@ -9052,7 +9068,7 @@ pub(super) const ACTIONS: &[Action] = &[
                 options: vec![Value::from_node(
                     DefElem {
                         defnamespace: None,
-                        defname: Some(crate::raw::String::from_static("verbose")),
+                        defname: Some(crate::raw::String::Static("verbose")),
                         arg: None,
                         defaction: DefElemAction::DEFELEM_UNSPEC,
                         location: rhs.location(2),
@@ -9532,51 +9548,61 @@ pub(super) const ACTIONS: &[Action] = &[
     // OptTempTableName: TEMPORARY opt_table qualified_name
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(3).node()? else {
+            let Node::RangeVar(id) = rhs.take(3).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.relpersistence = (i32::from(b't')) as u8;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // OptTempTableName: LOCAL TEMPORARY opt_table qualified_name
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(4).node()? else {
+            let Node::RangeVar(id) = rhs.take(4).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.relpersistence = (i32::from(b't')) as u8;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // OptTempTableName: UNLOGGED opt_table qualified_name
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(3).node()? else {
+            let Node::RangeVar(id) = rhs.take(3).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.relpersistence = (i32::from(b'u')) as u8;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // OptTempTableName: TABLE qualified_name
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(2).node()? else {
+            let Node::RangeVar(id) = rhs.take(2).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.relpersistence = (i32::from(b'p')) as u8;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // OptTempTableName: qualified_name
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(1).node()? else {
+            let Node::RangeVar(id) = rhs.take(1).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.relpersistence = (i32::from(b'p')) as u8;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // sortby: a_expr USING qual_all_Op opt_nulls_order
@@ -9636,22 +9662,26 @@ pub(super) const ACTIONS: &[Action] = &[
     // table_ref: xmltable opt_alias_clause
     |rhs| {
         Ok({
-            let Node::RangeTableFunc(mut node) = rhs.take(1).node()? else {
+            let Node::RangeTableFunc(id) = rhs.take(1).node()? else {
                 return Err("expected RangeTableFunc".into());
             };
+            let mut node = id.load();
             node.alias = record!(rhs.take(2), Alias);
-            Value::from_node(Node::RangeTableFunc(node))
+            id.set(node);
+            Value::from_node(Node::RangeTableFunc(id))
         })
     },
     // table_ref: LATERAL_P xmltable opt_alias_clause
     |rhs| {
         Ok({
-            let Node::RangeTableFunc(mut node) = rhs.take(2).node()? else {
+            let Node::RangeTableFunc(id) = rhs.take(2).node()? else {
                 return Err("expected RangeTableFunc".into());
             };
+            let mut node = id.load();
             node.lateral = true;
             node.alias = record!(rhs.take(3), Alias);
-            Value::from_node(Node::RangeTableFunc(node))
+            id.set(node);
+            Value::from_node(Node::RangeTableFunc(id))
         })
     },
     // table_ref: select_with_parens opt_alias_clause
@@ -9679,22 +9709,26 @@ pub(super) const ACTIONS: &[Action] = &[
     // table_ref: json_table opt_alias_clause
     |rhs| {
         Ok({
-            let Node::JsonTable(mut node) = rhs.take(1).node()? else {
+            let Node::JsonTable(id) = rhs.take(1).node()? else {
                 return Err("expected JsonTable".into());
             };
+            let mut node = id.load();
             node.alias = record!(rhs.take(2), Alias);
-            Value::from_node(Node::JsonTable(node))
+            id.set(node);
+            Value::from_node(Node::JsonTable(id))
         })
     },
     // table_ref: LATERAL_P json_table opt_alias_clause
     |rhs| {
         Ok({
-            let Node::JsonTable(mut node) = rhs.take(2).node()? else {
+            let Node::JsonTable(id) = rhs.take(2).node()? else {
                 return Err("expected JsonTable".into());
             };
+            let mut node = id.load();
             node.alias = record!(rhs.take(3), Alias);
             node.lateral = true;
-            Value::from_node(Node::JsonTable(node))
+            id.set(node);
+            Value::from_node(Node::JsonTable(id))
         })
     },
     // joined_table: table_ref CROSS JOIN table_ref
@@ -9795,34 +9829,40 @@ pub(super) const ACTIONS: &[Action] = &[
     // relation_expr: qualified_name
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(1).node()? else {
+            let Node::RangeVar(id) = rhs.take(1).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.inh = true;
             node.alias = None;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // extended_relation_expr: ONLY qualified_name
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(2).node()? else {
+            let Node::RangeVar(id) = rhs.take(2).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.inh = false;
             node.alias = None;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // extended_relation_expr: ONLY '(' qualified_name ')'
     |rhs| {
         Ok({
-            let Node::RangeVar(mut node) = rhs.take(3).node()? else {
+            let Node::RangeVar(id) = rhs.take(3).node()? else {
                 return Err("expected RangeVar".into());
             };
+            let mut node = id.load();
             node.inh = false;
             node.alias = None;
-            Value::from_node(Node::RangeVar(node))
+            id.set(node);
+            Value::from_node(Node::RangeVar(id))
         })
     },
     // tablesample_clause: TABLESAMPLE func_name '(' expr_list ')' opt_repeatable_clause
@@ -9957,7 +9997,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("default")),
+                defname: Some(crate::raw::String::Static("default")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -9971,7 +10011,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("__pg__is_not_null")),
+                defname: Some(crate::raw::String::Static("__pg__is_not_null")),
                 arg: Some(Box::new(Node::Boolean(true))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -9985,7 +10025,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("__pg__is_not_null")),
+                defname: Some(crate::raw::String::Static("__pg__is_not_null")),
                 arg: Some(Box::new(Node::Boolean(false))),
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -9999,7 +10039,7 @@ pub(super) const ACTIONS: &[Action] = &[
         Ok(Value::from_node(
             DefElem {
                 defnamespace: None,
-                defname: Some(crate::raw::String::from_static("path")),
+                defname: Some(crate::raw::String::Static("path")),
                 arg: optional_node(rhs.take(2))?,
                 defaction: DefElemAction::DEFELEM_UNSPEC,
                 location: rhs.location(1),
@@ -10047,94 +10087,112 @@ pub(super) const ACTIONS: &[Action] = &[
     // Typename: SimpleTypename opt_array_bounds
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+            let Node::TypeName(id) = rhs.take(1).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.array_bounds = rhs.take(2).list()?;
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // Typename: SETOF SimpleTypename opt_array_bounds
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+            let Node::TypeName(id) = rhs.take(2).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.array_bounds = rhs.take(3).list()?;
             node.setof = true;
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // Typename: SimpleTypename ARRAY '[' Iconst ']'
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+            let Node::TypeName(id) = rhs.take(1).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.array_bounds = vec![Node::Integer(rhs.take(4).integer()?)];
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // Typename: SETOF SimpleTypename ARRAY '[' Iconst ']'
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+            let Node::TypeName(id) = rhs.take(2).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.array_bounds = vec![Node::Integer(rhs.take(5).integer()?)];
             node.setof = true;
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // Typename: SimpleTypename ARRAY
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+            let Node::TypeName(id) = rhs.take(1).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.array_bounds = vec![Node::Integer(-1)];
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // Typename: SETOF SimpleTypename ARRAY
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+            let Node::TypeName(id) = rhs.take(2).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.array_bounds = vec![Node::Integer(-1)];
             node.setof = true;
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // SimpleTypename: ConstInterval opt_interval
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+            let Node::TypeName(id) = rhs.take(1).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.typmods = rhs.take(2).list()?;
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // Numeric: FLOAT_P opt_float
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(2).node()? else {
+            let Node::TypeName(id) = rhs.take(2).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.location = rhs.location(1);
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // ConstBit: BitWithoutLength
     |rhs| {
         Ok({
-            let Node::TypeName(mut node) = rhs.take(1).node()? else {
+            let Node::TypeName(id) = rhs.take(1).node()? else {
                 return Err("expected TypeName".into());
             };
+            let mut node = id.load();
             node.typmods = Vec::new();
-            Value::from_node(Node::TypeName(node))
+            id.set(node);
+            Value::from_node(Node::TypeName(id))
         })
     },
     // a_expr: a_expr COLLATE any_name
@@ -10321,11 +10379,13 @@ pub(super) const ACTIONS: &[Action] = &[
     // c_expr: ARRAY array_expr
     |rhs| {
         Ok({
-            let Node::AArrayExpr(mut node) = rhs.take(2).node()? else {
+            let Node::AArrayExpr(id) = rhs.take(2).node()? else {
                 return Err("expected AArrayExpr".into());
             };
+            let mut node = id.load();
             node.location = rhs.location(1);
-            Value::from_node(Node::AArrayExpr(node))
+            id.set(node);
+            Value::from_node(Node::AArrayExpr(id))
         })
     },
     // c_expr: explicit_row
@@ -10559,11 +10619,13 @@ pub(super) const ACTIONS: &[Action] = &[
     // window_definition: ColId AS window_specification
     |rhs| {
         Ok({
-            let Node::WindowDef(mut node) = rhs.take(3).node()? else {
+            let Node::WindowDef(id) = rhs.take(3).node()? else {
                 return Err("expected WindowDef".into());
             };
+            let mut node = id.load();
             node.name = optional_text(rhs.take(1))?;
-            Value::from_node(Node::WindowDef(node))
+            id.set(node);
+            Value::from_node(Node::WindowDef(id))
         })
     },
     // func_arg_expr: param_name COLON_EQUALS a_expr

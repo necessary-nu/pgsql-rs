@@ -17,46 +17,54 @@ pub(super) enum Dml {
 pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     Ok(match op {
         Dml::MergeWhen => {
-            let Node::MergeWhenClause(mut action) = rhs.take(4).node()? else {
+            let Node::MergeWhenClause(action) = rhs.take(4).node()? else {
                 return Err("expected MERGE action".into());
             };
-            action.match_kind = MergeMatchKind(rhs.take(1).integer()?);
-            action.condition = rhs.take(2).optional()?;
+            action.set_field(
+                |node| &mut node.match_kind,
+                MergeMatchKind(rhs.take(1).integer()?),
+            );
+            action.set_field(|node| &mut node.condition, rhs.take(2).optional()?);
             Value::from_node(action.into())
         }
         Dml::Insert => {
-            let Node::InsertStmt(mut insert) = rhs.take(5).node()? else {
+            let Node::InsertStmt(insert) = rhs.take(5).node()? else {
                 return Err("expected InsertStmt".into());
             };
+            let mut record = insert.load();
             let Node::RangeVar(relation) = rhs.take(4).node()? else {
                 return Err("expected INSERT relation".into());
             };
-            insert.relation = Some(relation.into_box());
-            insert.on_conflict_clause = match rhs.take(6) {
+            record.relation = Some(relation);
+            record.on_conflict_clause = match rhs.take(6) {
                 Value::Empty => None,
-                Value::Node(Node::OnConflictClause(v)) => Some(v.into_box()),
+                Value::Node(Node::OnConflictClause(v)) => Some(v),
                 _ => return Err("expected ON CONFLICT".into()),
             };
-            insert.returning_clause = match rhs.take(7) {
+            record.returning_clause = match rhs.take(7) {
                 Value::Empty => None,
-                Value::Node(Node::ReturningClause(v)) => Some(v.into_box()),
+                Value::Node(Node::ReturningClause(v)) => Some(v),
                 _ => return Err("expected RETURNING".into()),
             };
-            insert.with_clause = match rhs.take(1) {
+            record.with_clause = match rhs.take(1) {
                 Value::Empty => None,
-                Value::Node(Node::WithClause(v)) => Some(v.into_box()),
+                Value::Node(Node::WithClause(v)) => Some(v),
                 _ => return Err("expected WITH".into()),
             };
+            insert.set(record);
             Value::from_node(insert.into())
         }
         Dml::RelationAlias(i) => {
-            let Node::RangeVar(mut relation) = rhs.take(1).node()? else {
+            let Node::RangeVar(relation) = rhs.take(1).node()? else {
                 return Err("expected relation".into());
             };
-            relation.alias = Some(Box::new(Alias {
-                aliasname: Some(rhs.take(i).text()?),
-                colnames: Vec::new(),
-            }));
+            relation.set_field(
+                |node| &mut node.alias,
+                Some(Box::new(Alias {
+                    aliasname: Some(rhs.take(i).text()?),
+                    colnames: Vec::new(),
+                })),
+            );
             Value::from_node(relation.into())
         }
         Dml::Target => {
@@ -73,30 +81,33 @@ pub(super) fn reduce(op: Dml, rhs: &mut Reduction<'_, Value>) -> Result<Value, F
             )
         }
         Dml::MultiAssignment => {
-            let mut targets = rhs.take(2).list()?;
+            let targets = rhs.take(2).list()?;
             let source = Arc::from(Box::new(rhs.take(5).node()?));
             let ncolumns =
                 i32::try_from(targets.len()).map_err(|_| "too many assignment targets")?;
-            for (target, colno) in targets.iter_mut().zip(1..=ncolumns) {
+            for (target, colno) in targets.iter().zip(1..=ncolumns) {
                 let Node::ResTarget(target) = target else {
                     return Err("expected assignment target".into());
                 };
-                target.val = Some(Box::new(
-                    MultiAssignRef {
-                        source: Some(source.clone()),
-                        colno,
-                        ncolumns,
-                    }
-                    .into(),
-                ));
+                target.set_field(
+                    |node| &mut node.val,
+                    Some(Box::new(
+                        MultiAssignRef {
+                            source: Some(source),
+                            colno,
+                            ncolumns,
+                        }
+                        .into(),
+                    )),
+                );
             }
             Value::from_list(targets)
         }
         Dml::Assignment => {
-            let Node::ResTarget(mut target) = rhs.take(1).node()? else {
+            let Node::ResTarget(target) = rhs.take(1).node()? else {
                 return Err("expected assignment target".into());
             };
-            target.val = Some(Box::new(rhs.take(3).node()?));
+            target.set_field(|node| &mut node.val, Some(Box::new(rhs.take(3).node()?)));
             Value::from_list(vec![target.into()])
         }
     })

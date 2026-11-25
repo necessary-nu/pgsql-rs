@@ -716,6 +716,22 @@ children (
                         text "Rebuilt commit 9bcf758 and repeated the complete gate on CPU 3. Median raw Rust/C times were 0.199/0.425 µs, 3.698/5.921 µs and 1.356/1.814 µs. All six performance checks passed. The final native probe matched all 54,471 reference outcomes and all 72 boundary cases. The warmed simple query and join each incurred zero system allocations."
                         after_done true
                     }
+
+                    {
+                        at 2026-11-25T16:56:33.278213225Z
+                        author "brendan@necessary.nu"
+                        kind @decision
+                        text "Keep the owning RawTree API and replace pointer-based grammar storage with typed arena indices. Compare the indexed parser against the optimized C reference and the previous Rust parser on all three workloads."
+                        after_done true
+                    }
+
+                    {
+                        at 2026-11-25T17:23:57.391052329Z
+                        author "brendan@necessary.nu"
+                        kind @note
+                        text "The indexed RawTree uses only safe Rust in pgsql-grammar. Seven interleaved release rounds on CPU 1 measured raw indexed Rust/C medians of 0.221/0.414 µs for SELECT 1, 4.346/5.836 µs for the join and 1.597/1.781 µs for the 54,266-query corpus. The previous Rust corpus median was 1.324 µs. All six raw and JSON targets passed, every benchmark JSON matched byte-for-byte, and all 54,471 reference outcomes and 72 additional nesting cases matched PostgreSQL. Full measurements are in tools/pg19/bench/raw-profile.md."
+                        after_done true
+                    }
                 )
             }
 

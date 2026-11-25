@@ -1,6 +1,7 @@
 use std::fmt::{self, Display, Write as _};
 use std::string::String as Output;
 
+use super::json_view::{Context, ListView, Pointer, TextView};
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,7 +22,8 @@ impl std::error::Error for EncodeError {}
 
 type Result = std::result::Result<(), EncodeError>;
 
-struct Writer {
+struct Writer<'a> {
+    context: &'a Context,
     text: Output,
     depth: u16,
 }
@@ -39,7 +41,7 @@ trait Object {
     fn fields(&self, out: &mut Writer) -> Result;
 }
 
-impl Writer {
+impl Writer<'_> {
     fn object(&mut self, fields: impl FnOnce(&mut Self) -> Result) -> Result {
         if self.depth == 128 {
             return Err(EncodeError::DepthLimit);
@@ -136,7 +138,11 @@ impl Writer {
     }
 
     fn write_string(&mut self, key: Key, value: &Option<String>) {
-        if let Some(s) = value.as_ref().filter(|s| !s.is_empty()) {
+        if let Some(s) = value
+            .as_ref()
+            .map(|s| self.context.string(s))
+            .filter(|s| !s.is_empty())
+        {
             self.key(key);
             self.string(s);
         }
@@ -147,18 +153,18 @@ impl Writer {
             self.key(key);
             self.object(|w| {
                 w.key(key!("sval"));
-                w.string(s);
+                w.string(w.context.string(s));
                 Ok(())
             })?;
         }
         Ok(())
     }
 
-    fn write_pointer<P: std::ops::Deref>(&mut self, key: Key, value: &Option<P>) -> Result
+    fn write_pointer<P: Pointer>(&mut self, key: Key, value: &Option<P>) -> Result
     where
         P::Target: Object + Sized,
     {
-        if let Some(node) = value.as_deref() {
+        if let Some(node) = value.as_ref().map(|p| p.resolve(self.context)) {
             self.write_specific_node(key, node)?;
         }
         Ok(())
@@ -185,7 +191,8 @@ impl Writer {
         Ok(())
     }
 
-    fn write_list(&mut self, key: Key, values: &[Node]) -> Result {
+    fn write_list(&mut self, key: Key, values: &ListView) -> Result {
+        let values = self.context.items(values);
         if !values.is_empty() {
             self.key(key);
             self.array(values, |w, n| w.object(|w| n.fields(w)))?;
@@ -207,7 +214,7 @@ impl Writer {
 
     fn write_bitmapset(&mut self, key: Key, set: &Bitmapset) -> Result {
         if !set.is_empty() {
-            self.numbers(key, set)?;
+            self.numbers(key, self.context.bitmap(set))?;
         }
         Ok(())
     }
@@ -239,7 +246,7 @@ macro_rules! json_records {
         impl Object for Node {
             fn fields(&self, out: &mut Writer) -> Result {
                 match self {
-                    $(Self::$name(n) => out.write_specific_node(key!($key), n.as_ref()),)*
+                    $(Self::$name(n) => out.write_specific_node(key!($key), n.resolve(out.context)),)*
                     Self::AConst(n) => out.write_specific_node(key!("A_Const"), n),
                     Self::Null | Self::XidList(_) => Ok(()),
                     Self::Integer(v) => scalar(out, key!("Integer"), |w| w.write_number(key!("ival"), v)),
@@ -248,10 +255,10 @@ macro_rules! json_records {
                     Self::BitString(v) => text_node(out, key!("BitString"), key!("bsval"), v),
                     Self::Boolean(v) => scalar(out, key!("Boolean"), |w| { w.key(key!("boolval")); w.text.push_str(if *v { "true" } else { "false" }); }),
                     Self::List(v) => { out.key(key!("List")); out.object(|w| {
-                        w.key(key!("items")); w.array(v, |w, n| w.object(|w| n.fields(w)))
+                        w.key(key!("items")); w.array(w.context.items(v), |w, n| w.object(|w| n.fields(w)))
                     }) }
-                    Self::IntList(v) => { out.key(key!("IntList")); out.object(|w| w.numbers(key!("items"), v)) }
-                    Self::OidList(v) => { out.key(key!("OidList")); out.object(|w| w.numbers(key!("items"), v)) }
+                    Self::IntList(v) => { out.key(key!("IntList")); out.object(|w| w.numbers(key!("items"), w.context.items(v))) }
+                    Self::OidList(v) => { out.key(key!("OidList")); out.object(|w| w.numbers(key!("items"), w.context.items(v))) }
                 }
             }
         }
@@ -266,10 +273,10 @@ fn scalar(out: &mut Writer, key: Key, fields: impl FnOnce(&mut Writer)) -> Resul
     })
 }
 
-fn text_node(out: &mut Writer, key: Key, field: Key, text: &str) -> Result {
+fn text_node(out: &mut Writer, key: Key, field: Key, text: &TextView) -> Result {
     scalar(out, key, |w| {
         w.key(field);
-        w.string(text)
+        w.string(w.context.string(text))
     })
 }
 
@@ -293,11 +300,15 @@ impl Object for AConst {
 include!("json-records.in");
 
 // [spec:pgq:req:codec.json-fields]
-pub fn node_json(node: &Node) -> std::result::Result<Output, EncodeError> {
+pub(crate) fn node_json_in(
+    node: &Node,
+    context: &Context,
+) -> std::result::Result<Output, EncodeError> {
     if matches!(node, Node::Null) {
         return Ok("null".into());
     }
     let mut w = Writer {
+        context,
         text: Output::with_capacity(256),
         depth: 0,
     };
@@ -306,8 +317,12 @@ pub fn node_json(node: &Node) -> std::result::Result<Output, EncodeError> {
 }
 
 // [spec:pgq:req:codec.json-envelope]
-pub fn statements_json(stmts: &[RawStmt]) -> std::result::Result<Output, EncodeError> {
+pub(crate) fn statements_json_in(
+    stmts: &[RawStmt],
+    context: &Context,
+) -> std::result::Result<Output, EncodeError> {
     let mut w = Writer {
+        context,
         text: Output::with_capacity(if stmts.is_empty() { 32 } else { 1024 }),
         depth: 0,
     };

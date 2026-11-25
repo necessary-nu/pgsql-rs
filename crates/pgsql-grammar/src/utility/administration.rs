@@ -9,7 +9,7 @@ use pgsql_engine::Reduction;
 
 pub(crate) fn security_mode(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
     let name = rhs.take(2).text()?;
-    let enabled = match name.as_str() {
+    let enabled = match name.owned().as_str() {
         "permissive" => true,
         "restrictive" => false,
         _ => {
@@ -64,7 +64,9 @@ pub(crate) fn identity_option(rhs: &mut Reduction<'_, Value>) -> Result<Value, F
     let Node::DefElem(def) = &node else {
         return Err("expected identity sequence option".into());
     };
-    if let Some(name @ ("as" | "restart" | "owned_by")) = def.defname.as_deref() {
+    if let Some(name @ ("as" | "restart" | "owned_by")) =
+        def.load().defname.map(String::owned).as_deref()
+    {
         return Err(Failure::At(
             format!("sequence option \"{name}\" not supported here"),
             "42601",
@@ -97,13 +99,15 @@ pub(crate) fn import_qualification(
 }
 
 pub(crate) fn import_schema(rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
-    let Node::ImportForeignSchemaStmt(mut stmt) = rhs.take(5).node()? else {
+    let Node::ImportForeignSchemaStmt(stmt) = rhs.take(5).node()? else {
         return Err("expected import qualification".into());
     };
-    stmt.remote_schema = Some(rhs.take(4).text()?);
-    stmt.server_name = Some(rhs.take(8).text()?);
-    stmt.local_schema = Some(rhs.take(10).text()?);
-    stmt.options = rhs.take(11).list()?;
+    let mut record = stmt.load();
+    record.remote_schema = Some(rhs.take(4).text()?);
+    record.server_name = Some(rhs.take(8).text()?);
+    record.local_schema = Some(rhs.take(10).text()?);
+    record.options = rhs.take(11).list()?;
+    stmt.set(record);
     Ok(Value::from_node(Node::ImportForeignSchemaStmt(stmt)))
 }
 
@@ -136,7 +140,7 @@ pub(crate) fn set_optional(
         (
             "timezone",
             Location::UNKNOWN,
-            optional_node(rhs.take(3))?.map(|v| v.into_inner()),
+            optional_node(rhs.take(3))?.map(|v| v.load()),
         )
     } else {
         let location = rhs.location(2);
@@ -218,10 +222,10 @@ pub(crate) fn foreign_table(
     partition: bool,
 ) -> Result<Value, Failure> {
     let rel = if if_not_exists { 7 } else { 4 };
-    let Some(mut relation) = record!(rhs.take(rel), RangeVar) else {
+    let Some(relation) = record!(rhs.take(rel), RangeVar) else {
         return Err("expected foreign relation".into());
     };
-    relation.relpersistence = b'p';
+    relation.set_field(|node| &mut node.relpersistence, b'p');
     let (table_elts, inh_relations, partbound, server) = if partition {
         (
             rhs.take(rel + 4).list()?,

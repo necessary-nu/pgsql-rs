@@ -1,5 +1,5 @@
 //! Native semantic actions for the patched PostgreSQL 19 grammar.
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 macro_rules! vec {
     ($($item:expr),* $(,)?) => { crate::raw::Vec::from([$($item),*]) };
 }
@@ -169,7 +169,7 @@ fn apply(op: Op, rhs: &mut Reduction<'_, Value>) -> Result<Value, Failure> {
                 (rhs.take(1).list()?, rhs.take(3))
             };
             if let Some(stmt) = next.optional()? {
-                list.push(stmt.into_inner());
+                list.push(stmt.load());
             }
             Value::from_list(list)
         }
@@ -281,11 +281,15 @@ pub fn parse(sql: &str, mode: ParseMode, options: Options) -> Result<Vec<Node>, 
             .map(Node::from)
             .collect());
     }
-    let region = raw::Region::new();
-    region.build(|| match parse_value(sql, mode, options)? {
-        Value::List(nodes) => Ok(nodes.iter().map(raw::materialize).collect()),
+    let (region, nodes) = raw::Region::build(|| match parse_value(sql, mode, options)? {
+        Value::List(nodes) => Ok(nodes),
         _ => Err(Error::InvalidOutput("start action did not return a list")),
-    })
+    });
+    Ok(nodes?
+        .slice(region.arena())
+        .iter()
+        .map(|node| raw::materialize(node, region.arena()))
+        .collect())
 }
 
 fn parse_value(sql: &str, mode: ParseMode, options: Options) -> Result<Value, Error> {
@@ -313,31 +317,34 @@ pub fn parse_statements(sql: &str, options: Options) -> Result<Vec<RawStmt>, Err
 /// Complete raw SQL tree. Its nodes and text live until the result is dropped.
 pub struct RawTree {
     statements: raw::StatementList,
-    _region: raw::Region,
+    region: raw::Region,
 }
 pub use raw::json::EncodeError;
 
 /// Read-only statement in a raw result.
 #[derive(Clone, Copy)]
-pub struct RawStatement<'tree>(&'tree raw::RawStmt);
+pub struct RawStatement<'tree> {
+    statement: &'tree raw::RawStmt,
+    arena: &'tree raw::Arena,
+}
 impl RawStatement<'_> {
     /// Copy this statement and its descendants into independently mutable nodes.
     pub fn to_owned(self) -> RawStmt {
-        raw::owned_statement(self.0)
+        raw::owned_statement(self.statement, self.arena)
     }
 
     pub fn tag(&self) -> Option<pgsql_nodes::NodeTag> {
-        self.0.stmt.as_deref()?.tag()
+        self.statement.stmt?.get(self.arena).tag()
     }
     pub fn location(&self) -> pgsql_nodes::Location {
-        self.0.stmt_location
+        self.statement.stmt_location
     }
     pub fn source_range(&self, source_len: usize) -> Option<std::ops::Range<usize>> {
-        self.0.source_range(source_len)
+        self.statement.source_range(source_len)
     }
     pub fn json(&self) -> Result<String, EncodeError> {
-        match self.0.stmt.as_deref() {
-            Some(n) => raw::json::node_json(n),
+        match self.statement.stmt.map(|id| id.get(self.arena)) {
+            Some(n) => raw::json::node_json_in(n, self.arena),
             None => Ok("null".into()),
         }
     }
@@ -357,40 +364,49 @@ impl std::fmt::Debug for RawTree {
 }
 impl RawTree {
     pub fn statements(&self) -> impl ExactSizeIterator<Item = RawStatement<'_>> {
-        self.statements.as_slice().iter().map(RawStatement)
+        self.statements
+            .slice(self.region.arena())
+            .iter()
+            .map(|statement| RawStatement {
+                statement,
+                arena: self.region.arena(),
+            })
     }
     pub fn json(&self) -> Result<String, EncodeError> {
-        raw::json::statements_json(self.statements.as_slice())
+        raw::json::statements_json_in(
+            self.statements.slice(self.region.arena()),
+            self.region.arena(),
+        )
     }
 
     pub fn len(&self) -> usize {
-        self.statements.as_slice().len()
+        self.statements.len()
     }
     pub fn is_empty(&self) -> bool {
-        self.statements.as_slice().is_empty()
+        self.len() == 0
     }
     /// Materialize independent PostgreSQL records and release the arena.
     pub fn into_owned(self) -> Vec<RawStmt> {
         self.statements
-            .into_statements()
+            .slice(self.region.arena())
             .iter()
-            .map(raw::owned_statement)
+            .map(|s| raw::owned_statement(s, self.region.arena()))
             .collect()
     }
 }
 /// Parse directly into a per-result arena.
 // [spec:pgq:req:grammar.parse-speed+1]
 pub fn parse_raw(sql: &str, options: Options) -> Result<RawTree, Error> {
-    let region = raw::Region::new();
-    let statements = region.build(|| match parse_value(sql, ParseMode::Sql, options)? {
-        Value::Statements(s) => Ok(s),
-        _ => Err(Error::InvalidOutput(
-            "default parse mode returned a non-statement",
-        )),
-    })?;
+    let (region, statements) =
+        raw::Region::build(|| match parse_value(sql, ParseMode::Sql, options)? {
+            Value::Statements(s) => Ok(s),
+            _ => Err(Error::InvalidOutput(
+                "default parse mode returned a non-statement",
+            )),
+        });
     Ok(RawTree {
-        statements,
-        _region: region,
+        statements: statements?,
+        region,
     })
 }
 

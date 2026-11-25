@@ -6,7 +6,7 @@ macro_rules! record {
     ($value:expr, $record:ident) => {
         match $value {
             Value::Empty => None,
-            Value::Node(Node::$record(v)) => Some(v.into_box()),
+            Value::Node(Node::$record(v)) => Some(v),
             _ => return Err(concat!("expected ", stringify!($record)).into()),
         }
     };
@@ -23,7 +23,7 @@ pub(crate) fn optional_text(value: Value) -> Result<Option<String>, Failure> {
     Ok(match value {
         Value::Empty => None,
         Value::Text(text) => Some(text),
-        Value::Keyword(word) => Some(String::from_static(word)),
+        Value::Keyword(word) => Some(String::Static(word)),
         _ => return Err("expected nullable text".into()),
     })
 }
@@ -40,10 +40,10 @@ fn any_relation(nodes: Vec<Node>, location: Location) -> Result<RangeVar, Failur
 }
 
 fn persistence(value: Value, storage: i32) -> Result<Value, Failure> {
-    let Node::RangeVar(mut range) = value.node()? else {
+    let Node::RangeVar(range) = value.node()? else {
         return Err("expected RangeVar".into());
     };
-    range.relpersistence = storage as u8;
+    range.set_field(|node| &mut node.relpersistence, storage as u8);
     Ok(Value::from_node(Node::RangeVar(range)))
 }
 
@@ -60,10 +60,10 @@ fn column_qualifiers(items: Vec<Node>) -> Result<ColumnQualifiers, Failure> {
                     return Err(Failure::At(
                         "multiple COLLATE clauses not allowed".to_owned(),
                         "42601",
-                        clause.location,
+                        clause.load().location,
                     ));
                 }
-                collation = Some(clause.into_box());
+                collation = Some(clause);
             }
             _ => return Err("expected a column constraint or collation".into()),
         }
@@ -76,7 +76,7 @@ fn dotted_name(nodes: Vec<Node>) -> Result<String, Failure> {
     for node in nodes {
         match node {
             Node::String(name) => names.push(name),
-            Node::AStar(_) => names.push(String::from_static("*")),
+            Node::AStar(_) => names.push(String::Static("*")),
             _ => return Err("expected dotted identifier".into()),
         }
     }
@@ -92,10 +92,10 @@ fn numeric_literal(node: Node) -> Result<Literal, Failure> {
 }
 
 fn with_arg_location(value: Value, location: Location) -> Result<Value, Failure> {
-    let Node::DefElem(mut option) = value.node()? else {
+    let Node::DefElem(option) = value.node()? else {
         return Err("expected DefElem".into());
     };
-    option.arg_location = location;
+    option.set_field(|node| &mut node.arg_location, location);
     Ok(Value::from_node(Node::DefElem(option)))
 }
 
